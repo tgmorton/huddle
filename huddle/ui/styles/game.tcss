@@ -1,0 +1,423 @@
+/* Huddle TUI - Posting Architecture Styling */
+/* Light theme with semantic colors and section patterns */
+
+/* ===== Color Palette ===== */
+$background: #ffffff;
+$surface: #f8f8f8;
+$surface-dark: #e8e8e8;
+$border: #d0d0d0;
+$border-focus: #2e7d32;
+$text: #1a1a1a;
+$text-muted: #666666;
+
+/* Accent Colors (Football themed) */
+$accent: #2e7d32;
+$accent-light: #4caf50;
+$warning: #f57c00;
+$error: #c62828;
+$success: #2e7d32;
+
+/* ===== Base Screen ===== */
+Screen {
+    background: $background;
+    color: $text;
+}
+
+/* ===== Section Pattern ===== */
+/* Base section styling with focus-within glow */
+.section {
+    border: round $border;
+    background: $surface;
+    border-title-color: $text-muted;
+    border-title-align: left;
+
+    &:focus-within {
+        border: round $border-focus;
+        border-title-color: $accent;
+        border-title-style: bold;
+    }
+}
+
+/* ===== State Classes ===== */
+/* Scoring play highlight */
+.-scoring {
+    border: round $warning;
+    border-title-color: $warning;
+}
+
+/* Turnover highlight */
+.-turnover {
+    border: round $error;
+    border-title-color: $error;
+}
+
+/* First down highlight */
+.-first-down {
+    border: round $success;
+    border-title-color: $success;
+}
+
+/* Paused state */
+.-paused {
+    opacity: 0.7;
+}
+
+/* ===== Scoreboard ===== */
+#scoreboard {
+    dock: top;
+    height: 3;
+    background: $surface-dark;
+    color: $text;
+    text-align: center;
+    padding: 0 2;
+    border-bottom: solid $border;
+}
+
+/* ===== Main Content Area ===== */
+#main-content {
+    height: 1fr;
+    padding: 1;
+    background: $background;
+}
+
+/* ===== Play Log ===== */
+#play-log {
+    height: 1fr;
+    padding: 1;
+    overflow-y: auto;
+}
+
+#play-log-content {
+    width: 100%;
+    color: $text;
+}
+
+/* ===== Field Area (Field + Formation View) ===== */
+#field-area {
+    height: auto;
+    display: none;
+    align: center middle;
+}
+
+#field-view {
+    width: auto;
+    height: auto;
+    border: round $border;
+    border-title-align: center;
+    padding: 0 1;
+    background: $surface;
+}
+
+#field-view:focus-within {
+    border: round $accent;
+}
+
+/* Formation View - follows section pattern */
+#formation-view {
+    width: 48;
+    height: auto;
+    margin-left: 1;
+    border: round $border;
+    border-title-color: $text-muted;
+    border-title-align: center;
+    background: $surface;
+    color: $text;
+    padding: 0 1;
+}
+
+#formation-view:focus-within {
+    border: round $accent;
+    border-title-color: $accent;
+    border-title-style: bold;
+}
+
+#formation-diagram {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+#defensive-diagram {
+    width: 100%;
+    height: auto;
+}
+
+.formation-label {
+    text-align: center;
+    color: $text-muted;
+    text-style: bold;
+    padding: 0 0 0 0;
+    height: 1;
+}
+
+/* ===== Stats Panel ===== */
+#stats-panel {
+    height: 1fr;
+    padding: 1;
+}
+
+#away-stats-col, #home-stats-col {
+    width: 1fr;
+    padding: 0 1;
+    color: $text;
+}
+
+.stats-separator {
+    width: 3;
+    text-align: center;
+    color: $text-muted;
+}
+
+/* ===== Play Caller ===== */
+#play-caller {
+    height: 3;
+    padding: 0 1;
+    background: $surface-dark;
+    border-top: solid $border;
+}
+
+#play-caller Button {
+    margin: 0 1;
+    min-width: 10;
+}
+
+.call-label {
+    padding: 1;
+    color: $text;
+}
+
+/* ===== Pacing Control ===== */
+#pacing-control {
+    height: 3;
+    padding: 0 1;
+    align: center middle;
+    background: $surface;
+    border-top: solid $border;
+}
+
+#pacing-control Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+#pacing-control .pacing-btn.selected {
+    background: $accent;
+    color: $background;
+}
+
+.separator {
+    padding: 0 1;
+    color: $text-muted;
+}
+
+/* ===== Layout: Play-by-Play Focus ===== */
+#main-content.layout-play_by_play #field-area {
+    display: none;
+}
+
+#main-content.layout-play_by_play #stats-panel {
+    display: none;
+}
+
+#main-content.layout-play_by_play #player-stats-panel {
+    display: none;
+}
+
+#main-content.layout-play_by_play #depth-chart-panel {
+    display: none;
+}
+
+#main-content.layout-play_by_play #play-log {
+    height: 1fr;
+}
+
+/* ===== Layout: Field View Focus ===== */
+#main-content.layout-field #stats-panel {
+    display: none;
+}
+
+#main-content.layout-field #player-stats-panel {
+    display: none;
+}
+
+#main-content.layout-field #depth-chart-panel {
+    display: none;
+}
+
+#main-content.layout-field #field-area {
+    display: horizontal;
+    height: 1fr;
+    align: center middle;
+}
+
+#main-content.layout-field #field-view {
+    height: 10;
+    margin: 0 2;
+}
+
+#main-content.layout-field #formation-view {
+    height: auto;
+}
+
+#main-content.layout-field #play-log {
+    height: 8;
+    max-height: 8;
+}
+
+/* ===== Layout: Stats Dashboard ===== */
+#main-content.layout-stats #field-area {
+    display: none;
+}
+
+#main-content.layout-stats #stats-panel {
+    height: 1fr;
+    margin-bottom: 1;
+}
+
+#main-content.layout-stats #play-log {
+    height: 10;
+}
+
+#main-content.layout-stats #player-stats-panel {
+    display: none;
+}
+
+#main-content.layout-stats #depth-chart-panel {
+    display: none;
+}
+
+/* ===== Layout: Player Stats ===== */
+#main-content.layout-players #field-area {
+    display: none;
+}
+
+#main-content.layout-players #stats-panel {
+    display: none;
+}
+
+#main-content.layout-players #play-log {
+    display: none;
+}
+
+#main-content.layout-players #depth-chart-panel {
+    display: none;
+}
+
+#main-content.layout-players #player-stats-panel {
+    display: block;
+    height: 1fr;
+}
+
+/* ===== Player Stats Panel ===== */
+#player-stats-panel {
+    display: none;
+    height: 1fr;
+    padding: 1;
+}
+
+#away-player-stats, #home-player-stats {
+    width: 1fr;
+    height: 100%;
+    padding: 0 1;
+    color: $text;
+}
+
+#team-player-stats-content {
+    width: 100%;
+    color: $text;
+}
+
+.player-stats-separator {
+    width: 3;
+    text-align: center;
+    color: $text-muted;
+}
+
+/* ===== Depth Chart Panel ===== */
+#depth-chart-panel {
+    display: none;
+    height: 1fr;
+    padding: 1;
+}
+
+#away-depth-col, #home-depth-col {
+    width: 1fr;
+    padding: 0 1;
+    color: $text;
+}
+
+.depth-chart-separator {
+    width: 3;
+    text-align: center;
+    color: $text-muted;
+}
+
+/* ===== Layout: Depth Chart ===== */
+#main-content.layout-depth_chart #field-area {
+    display: none;
+}
+
+#main-content.layout-depth_chart #stats-panel {
+    display: none;
+}
+
+#main-content.layout-depth_chart #play-log {
+    display: none;
+}
+
+#main-content.layout-depth_chart #player-stats-panel {
+    display: none;
+}
+
+#main-content.layout-depth_chart #depth-chart-panel {
+    display: block;
+    height: 1fr;
+}
+
+/* ===== Header/Footer ===== */
+Header {
+    background: $surface-dark;
+    color: $text;
+}
+
+Footer {
+    background: $surface-dark;
+    color: $text;
+
+    .footer-key--key {
+        background: $accent;
+        color: #ffffff;
+    }
+
+    .footer-key--description {
+        background: $surface-dark;
+        color: $text;
+    }
+}
+
+FooterKey {
+    background: $surface-dark;
+    color: $text;
+
+    .footer-key--key {
+        background: $accent;
+        color: #ffffff;
+    }
+
+    .footer-key--description {
+        background: $surface-dark;
+        color: $text;
+    }
+}
+
+FooterKey:hover {
+    background: $surface;
+}
+
+/* ===== Scrollbar Styling ===== */
+* {
+    scrollbar-color: $accent 30%;
+    scrollbar-background: $surface;
+    scrollbar-color-active: $accent;
+    scrollbar-color-hover: $accent-light;
+}
