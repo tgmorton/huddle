@@ -1,0 +1,105 @@
+.scoreboard {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 8px;
+  padding: 16px 24px;
+  color: #fff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.scoreboard--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  color: #888;
+}
+
+.scoreboard__teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.scoreboard__team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.scoreboard__team--possession {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--team-color, #fff);
+}
+
+.scoreboard__team-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--team-color, #fff);
+}
+
+.scoreboard__team-score {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.scoreboard__team-timeouts {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #ffd700;
+}
+
+.scoreboard__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.scoreboard__clock {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.scoreboard__quarter {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.scoreboard__time {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreboard__down {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.scoreboard__down-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4ecdc4;
+}
+
+.scoreboard__field-pos {
+  font-size: 12px;
+  color: #888;
+}

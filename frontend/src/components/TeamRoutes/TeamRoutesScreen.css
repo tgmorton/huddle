@@ -1,0 +1,465 @@
+/* Team Route Simulation Styles */
+
+.team-routes-screen {
+  min-height: 100vh;
+  background: #1a1a2e;
+  color: #fff;
+  padding: 20px;
+}
+
+.team-routes-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.team-routes-header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #fff;
+}
+
+.team-routes-header p {
+  color: #888;
+  margin: 0;
+}
+
+.session-id {
+  font-family: monospace;
+  font-size: 12px;
+  color: #666;
+  background: #2a2a3e;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  color: white;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.badge.formation {
+  background: #8b5cf6;
+}
+
+.badge.coverage {
+  background: #f97316;
+}
+
+.badge.concept {
+  background: #22c55e;
+}
+
+.end-btn {
+  margin-left: auto;
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.end-btn:hover {
+  background: #dc2626;
+}
+
+/* Setup Screen */
+.team-routes-setup {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #2a2a3e;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 25px;
+}
+
+.setup-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.setup-section h3 {
+  margin: 0 0 5px 0;
+  font-size: 13px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #444;
+}
+
+.setup-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup-option select {
+  width: 100%;
+  padding: 10px;
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.setup-option select:hover {
+  border-color: #666;
+}
+
+.create-btn {
+  grid-column: 1 / -1;
+  padding: 14px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 10px;
+}
+
+.create-btn:hover {
+  background: #2563eb;
+}
+
+/* Error Display */
+.error {
+  grid-column: 1 / -1;
+  margin-top: 15px;
+  padding: 10px;
+  background: #7f1d1d;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+/* Main Content Layout */
+.team-routes-content {
+  display: flex;
+  gap: 20px;
+}
+
+.team-routes-main {
+  flex: 1;
+}
+
+.team-routes-canvas {
+  background: #0a0a14;
+  border-radius: 8px;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.canvas-container {
+  display: block;
+}
+
+/* Controls */
+.team-routes-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.control-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn.start {
+  background: #22c55e;
+  color: white;
+}
+
+.control-btn.start:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.control-btn.start:disabled {
+  background: #374151;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.control-btn.reset {
+  background: #6b7280;
+  color: white;
+}
+
+.control-btn.reset:hover {
+  background: #4b5563;
+}
+
+.tick-info {
+  margin-top: 10px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #888;
+}
+
+/* Sidebar */
+.team-routes-sidebar {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+/* Summary Panel */
+.summary-panel {
+  background: #2a2a3e;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.summary-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.result-counts {
+  display: flex;
+  gap: 12px;
+}
+
+.result-count {
+  flex: 1;
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: 6px;
+  background: #1a1a2e;
+}
+
+.result-count .count {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.result-count .label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.result-count.open .count {
+  color: #22c55e;
+}
+
+.result-count.contested .count {
+  color: #f59e0b;
+}
+
+.result-count.covered .count {
+  color: #ef4444;
+}
+
+/* Matchups Panel */
+.matchups-panel {
+  background: #2a2a3e;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.matchups-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.matchup-card {
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: #1a1a2e;
+  border-left: 3px solid #666;
+}
+
+.matchup-card:last-child {
+  margin-bottom: 0;
+}
+
+.matchup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.matchup-header .position {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.result-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  color: white;
+}
+
+.matchup-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #888;
+}
+
+.matchup-details .route-type {
+  text-transform: capitalize;
+}
+
+.matchup-details .separation {
+  font-family: monospace;
+}
+
+/* Defenders Panel */
+.defenders-panel {
+  background: #2a2a3e;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.defenders-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.defender-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background: rgba(249, 115, 22, 0.1);
+  border-left: 3px solid #f97316;
+}
+
+.defender-card:last-child {
+  margin-bottom: 0;
+}
+
+.defender-card .position {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f97316;
+}
+
+.defender-card .assignment {
+  font-size: 11px;
+  color: #888;
+  text-transform: capitalize;
+}
+
+/* Legend */
+.legend {
+  background: #2a2a3e;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.legend h3 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-item .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.legend-item .dot.wr {
+  background: #22c55e;
+}
+
+.legend-item .dot.db {
+  background: #f97316;
+  border-radius: 2px;
+}
+
+.legend-item .dot.break {
+  background: #fbbf24;
+}
+
+.legend-item .line {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.legend-item .line.route {
+  background: #3b82f6;
+}
+
+/* Scrollbar styling for sidebar */
+.team-routes-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.team-routes-sidebar::-webkit-scrollbar-track {
+  background: #1a1a2e;
+  border-radius: 3px;
+}
+
+.team-routes-sidebar::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
+.team-routes-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

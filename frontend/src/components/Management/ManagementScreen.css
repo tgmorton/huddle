@@ -1,0 +1,147 @@
+.management-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #0f172a;
+  color: #e4e4e7;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Loading/Error States */
+.management-screen--loading,
+.management-screen--error,
+.management-screen--disconnected {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.management-screen__loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.management-screen__spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #374151;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.management-screen__loading-text {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.management-screen__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  background: #1f2937;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.management-screen__error-icon {
+  font-size: 3rem;
+}
+
+.management-screen__error-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.management-screen__error-message {
+  font-size: 0.875rem;
+  color: #ef4444;
+}
+
+.management-screen__retry-btn {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.management-screen__retry-btn:hover {
+  background: #2563eb;
+}
+
+.management-screen__disconnected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.management-screen__disconnected-icon {
+  font-size: 2rem;
+}
+
+.management-screen__disconnected-text {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Main Content Layout */
+.management-screen__content {
+  display: flex;
+  flex: 1;
+  min-height: 0; /* Critical for flex children to scroll */
+  overflow: hidden;
+}
+
+.management-screen__panel {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.management-screen__clipboard {
+  width: 350px;
+  min-height: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .management-screen__clipboard {
+    width: 300px;
+  }
+}
+
+@media (max-width: 700px) {
+  .management-screen__content {
+    flex-direction: column;
+  }
+
+  .management-screen__clipboard {
+    width: 100%;
+    height: 50%;
+  }
+}

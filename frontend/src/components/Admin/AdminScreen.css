@@ -1,0 +1,1573 @@
+/**
+ * AdminScreen Styles
+ */
+
+.admin-screen {
+  display: flex;
+  height: 100vh;
+  background: #0f0f0f;
+  color: #e5e5e5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+.admin-screen--loading,
+.admin-screen--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-loader {
+  font-size: 1.5rem;
+  color: #888;
+}
+
+.admin-empty {
+  text-align: center;
+  max-width: 700px;
+}
+
+.admin-empty h2 {
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.admin-empty > p {
+  margin-bottom: 2rem;
+  color: #888;
+}
+
+.admin-empty__options {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.admin-empty__option {
+  flex: 1;
+  max-width: 280px;
+  padding: 1.5rem;
+  background: #1a1a2e;
+  border-radius: 8px;
+  border: 1px solid #2a2a4e;
+}
+
+.admin-empty__option h3 {
+  color: #fff;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.admin-empty__option p {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+  min-height: 3em;
+}
+
+.admin-empty__option .admin-btn {
+  width: 100%;
+}
+
+/* Buttons */
+.admin-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-btn--primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.admin-btn--primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.admin-btn--secondary {
+  background: #374151;
+  color: #e5e5e5;
+}
+
+.admin-btn--secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: 240px;
+  background: #1a1a1a;
+  border-right: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-sidebar__header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.admin-sidebar__header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.admin-sidebar__season {
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.admin-nav {
+  flex: 1;
+  padding: 1rem 0;
+}
+
+.admin-nav__item {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  color: #888;
+  text-align: left;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-nav__item:hover {
+  background: #252525;
+  color: #e5e5e5;
+}
+
+.admin-nav__item.active {
+  background: #333;
+  color: #fff;
+  border-left: 3px solid #3b82f6;
+}
+
+.admin-sidebar__footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #333;
+}
+
+/* Main Content */
+.admin-main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  height: 100%;
+}
+
+/* Breadcrumb */
+.admin-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
+}
+
+.admin-breadcrumb button {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.admin-breadcrumb span {
+  color: #888;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Error */
+.admin-error {
+  background: #7f1d1d;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-error button {
+  background: none;
+  border: none;
+  color: #fca5a5;
+  cursor: pointer;
+}
+
+/* Loading Overlay */
+.admin-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 1.25rem;
+}
+
+/* Dashboard */
+.admin-dashboard h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.admin-dashboard h3 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-stat-card {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.admin-stat-card__value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.admin-stat-card__label {
+  color: #888;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Conference Grid */
+.admin-conference-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.admin-conference-column h4 {
+  margin-bottom: 1rem;
+  color: #888;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-team-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-team-row:hover {
+  background: #252525;
+}
+
+.admin-team-row__color {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+}
+
+.admin-team-row__abbr {
+  font-weight: bold;
+  color: #fff;
+  width: 40px;
+}
+
+.admin-team-row__name {
+  flex: 1;
+}
+
+.admin-team-row__ratings {
+  color: #888;
+  font-size: 0.75rem;
+}
+
+/* Teams Grid */
+.admin-teams h2 {
+  margin-bottom: 1rem;
+}
+
+.admin-filters {
+  margin-bottom: 1.5rem;
+}
+
+.admin-filters select {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #e5e5e5;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.admin-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.admin-team-card {
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+}
+
+.admin-team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.admin-team-card__header {
+  padding: 1rem;
+  text-align: center;
+}
+
+.admin-team-card__abbr {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.admin-team-card__body {
+  padding: 1rem;
+}
+
+.admin-team-card__name {
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.admin-team-card__division {
+  color: #888;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-team-card__ratings {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.admin-team-card__roster {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+/* Team Detail */
+.admin-team-detail__header {
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.admin-team-detail__header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.admin-team-detail__meta {
+  display: flex;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.admin-team-detail__qb {
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+/* Roster Table */
+.admin-roster__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.admin-roster__header h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.admin-roster__table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-roster__table th,
+.admin-roster__table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.admin-roster__table th {
+  background: #252525;
+  color: #888;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-roster__row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-roster__row:hover {
+  background: #252525;
+}
+
+.admin-roster__row td {
+  border-top: 1px solid #333;
+}
+
+/* Player Detail */
+.admin-player-detail__header {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.admin-player-detail__jersey {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #fff;
+  min-width: 80px;
+  text-align: center;
+}
+
+.admin-player-detail__info {
+  flex: 1;
+}
+
+.admin-player-detail__info h2 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+}
+
+.admin-player-detail__meta {
+  display: flex;
+  gap: 0.5rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.admin-player-detail__ratings {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.admin-player-detail__overall,
+.admin-player-detail__potential {
+  text-align: center;
+}
+
+.admin-player-detail__overall span,
+.admin-player-detail__potential span {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.admin-player-detail__overall label,
+.admin-player-detail__potential label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.admin-player-detail__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-player-detail__info-row {
+  display: flex;
+  gap: 1.5rem;
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.admin-player-detail__background {
+  flex-shrink: 0;
+  min-width: 200px;
+}
+
+.admin-player-detail__background h3,
+.admin-player-detail__attributes h3 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.admin-player-detail__attributes {
+  flex: 1;
+}
+
+.admin-player-detail__section {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.admin-player-detail__section h3 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.admin-player-detail__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-player-detail__fields label {
+  color: #888;
+  margin-right: 0.5rem;
+}
+
+/* Attributes - Boxed Display */
+.admin-attributes-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-attribute-box {
+  background: #252525;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  text-align: center;
+  min-width: 80px;
+}
+
+.admin-attribute-box--secondary {
+  background: #1f1f1f;
+}
+
+.admin-attribute-box__value {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.admin-attribute-box__label {
+  font-size: 0.6rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 0.25rem;
+  line-height: 1.2;
+}
+
+.admin-btn--text {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.admin-btn--text:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+/* Standings */
+.admin-standings h2 {
+  margin-bottom: 1rem;
+}
+
+.admin-standings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+}
+
+.admin-division-standings {
+  background: #1a1a1a;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.admin-division-standings h3 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.admin-division-standings table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-division-standings th,
+.admin-division-standings td {
+  padding: 0.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-division-standings th {
+  color: #888;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.admin-standings__row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-standings__row:hover {
+  background: #252525;
+}
+
+.admin-standings__row td {
+  border-top: 1px solid #333;
+}
+
+.admin-standings__row .positive {
+  color: #22c55e;
+}
+
+.admin-standings__row .negative {
+  color: #ef4444;
+}
+
+/* Players Tables */
+.admin-players-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-players-table th,
+.admin-players-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.admin-players-table th {
+  background: #252525;
+  color: #888;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.admin-players-table__row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-players-table__row:hover {
+  background: #252525;
+}
+
+.admin-players-table__row td {
+  border-top: 1px solid #333;
+}
+
+/* Simulation View */
+.admin-simulate h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.admin-simulate h3 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.admin-sim-status {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-sim-controls {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.admin-sim-controls h3 {
+  margin-top: 0;
+}
+
+.admin-sim-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-sim-results {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.admin-sim-results h3 {
+  margin-top: 0;
+}
+
+.admin-sim-week {
+  margin-bottom: 1.5rem;
+}
+
+.admin-sim-week:last-child {
+  margin-bottom: 0;
+}
+
+.admin-sim-week h4 {
+  color: #888;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-sim-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.admin-sim-game {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #252525;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.admin-sim-game__at {
+  color: #666;
+}
+
+.admin-sim-game .winner {
+  font-weight: bold;
+  color: #22c55e;
+}
+
+.admin-sim-game__ot {
+  color: #f97316;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-left: auto;
+}
+
+/* Playoff Picture */
+.admin-playoff-picture {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.admin-playoff-picture h3 {
+  margin-top: 0;
+}
+
+.admin-playoff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.admin-playoff-conference h4 {
+  color: #3b82f6;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.admin-playoff-conference table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-playoff-conference th,
+.admin-playoff-conference td {
+  padding: 0.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-playoff-conference th {
+  color: #888;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.admin-playoff-conference tbody tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-playoff-conference tbody tr:hover {
+  background: #252525;
+}
+
+.admin-playoff-conference tbody tr td {
+  border-top: 1px solid #333;
+}
+
+.admin-playoff-conference .division-winner td:first-child {
+  color: #22c55e;
+  font-weight: bold;
+}
+
+.admin-playoff-conference .wild-card td:first-child {
+  color: #eab308;
+}
+
+/* Schedule View */
+.admin-schedule h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.admin-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.admin-schedule-game {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.2s;
+}
+
+.admin-schedule-game.played {
+  cursor: pointer;
+}
+
+.admin-schedule-game.played:hover {
+  background: #252525;
+  transform: translateY(-2px);
+}
+
+.admin-schedule-game.upcoming {
+  opacity: 0.7;
+}
+
+.admin-schedule-game__week {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.admin-schedule-game__matchup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.admin-schedule-game__matchup .winner {
+  font-weight: bold;
+  color: #22c55e;
+}
+
+.admin-schedule-game__at {
+  color: #666;
+}
+
+.admin-schedule-game__type {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-schedule-game__type .tag {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: #333;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.admin-schedule-game__type .tag.upcoming {
+  background: #1e3a5f;
+  color: #60a5fa;
+}
+
+/* Game Detail View */
+.admin-game-detail__header {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.admin-game-detail__header h2 {
+  margin: 0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-game-detail__header .ot-tag {
+  font-size: 0.75rem;
+  background: #f97316;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.admin-game-detail__meta {
+  color: #888;
+  margin-top: 0.5rem;
+}
+
+.admin-game-detail__stats {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.admin-game-detail__stats h3 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+}
+
+.admin-game-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-game-stats-table th,
+.admin-game-stats-table td {
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.admin-game-stats-table th {
+  color: #fff;
+  font-size: 0.9rem;
+  background: #252525;
+}
+
+.admin-game-stats-table td {
+  border-top: 1px solid #333;
+}
+
+.admin-game-stats-table td:nth-child(2) {
+  color: #888;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.admin-game-detail__scoring {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.admin-game-detail__scoring h3 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+}
+
+.admin-scoring-plays {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-scoring-play {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #252525;
+  border-radius: 6px;
+}
+
+.admin-scoring-play__quarter {
+  font-weight: bold;
+  color: #3b82f6;
+  min-width: 40px;
+}
+
+.admin-scoring-play__info {
+  flex: 1;
+}
+
+.admin-scoring-play__desc {
+  color: #e5e5e5;
+  font-size: 0.9rem;
+}
+
+.admin-scoring-play__score {
+  color: #888;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Stats View */
+.admin-stats h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.admin-stats-leaders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.admin-stats-category {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.admin-stats-category h3 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.admin-stats-category table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-stats-category th,
+.admin-stats-category td {
+  padding: 0.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-stats-category th {
+  color: #888;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.admin-stats-category tbody tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-stats-category tbody tr:hover {
+  background: #252525;
+}
+
+.admin-stats-category tbody tr td {
+  border-top: 1px solid #333;
+}
+
+.admin-stats-category td:first-child {
+  color: #888;
+  font-weight: bold;
+}
+
+.admin-stats-category td:last-child {
+  font-weight: bold;
+  color: #22c55e;
+}
+
+/* Team Tabs */
+.admin-team-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-team-tab {
+  flex: 1;
+  padding: 1rem;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-team-tab:hover {
+  background: #252525;
+  color: #e5e5e5;
+}
+
+.admin-team-tab.active {
+  background: #333;
+  color: #fff;
+  border-bottom: 2px solid #3b82f6;
+}
+
+/* Team Stats */
+.admin-team-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-team-stats__section {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.admin-team-stats__section h3 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.admin-team-stats__section table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-team-stats__section th,
+.admin-team-stats__section td {
+  padding: 0.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-team-stats__section th {
+  color: #888;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.admin-team-stats__section tbody tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-team-stats__section tbody tr:hover {
+  background: #252525;
+}
+
+.admin-team-stats__section tbody tr td {
+  border-top: 1px solid #333;
+}
+
+.admin-no-stats {
+  background: #1a1a1a;
+  padding: 3rem;
+  border-radius: 8px;
+  text-align: center;
+  color: #888;
+}
+
+/* Player Stats */
+.admin-player-stats {
+  grid-column: 1 / -1;
+}
+
+.admin-player-stats__category {
+  margin-bottom: 1.5rem;
+}
+
+.admin-player-stats__category:last-child {
+  margin-bottom: 0;
+}
+
+.admin-player-stats__category h4 {
+  margin: 0 0 0.75rem 0;
+  color: #888;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-player-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.admin-player-stat {
+  background: #252525;
+  padding: 1rem;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.admin-player-stat__value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.admin-player-stat__label {
+  font-size: 0.7rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* Draft View */
+.admin-draft h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.admin-draft h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.admin-draft-setup {
+  background: #1a1a1a;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.admin-draft-setup p {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.admin-draft-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.admin-draft-option {
+  background: #252525;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.admin-draft-option h4 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+}
+
+.admin-draft-option p {
+  margin: 0 0 1rem 0;
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.admin-draft-warning {
+  color: #ef4444 !important;
+  font-size: 0.75rem !important;
+  margin-top: 0.5rem !important;
+}
+
+.admin-draft-ready {
+  background: #1a1a1a;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.admin-draft-info {
+  margin-bottom: 2rem;
+}
+
+.admin-draft-meta {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  color: #888;
+  margin-top: 0.5rem;
+}
+
+.admin-draft-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.admin-draft-live {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-draft-current {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-draft-status {
+  display: flex;
+  gap: 1rem;
+}
+
+.admin-draft-status .admin-stat-card {
+  min-width: 100px;
+}
+
+.admin-draft-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.admin-draft-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .admin-draft-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-draft-available,
+.admin-draft-picks {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.admin-draft-available__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.admin-draft-available__header h3 {
+  margin: 0;
+}
+
+.admin-draft-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-draft-table th,
+.admin-draft-table td {
+  padding: 0.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-draft-table th {
+  color: #888;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+}
+
+.admin-draft-table tbody tr {
+  border-bottom: 1px solid #252525;
+}
+
+.admin-draft-table tbody tr:hover {
+  background: #252525;
+}
+
+.admin-btn--small {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.admin-btn--small:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.admin-btn--small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-draft-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-draft-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #252525;
+  border-radius: 6px;
+}
+
+.admin-draft-pick-item__number {
+  font-size: 0.75rem;
+  color: #888;
+  min-width: 60px;
+}
+
+.admin-draft-pick-item__team {
+  font-weight: bold;
+  color: #3b82f6;
+  min-width: 50px;
+}
+
+.admin-draft-pick-item__player {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-draft-pick-item__player strong {
+  color: #fff;
+}
+
+.admin-draft-pick-item__player span {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.admin-draft-complete {
+  background: #1a1a1a;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.admin-draft-complete h3 {
+  color: #22c55e;
+  margin-bottom: 0.5rem;
+}
+
+.admin-draft-complete p {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.admin-draft-results {
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.admin-draft-results h4 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+}
+
+.admin-draft-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #252525;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-draft-results-table th,
+.admin-draft-results-table td {
+  padding: 0.5rem 1rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-draft-results-table th {
+  background: #333;
+  color: #888;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.admin-draft-results-table tbody tr {
+  border-top: 1px solid #333;
+}
+
+.admin-draft-results-table tbody tr:hover {
+  background: #333;
+}

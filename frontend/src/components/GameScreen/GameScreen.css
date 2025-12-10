@@ -1,0 +1,115 @@
+.game-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0f0f1a;
+  color: #fff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.game-screen--no-game {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-screen__welcome {
+  text-align: center;
+  padding: 40px;
+}
+
+.game-screen__welcome h1 {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.game-screen__welcome p {
+  font-size: 16px;
+  color: #888;
+  margin: 0 0 32px;
+}
+
+.game-screen__create-btn {
+  padding: 16px 48px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-screen__create-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(78, 205, 196, 0.3);
+}
+
+.game-screen__create-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.game-screen__error {
+  margin-top: 16px;
+  color: #f44336;
+  font-size: 14px;
+}
+
+/* Header */
+.game-screen__header {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Main content */
+.game-screen__main {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.game-screen__left-panel {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.game-screen__sidebar {
+  flex: 1;
+  min-width: 320px;
+  max-width: 400px;
+  overflow-y: auto;
+}
+
+/* Footer */
+.game-screen__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-screen__status {
+  font-size: 12px;
+}
+
+.game-screen__status--connected {
+  color: #4caf50;
+}
+
+.game-screen__status--disconnected {
+  color: #f44336;
+}

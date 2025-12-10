@@ -1,0 +1,115 @@
+.stats-panel {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 16px;
+  color: #fff;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.stats-panel--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #666;
+  font-style: italic;
+}
+
+.stats-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-panel__loading {
+  font-size: 11px;
+  color: #888;
+  font-weight: normal;
+  font-style: italic;
+}
+
+.stats-panel__teams {
+  display: grid;
+  grid-template-columns: 60px 1fr 60px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stats-panel__team-header {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--team-color, #fff);
+}
+
+.stats-panel__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stats-panel__row {
+  display: grid;
+  grid-template-columns: 60px 1fr 60px;
+  gap: 8px;
+  align-items: center;
+}
+
+.stats-panel__value {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-panel__value--home {
+  color: #4ecdc4;
+}
+
+.stats-panel__value--away {
+  color: #ff6b6b;
+}
+
+.stats-panel__stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-panel__stat-label {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-panel__bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stats-panel__bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.stats-panel__bar-fill--home {
+  border-radius: 3px 0 0 3px;
+}
+
+.stats-panel__bar-fill--away {
+  border-radius: 0 3px 3px 0;
+}
