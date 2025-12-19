@@ -1,0 +1,6 @@
+{
+  "name": "auditor_agent",
+  "display_name": "Auditor Agent",
+  "role": "Project accounting, code quality audit, dead code detection, advisement & editing",
+  "last_heartbeat": "2025-12-18T19:38:29.573151"
+}

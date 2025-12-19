@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentMail Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Marked.js for markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --am-bg-deep: #0a0c10;
+      --am-bg-base: #0f1117;
+      --am-bg-elevated: #161923;
+      --am-bg-surface: #1c2029;
+      --am-bg-hover: #252a36;
+      --am-border-subtle: #1e2330;
+      --am-border-default: #2a3142;
+      --am-border-strong: #3d4559;
+      --am-text-primary: #e8eaed;
+      --am-text-secondary: #9aa0ad;
+      --am-text-tertiary: #6b7280;
+      --am-text-muted: #4b5563;
+      --am-accent-amber: #f59e0b;
+      --am-accent-amber-dim: #b45309;
+      --am-accent-amber-glow: rgba(245, 158, 11, 0.15);
+      --am-status-complete: #10b981;
+      --am-status-progress: #f59e0b;
+      --am-status-blocked: #ef4444;
+      --am-status-pending: #6b7280;
+      --am-severity-blocking: #ef4444;
+      --am-severity-major: #f97316;
+      --am-severity-minor: #eab308;
+      --am-severity-info: #6366f1;
+      --am-font-display: 'Outfit', -apple-system, sans-serif;
+      --am-font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+      --am-radius-sm: 4px;
+      --am-radius-md: 8px;
+      --am-radius-lg: 12px;
+      --am-transition-fast: 150ms ease;
+      --am-transition-base: 250ms ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: var(--am-bg-deep);
+      color: var(--am-text-primary);
+      font-family: var(--am-font-display);
+      line-height: 1.5;
+    }
+
+    .dashboard { position: relative; }
+
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(245, 158, 11, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245, 158, 11, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .grid-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.08) 0%, transparent 60%);
+    }
+
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      background: linear-gradient(to bottom, var(--am-bg-base), transparent);
+      border-bottom: 1px solid var(--am-border-subtle);
+    }
+
+    .header-left { display: flex; align-items: center; gap: 24px; }
+
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { font-size: 24px; color: var(--am-accent-amber); text-shadow: 0 0 20px var(--am-accent-amber-glow); }
+    .logo-text { font-family: var(--am-font-mono); font-size: 18px; font-weight: 700; letter-spacing: 3px; }
+    .header-subtitle { font-size: 14px; color: var(--am-text-tertiary); padding-left: 24px; border-left: 1px solid var(--am-border-default); }
+
+    .header-right { display: flex; align-items: center; gap: 24px; }
+
+    .header-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .header-stat .value { font-family: var(--am-font-mono); font-size: 24px; font-weight: 600; }
+    .header-stat.warning .value { color: var(--am-severity-blocking); }
+    .header-stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--am-text-tertiary); }
+
+    .live {
+      display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+      background: var(--am-bg-elevated); border: 1px solid var(--am-border-default);
+      border-radius: var(--am-radius-md); font-family: var(--am-font-mono);
+      font-size: 12px; font-weight: 500; color: var(--am-status-complete);
+    }
+
+    .live.disconnected { color: var(--am-severity-blocking); }
+
+    .pulse {
+      width: 8px; height: 8px; background: var(--am-status-complete);
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+
+    .live.disconnected .pulse { background: var(--am-severity-blocking); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    }
+
+    nav {
+      position: relative; z-index: 10; display: flex; gap: 4px; padding: 0 32px;
+      background: var(--am-bg-base); border-bottom: 1px solid var(--am-border-subtle);
+    }
+
+    .tab {
+      display: flex; align-items: center; gap: 8px; padding: 16px 24px;
+      background: transparent; border: none; border-bottom: 2px solid transparent;
+      font-family: var(--am-font-display); font-size: 14px; font-weight: 500;
+      color: var(--am-text-secondary); cursor: pointer; transition: var(--am-transition-base);
+    }
+
+    .tab:hover { color: var(--am-text-primary); background: var(--am-bg-elevated); }
+    .tab.active { color: var(--am-accent-amber); border-bottom-color: var(--am-accent-amber); }
+
+    .tab-badge {
+      padding: 2px 8px; background: var(--am-accent-amber-glow);
+      border-radius: 10px; font-family: var(--am-font-mono);
+      font-size: 11px; font-weight: 600; color: var(--am-accent-amber);
+    }
+
+    .header-actions { display: flex; gap: 12px; }
+
+    .action-btn {
+      padding: 10px 16px; background: var(--am-accent-amber);
+      border: none; border-radius: var(--am-radius-md);
+      font-family: var(--am-font-display); font-size: 13px; font-weight: 600;
+      color: var(--am-bg-deep); cursor: pointer; transition: var(--am-transition-fast);
+    }
+    .action-btn:hover { background: #fbbf24; }
+
+    .action-btn.secondary {
+      background: var(--am-bg-elevated); border: 1px solid var(--am-border-default);
+      color: var(--am-text-primary);
+    }
+    .action-btn.secondary:hover { border-color: var(--am-accent-amber); }
+
+    main { position: relative; z-index: 10; padding: 32px; min-height: calc(100vh - 180px); }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .loading { text-align: center; padding: 60px 20px; color: var(--am-text-tertiary); }
+    .loading-spinner {
+      width: 40px; height: 40px; border: 3px solid var(--am-border-default);
+      border-top-color: var(--am-accent-amber); border-radius: 50%;
+      animation: spin 1s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error { text-align: center; padding: 60px 20px; color: var(--am-severity-blocking); }
+
+    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+
+    .stat-card {
+      display: flex; align-items: center; gap: 16px; padding: 20px 24px;
+      background: var(--am-bg-elevated); border: 1px solid var(--am-border-subtle);
+      border-radius: var(--am-radius-lg); transition: var(--am-transition-base);
+    }
+    .stat-card:hover { border-color: var(--am-border-default); transform: translateY(-2px); }
+
+    .stat-icon {
+      width: 48px; height: 48px; display: flex; align-items: center;
+      justify-content: center; border-radius: var(--am-radius-md); font-size: 20px;
+    }
+    .stat-icon.complete { background: rgba(16, 185, 129, 0.15); color: var(--am-status-complete); }
+    .stat-icon.progress { background: rgba(245, 158, 11, 0.15); color: var(--am-status-progress); }
+    .stat-icon.blocked { background: rgba(239, 68, 68, 0.15); color: var(--am-status-blocked); }
+    .stat-icon.notes { background: rgba(99, 102, 241, 0.15); color: var(--am-severity-info); }
+
+    .stat-content { display: flex; flex-direction: column; gap: 4px; }
+    .stat-number { font-family: var(--am-font-mono); font-size: 28px; font-weight: 600; }
+    .stat-title { font-size: 13px; color: var(--am-text-secondary); }
+
+    .section-title {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-title h2 {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .title-icon { color: var(--am-accent-amber); }
+
+    .agents-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px; margin-bottom: 32px;
+    }
+
+    .agent-card {
+      background: var(--am-bg-elevated); border: 1px solid var(--am-border-subtle);
+      border-radius: var(--am-radius-lg); padding: 20px; cursor: pointer;
+      transition: var(--am-transition-base);
+    }
+    .agent-card:hover { border-color: var(--am-border-default); background: var(--am-bg-surface); }
+    .agent-card.selected { border-color: var(--agent-color); box-shadow: 0 0 0 1px var(--agent-color), 0 4px 24px rgba(0,0,0,0.3); }
+
+    .agent-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .agent-indicator {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--agent-color); box-shadow: 0 0 8px var(--agent-color);
+    }
+    .agent-card.status-active .agent-indicator { animation: pulse 2s infinite; }
+    .agent-name { flex: 1; font-size: 16px; font-weight: 600; }
+    .agent-updated { font-family: var(--am-font-mono); font-size: 11px; color: var(--am-text-tertiary); }
+    .agent-role { font-size: 13px; color: var(--am-text-secondary); margin-bottom: 16px; line-height: 1.5; }
+
+    .agent-stats { display: flex; gap: 24px; padding-top: 16px; border-top: 1px solid var(--am-border-subtle); }
+    .agent-stat { display: flex; flex-direction: column; gap: 4px; }
+    .agent-stat .count { font-family: var(--am-font-mono); font-size: 20px; font-weight: 600; }
+    .agent-stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--am-text-tertiary); }
+
+    .agent-details { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--am-border-subtle); display: none; }
+    .agent-card.selected .agent-details { display: block; animation: slideDown 200ms ease; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .detail-section { margin-bottom: 16px; }
+    .detail-section:last-child { margin-bottom: 0; }
+    .detail-section h4 { font-size: 12px; font-weight: 600; color: var(--am-text-secondary); margin-bottom: 8px; text-transform: uppercase; }
+    .detail-section ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .detail-section li { font-size: 13px; color: var(--am-text-secondary); padding: 8px 12px; background: var(--am-bg-base); border-radius: var(--am-radius-sm); }
+    .detail-section .item-name { font-weight: 500; color: var(--am-text-primary); display: block; }
+    .detail-section .item-location { font-family: var(--am-font-mono); font-size: 11px; color: var(--am-text-tertiary); }
+
+    .messages-filters { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 10px 20px; background: var(--am-bg-elevated);
+      border: 1px solid var(--am-border-subtle); border-radius: var(--am-radius-md);
+      font-family: var(--am-font-display); font-size: 13px; font-weight: 500;
+      color: var(--am-text-secondary); cursor: pointer; transition: var(--am-transition-fast);
+    }
+    .filter-btn:hover { border-color: var(--am-border-default); color: var(--am-text-primary); }
+    .filter-btn.active { background: var(--am-accent-amber-glow); border-color: var(--am-accent-amber); color: var(--am-accent-amber); }
+
+    .messages-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .message-card {
+      background: var(--am-bg-elevated); border: 1px solid var(--am-border-subtle);
+      border-radius: var(--am-radius-lg); padding: 20px; cursor: pointer;
+      transition: var(--am-transition-base);
+    }
+    .message-card:hover { border-color: var(--am-border-default); }
+    .message-card.severity-blocking { border-left: 3px solid var(--am-severity-blocking); }
+    .message-card.severity-major { border-left: 3px solid var(--am-severity-major); }
+    .message-card.severity-info { border-left: 3px solid var(--am-severity-info); }
+
+    .message-header { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+    .message-flow { display: flex; align-items: center; gap: 8px; }
+    .flow-agent { padding: 4px 10px; border-radius: var(--am-radius-sm); font-family: var(--am-font-mono); font-size: 11px; font-weight: 500; text-transform: uppercase; }
+    .flow-agent.from { background: var(--agent-color); color: var(--am-text-primary); }
+    .flow-agent.to { background: transparent; color: var(--am-text-secondary); border: 1px solid var(--am-border-default); }
+    .flow-arrow { color: var(--am-text-tertiary); }
+    .message-severity { padding: 4px 10px; border-radius: var(--am-radius-sm); font-family: var(--am-font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; }
+    .message-severity.severity-blocking { background: rgba(239, 68, 68, 0.15); color: var(--am-severity-blocking); }
+    .message-severity.severity-major { background: rgba(249, 115, 22, 0.15); color: var(--am-severity-major); }
+    .message-severity.severity-info { background: rgba(99, 102, 241, 0.15); color: var(--am-severity-info); }
+    .message-date { margin-left: auto; font-family: var(--am-font-mono); font-size: 12px; color: var(--am-text-tertiary); }
+    .message-subject { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .message-preview { font-size: 13px; color: var(--am-text-secondary); margin-bottom: 16px; line-height: 1.6; }
+    .message-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--am-border-subtle); }
+    .message-file { font-family: var(--am-font-mono); font-size: 11px; color: var(--am-text-tertiary); }
+    .view-btn { padding: 8px 16px; background: transparent; border: 1px solid var(--am-border-default); border-radius: var(--am-radius-sm); font-family: var(--am-font-display); font-size: 12px; font-weight: 500; color: var(--am-text-secondary); cursor: pointer; transition: var(--am-transition-fast); }
+    .view-btn:hover { border-color: var(--am-accent-amber); color: var(--am-accent-amber); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+      z-index: 100; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--am-bg-elevated); border: 1px solid var(--am-border-default);
+      border-radius: var(--am-radius-lg); max-width: 800px; width: 100%;
+      max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid var(--am-border-subtle);
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 600; }
+    .modal-close {
+      width: 32px; height: 32px; background: var(--am-bg-surface);
+      border: 1px solid var(--am-border-default); border-radius: var(--am-radius-sm);
+      color: var(--am-text-secondary); cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-close:hover { color: var(--am-text-primary); }
+    .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--am-border-subtle);
+      display: flex; justify-content: flex-end; gap: 12px;
+    }
+
+    /* Form styles */
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--am-text-secondary); margin-bottom: 8px; }
+    .form-input, .form-textarea, .form-select {
+      width: 100%; padding: 12px 16px; background: var(--am-bg-surface);
+      border: 1px solid var(--am-border-default); border-radius: var(--am-radius-md);
+      font-family: var(--am-font-display); font-size: 14px; color: var(--am-text-primary);
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+      outline: none; border-color: var(--am-accent-amber);
+    }
+    .form-textarea { min-height: 150px; resize: vertical; font-family: var(--am-font-mono); }
+
+    /* Markdown content */
+    .markdown-content { font-size: 14px; line-height: 1.7; color: var(--am-text-secondary); }
+    .markdown-content h1 { font-size: 24px; font-weight: 600; color: var(--am-text-primary); margin: 24px 0 12px; }
+    .markdown-content h2 { font-size: 20px; font-weight: 600; color: var(--am-text-primary); margin: 20px 0 10px; }
+    .markdown-content h3 { font-size: 16px; font-weight: 600; color: var(--am-text-primary); margin: 16px 0 8px; }
+    .markdown-content p { margin: 12px 0; }
+    .markdown-content code { font-family: var(--am-font-mono); background: var(--am-bg-surface); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .markdown-content pre { background: var(--am-bg-surface); padding: 16px; border-radius: var(--am-radius-md); overflow-x: auto; margin: 16px 0; }
+    .markdown-content pre code { padding: 0; background: none; }
+    .markdown-content ul, .markdown-content ol { margin: 12px 0; padding-left: 24px; }
+    .markdown-content li { margin: 4px 0; }
+    .markdown-content strong { color: var(--am-text-primary); }
+    .markdown-content table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .markdown-content th, .markdown-content td { padding: 10px 12px; border: 1px solid var(--am-border-default); text-align: left; }
+    .markdown-content th { background: var(--am-bg-surface); font-weight: 600; color: var(--am-text-primary); }
+
+    footer {
+      position: relative; z-index: 10; display: flex; align-items: center;
+      justify-content: space-between; padding: 16px 32px;
+      background: var(--am-bg-base); border-top: 1px solid var(--am-border-subtle);
+    }
+    footer span { font-family: var(--am-font-mono); font-size: 11px; color: var(--am-text-tertiary); }
+
+    @media (max-width: 768px) {
+      header { flex-direction: column; gap: 16px; padding: 16px 20px; }
+      .header-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+      nav { padding: 0 16px; overflow-x: auto; }
+      main { padding: 20px; }
+      .agents-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="grid-bg"></div>
+
+    <header>
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-icon">◈</span>
+          <span class="logo-text">AGENTMAIL</span>
+        </div>
+        <span class="header-subtitle">Multi-Agent Coordination Hub</span>
+      </div>
+      <div class="header-right">
+        <div class="header-stat">
+          <span class="value" id="stat-agents">-</span>
+          <span class="label">Agents</span>
+        </div>
+        <div class="header-stat">
+          <span class="value" id="stat-messages">-</span>
+          <span class="label">Messages</span>
+        </div>
+        <div class="header-stat warning">
+          <span class="value" id="stat-bugs">-</span>
+          <span class="label">Bugs</span>
+        </div>
+        <div class="live disconnected" id="connection-status">
+          <span class="pulse"></span>
+          <span>CONNECTING</span>
+        </div>
+      </div>
+    </header>
+
+    <nav>
+      <button class="tab active" data-view="overview">◫ Overview</button>
+      <button class="tab" data-view="messages">✉ Messages <span class="tab-badge" id="msg-count">0</span></button>
+      <button class="tab" data-view="agents">◇ Agents</button>
+      <div style="flex:1"></div>
+      <div class="header-actions">
+        <button class="action-btn secondary" onclick="refreshData()">↻ Refresh</button>
+        <button class="action-btn" onclick="openCreateAgent()">+ New Agent</button>
+      </div>
+    </nav>
+
+    <main>
+      <!-- Overview View -->
+      <div class="view active" id="overview">
+        <div class="loading" id="overview-loading">
+          <div class="loading-spinner"></div>
+          <p>Loading dashboard data...</p>
+        </div>
+        <div id="overview-content" style="display:none;">
+          <div class="stats-bar" id="stats-bar"></div>
+          <div class="section-title">
+            <h2><span class="title-icon">◇</span> Active Agents</h2>
+          </div>
+          <div class="agents-grid" id="agents-grid"></div>
+          <div class="section-title">
+            <h2><span class="title-icon">◇</span> Recent Activity</h2>
+          </div>
+          <div class="messages-list" id="recent-messages"></div>
+        </div>
+        <div class="error" id="overview-error" style="display:none;">
+          <p>⚠ Failed to connect to API</p>
+          <p style="font-size:13px;margin-top:8px;">Make sure the server is running: <code>python -m uvicorn huddle.api.main:app</code></p>
+          <button class="action-btn" style="margin-top:16px;" onclick="refreshData()">Retry</button>
+        </div>
+      </div>
+
+      <!-- Messages View -->
+      <div class="view" id="messages">
+        <div class="messages-filters" id="message-filters"></div>
+        <div class="messages-list" id="all-messages"></div>
+      </div>
+
+      <!-- Agents View -->
+      <div class="view" id="agents">
+        <div class="agents-grid" id="all-agents"></div>
+      </div>
+
+    </main>
+
+    <footer>
+      <span>AgentMail Protocol v1.0</span>
+      <span id="api-url">API: http://localhost:8000</span>
+    </footer>
+  </div>
+
+  <!-- Create Agent Modal -->
+  <div class="modal-overlay" id="create-agent-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create New Agent</h3>
+        <button class="modal-close" onclick="closeModal('create-agent-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Agent Name (snake_case, must end in _agent)</label>
+          <input type="text" class="form-input" id="agent-name" placeholder="e.g., my_new_agent">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Display Name</label>
+          <input type="text" class="form-input" id="agent-display-name" placeholder="e.g., My New Agent">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role Description</label>
+          <textarea class="form-textarea" id="agent-role" placeholder="What is this agent responsible for?"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary" onclick="closeModal('create-agent-modal')">Cancel</button>
+        <button class="action-btn" onclick="createAgent()">Create Agent</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Message Modal -->
+  <div class="modal-overlay" id="send-message-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Send Message</h3>
+        <button class="modal-close" onclick="closeModal('send-message-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">From Agent</label>
+          <select class="form-select" id="msg-from"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">To Agent</label>
+          <select class="form-select" id="msg-to"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="msg-type">
+            <option value="task">Task</option>
+            <option value="response">Response</option>
+            <option value="bug">Bug Report</option>
+            <option value="question">Question</option>
+            <option value="plan">Plan</option>
+            <option value="handoff">Handoff</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input type="text" class="form-input" id="msg-subject" placeholder="Message subject">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Content (Markdown)</label>
+          <textarea class="form-textarea" id="msg-content" placeholder="## Summary&#10;&#10;Your message here..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="action-btn secondary" onclick="closeModal('send-message-modal')">Cancel</button>
+        <button class="action-btn" onclick="sendMessage()">Send Message</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Message Modal -->
+  <div class="modal-overlay" id="view-message-modal">
+    <div class="modal" style="max-width:900px;">
+      <div class="modal-header">
+        <h3 id="view-msg-title">Message</h3>
+        <button class="modal-close" onclick="closeModal('view-message-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="markdown-content" id="view-msg-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000/api/v1/agentmail';
+    let dashboardData = null;
+    let selectedAgent = null;
+
+    const agentColors = {
+      live_sim_agent: '#f59e0b', qa_agent: '#ef4444', behavior_tree_agent: '#10b981',
+      management_agent: '#6366f1', researcher_agent: '#8b5cf6', frontend_agent: '#ec4899',
+      documentation_agent: '#06b6d4', data_generation_agent: '#84cc16',
+      simulation_agent: '#f97316', narrative_agent: '#14b8a6', coordinator: '#64748b'
+    };
+
+    function getAgentColor(name) {
+      return agentColors[name] || '#' + Math.floor(Math.random()*16777215).toString(16);
+    }
+
+    async function fetchDashboard() {
+      try {
+        const response = await fetch(`${API_BASE}/dashboard`);
+        if (!response.ok) throw new Error('API error');
+        dashboardData = await response.json();
+        document.getElementById('connection-status').classList.remove('disconnected');
+        document.getElementById('connection-status').innerHTML = '<span class="pulse"></span><span>LIVE</span>';
+        return dashboardData;
+      } catch (e) {
+        console.error('Failed to fetch dashboard:', e);
+        document.getElementById('connection-status').classList.add('disconnected');
+        document.getElementById('connection-status').innerHTML = '<span class="pulse"></span><span>OFFLINE</span>';
+        throw e;
+      }
+    }
+
+    function renderStats(stats) {
+      document.getElementById('stat-agents').textContent = stats.total_agents;
+      document.getElementById('stat-messages').textContent = stats.total_messages;
+      document.getElementById('stat-bugs').textContent = stats.blocking_bugs;
+      document.getElementById('msg-count').textContent = stats.total_messages;
+
+      document.getElementById('stats-bar').innerHTML = `
+        <div class="stat-card"><div class="stat-icon complete">✓</div><div class="stat-content"><span class="stat-number">${stats.total_agents}</span><span class="stat-title">Agents</span></div></div>
+        <div class="stat-card"><div class="stat-icon progress">✉</div><div class="stat-content"><span class="stat-number">${stats.total_messages}</span><span class="stat-title">Messages</span></div></div>
+        <div class="stat-card"><div class="stat-icon blocked">🐛</div><div class="stat-content"><span class="stat-number">${stats.bugs}</span><span class="stat-title">Bugs</span></div></div>
+      `;
+    }
+
+    function renderAgentCard(agent, status) {
+      const color = getAgentColor(agent.name);
+      const isActive = (status?.in_progress?.length || 0) > 0;
+      const completeCount = status?.complete?.length || 0;
+      const inProgressCount = status?.in_progress?.length || 0;
+      const nextUpCount = status?.next_up?.length || 0;
+
+      return `
+        <div class="agent-card ${isActive ? 'status-active' : ''} ${selectedAgent === agent.name ? 'selected' : ''}"
+             style="--agent-color: ${color}" data-agent="${agent.name}" onclick="toggleAgent('${agent.name}')">
+          <div class="agent-header">
+            <div class="agent-indicator"></div>
+            <h3 class="agent-name">${agent.display_name}</h3>
+            <span class="agent-updated">${agent.last_active || 'Never'}</span>
+          </div>
+          <p class="agent-role">${agent.role || 'No role defined'}</p>
+          <div class="agent-stats">
+            <div class="agent-stat"><span class="count">${completeCount}</span><span class="label">Done</span></div>
+            <div class="agent-stat"><span class="count">${inProgressCount}</span><span class="label">Active</span></div>
+            <div class="agent-stat"><span class="count">${agent.inbox_count || 0}</span><span class="label">Inbox</span></div>
+          </div>
+          ${status ? renderAgentDetails(status) : ''}
+        </div>
+      `;
+    }
+
+    function renderAgentDetails(status) {
+      let html = '<div class="agent-details">';
+
+      if (status.complete?.length) {
+        html += '<div class="detail-section"><h4>✓ Complete</h4><ul>';
+        status.complete.forEach(item => {
+          html += `<li><span class="item-name">${item.component}</span><span class="item-location">${item.location}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+
+      if (status.in_progress?.length) {
+        html += '<div class="detail-section"><h4>◐ In Progress</h4><ul>';
+        status.in_progress.forEach(item => {
+          html += `<li><span class="item-name">${item.component}</span><span class="item-location">${item.location}</span></li>`;
+        });
+        html += '</ul></div>';
+      }
+
+      if (status.next_up?.length) {
+        html += '<div class="detail-section"><h4>→ Next Up</h4><ul>';
+        status.next_up.forEach(item => {
+          html += `<li>${item}</li>`;
+        });
+        html += '</ul></div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    function renderMessageCard(msg) {
+      const fromColor = getAgentColor(msg.from_agent);
+      const toColor = getAgentColor(msg.to_agent);
+      const severityClass = msg.severity ? `severity-${msg.severity.toLowerCase()}` : '';
+
+      return `
+        <div class="message-card ${severityClass}" onclick="viewMessage('${msg.id}')">
+          <div class="message-header">
+            <div class="message-flow">
+              <span class="flow-agent from" style="--agent-color:${fromColor}">${msg.from_agent.replace('_agent','')}</span>
+              <span class="flow-arrow">→</span>
+              <span class="flow-agent to" style="--agent-color:${toColor}">${msg.to_agent.replace('_agent','')}</span>
+            </div>
+            ${msg.severity ? `<span class="message-severity ${severityClass}">${msg.severity}</span>` : ''}
+            <span class="message-date">${msg.date}</span>
+          </div>
+          <h3 class="message-subject">${msg.subject}</h3>
+          <p class="message-preview">${msg.preview || ''}</p>
+          <div class="message-footer">
+            <span class="message-file">${msg.filename}</span>
+            <button class="view-btn" onclick="event.stopPropagation();viewMessage('${msg.id}')">View Full →</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleAgent(name) {
+      selectedAgent = selectedAgent === name ? null : name;
+      renderAgentsGrid();
+    }
+
+    function renderAgentsGrid() {
+      if (!dashboardData) return;
+
+      const grid = document.getElementById('agents-grid');
+      const allGrid = document.getElementById('all-agents');
+
+      const html = dashboardData.agents.map(agent => {
+        const status = dashboardData.agent_statuses.find(s => s.name === agent.name);
+        return renderAgentCard(agent, status);
+      }).join('');
+
+      grid.innerHTML = html;
+      allGrid.innerHTML = html;
+    }
+
+    function renderMessages(filter = 'all') {
+      if (!dashboardData) return;
+
+      let messages = dashboardData.messages;
+      if (filter !== 'all') {
+        messages = messages.filter(m => m.type === filter);
+      }
+
+      document.getElementById('all-messages').innerHTML = messages.map(renderMessageCard).join('');
+      document.getElementById('recent-messages').innerHTML = messages.slice(0, 5).map(renderMessageCard).join('');
+    }
+
+    function renderMessageFilters() {
+      const types = ['all', 'task', 'response', 'bug', 'plan', 'question'];
+      document.getElementById('message-filters').innerHTML = types.map(type => `
+        <button class="filter-btn ${type === 'all' ? 'active' : ''}" data-filter="${type}" onclick="filterMessages('${type}')">${type.charAt(0).toUpperCase() + type.slice(1)}</button>
+      `).join('') + `<div style="flex:1"></div><button class="action-btn" onclick="openSendMessage()">+ Send Message</button>`;
+    }
+
+    function filterMessages(type) {
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === type));
+      renderMessages(type);
+    }
+
+    async function viewMessage(id) {
+      try {
+        const response = await fetch(`${API_BASE}/messages/${id}?render=false`);
+        const msg = await response.json();
+        document.getElementById('view-msg-title').textContent = msg.subject;
+        document.getElementById('view-msg-content').innerHTML = marked.parse(msg.content || '');
+        document.getElementById('view-message-modal').classList.add('active');
+      } catch (e) {
+        console.error('Failed to fetch message:', e);
+      }
+    }
+
+    function populateAgentSelects() {
+      if (!dashboardData) return;
+      const options = dashboardData.agents.map(a => `<option value="${a.name}">${a.display_name}</option>`).join('');
+      const coordOption = '<option value="coordinator">Coordinator (You)</option>';
+      document.getElementById('msg-from').innerHTML = coordOption + options;
+      document.getElementById('msg-to').innerHTML = options;
+    }
+
+    function openCreateAgent() { document.getElementById('create-agent-modal').classList.add('active'); }
+    function openSendMessage() { populateAgentSelects(); document.getElementById('send-message-modal').classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    async function createAgent() {
+      const name = document.getElementById('agent-name').value;
+      const displayName = document.getElementById('agent-display-name').value;
+      const role = document.getElementById('agent-role').value;
+
+      if (!name || !displayName || !role) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/agents/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, display_name: displayName, role })
+        });
+        const result = await response.json();
+        if (result.success) {
+          closeModal('create-agent-modal');
+          refreshData();
+        } else {
+          alert('Failed: ' + (result.detail || result.message));
+        }
+      } catch (e) {
+        alert('Error creating agent: ' + e.message);
+      }
+    }
+
+    async function sendMessage() {
+      const data = {
+        from_agent: document.getElementById('msg-from').value,
+        to_agent: document.getElementById('msg-to').value,
+        message_type: document.getElementById('msg-type').value,
+        subject: document.getElementById('msg-subject').value,
+        content: document.getElementById('msg-content').value
+      };
+
+      if (!data.subject || !data.content) {
+        alert('Please fill in subject and content');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+          closeModal('send-message-modal');
+          refreshData();
+        } else {
+          alert('Failed: ' + (result.detail || result.message));
+        }
+      } catch (e) {
+        alert('Error sending message: ' + e.message);
+      }
+    }
+
+    async function refreshData() {
+      document.getElementById('overview-loading').style.display = 'block';
+      document.getElementById('overview-content').style.display = 'none';
+      document.getElementById('overview-error').style.display = 'none';
+
+      try {
+        await fetchDashboard();
+        renderStats(dashboardData.stats);
+        renderAgentsGrid();
+        renderMessages();
+        renderMessageFilters();
+        populateAgentSelects();
+
+        document.getElementById('overview-loading').style.display = 'none';
+        document.getElementById('overview-content').style.display = 'block';
+      } catch (e) {
+        document.getElementById('overview-loading').style.display = 'none';
+        document.getElementById('overview-error').style.display = 'block';
+      }
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.view).classList.add('active');
+      });
+    });
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('active');
+      });
+    });
+
+    // Initialize
+    refreshData();
+    setInterval(refreshData, 30000); // Auto-refresh every 30s
+  </script>
+</body>
+</html>
