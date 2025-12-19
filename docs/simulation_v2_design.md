@@ -1005,6 +1005,1353 @@ class Clock:
 
 ---
 
+---
+
+## Position Behavior Trees
+
+Comprehensive behavior trees for every position. These trees define the decision-making logic that drives player AI. Each tree is evaluated every tick, traversing from root to leaf to determine the current action.
+
+### Behavior Tree Legend
+
+```
+[Selector]     - Try children left-to-right, succeed on first success (OR)
+[Sequence]     - Run children left-to-right, fail on first failure (AND)
+[Parallel]     - Run all children simultaneously
+(Condition)    - Check a condition, succeed/fail
+<Action>       - Execute an action
+{Decorator}    - Modify child behavior (invert, repeat, etc.)
+```
+
+---
+
+### Quarterback (QB) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] QB Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> Sacked["[Sequence] Being Sacked"]
+    Sacked --> InTackle["(In Tackle Animation?)"]
+    InTackle --> |Yes| Brace["<Brace/Protect Ball>"]
+
+    Root --> PreSnap["[Sequence] Pre-Snap"]
+    PreSnap --> NotSnapped["(Ball Not Snapped?)"]
+    NotSnapped --> |Yes| PreSnapSeq["[Sequence]"]
+    PreSnapSeq --> ReadDef["<Read Defense>"]
+    PreSnapSeq --> CheckAud["(Should Audible?)"]
+    CheckAud --> |Yes| CallAud["<Call Audible>"]
+    CheckAud --> |No| WaitSnap["<Await Snap>"]
+
+    Root --> Scramble["[Sequence] Scramble Mode"]
+    Scramble --> IsScramble["(Scramble Committed?)"]
+    IsScramble --> |Yes| BCTree["→ Ballcarrier Tree"]
+
+    Root --> Dropback["[Sequence] Dropback"]
+    Dropback --> InDrop["(In Dropback?)"]
+    InDrop --> |Yes| ExecDrop["<Execute Dropback>"]
+
+    Root --> Pocket["[Selector] Pocket Management"]
+    Pocket --> Panic["[Sequence] Panic"]
+    Panic --> CritPress["(Pressure Critical?)"]
+    CritPress --> |Yes| PanicSel["[Selector] Panic Response"]
+    PanicSel --> PanicThrow["[Sequence] Panic Throw"]
+    PanicThrow --> AnyOpen["(Any Receiver Open?)"]
+    AnyOpen --> |Yes| QuickThrow["<Quick Release Throw>"]
+    PanicSel --> ThrowAway["[Sequence] Throw Away"]
+    ThrowAway --> CanThrowAway["(Outside Tackle Box?)"]
+    CanThrowAway --> |Yes| ExecThrowAway["<Throw Away>"]
+    PanicSel --> CommitScramble["<Commit to Scramble>"]
+
+    Pocket --> HeavyPress["[Sequence] Heavy Pressure"]
+    HeavyPress --> IsHeavy["(Pressure Heavy?)"]
+    IsHeavy --> |Yes| HeavyResp["[Selector]"]
+    HeavyResp --> EscapeThrow["[Sequence] Escape + Throw"]
+    EscapeThrow --> CanEscape["(Escape Route Exists?)"]
+    CanEscape --> |Yes| EscapeSeq["[Sequence]"]
+    EscapeSeq --> MoveEscape["<Move to Escape>"]
+    EscapeSeq --> QuickRead["<Quick Read>"]
+    QuickRead --> ThrowCheck["(Receiver Open?)"]
+    ThrowCheck --> |Yes| ThrowIt["<Throw>"]
+    HeavyResp --> StepUp["[Sequence] Step Up"]
+    StepUp --> CanStep["(Lane Up Middle?)"]
+    CanStep --> |Yes| DoStep["<Step Up in Pocket>"]
+    HeavyResp --> Slide["<Slide Away from Pressure>"]
+
+    Pocket --> NormalPocket["[Sequence] Normal Pocket"]
+    NormalPocket --> CleanPocket["(Pocket Clean?)"]
+    CleanPocket --> |Yes| ReadProg["[Sequence] Read Progression"]
+    ReadProg --> CurrentRead["<Evaluate Current Read>"]
+    CurrentRead --> ReadDecision["[Selector]"]
+    ReadDecision --> ThrowOpen["[Sequence]"]
+    ThrowOpen --> IsOpen["(Receiver Open?)"]
+    IsOpen --> |Yes| ThrowBall["<Throw to Receiver>"]
+    ReadDecision --> NextRead["[Sequence]"]
+    NextRead --> MoreReads["(More Reads Available?)"]
+    MoreReads --> |Yes| AdvanceRead["<Advance to Next Read>"]
+    ReadDecision --> CheckDown["[Sequence]"]
+    CheckDown --> CheckAvail["(Checkdown Available?)"]
+    CheckAvail --> |Yes| ThrowCheck2["<Throw Checkdown>"]
+    ReadDecision --> HoldBall["<Hold Ball / Reset>"]
+```
+
+#### QB State Variables
+- `dropback_complete`: Has QB finished dropback?
+- `current_read_index`: Which receiver in progression (0-4)
+- `pressure_level`: CLEAN | LIGHT | MODERATE | HEAVY | CRITICAL
+- `scramble_committed`: Has QB given up on pass?
+- `time_in_pocket`: Seconds since dropback complete
+- `escape_direction`: Which way to escape pressure
+
+#### QB Key Decisions
+
+| Decision Point | Inputs | Outputs |
+|----------------|--------|---------|
+| Should Audible? | Coverage shell, blitz indicators, play design | New play call or confirm |
+| Pressure Level? | Rusher distances, ETA to sack, pocket shape | CLEAN → CRITICAL scale |
+| Receiver Open? | Separation, route phase, window closing rate | Throw / Don't throw |
+| Escape Route? | Pressure direction, lane availability | Direction or None |
+| Throw or Scramble? | Time in pocket, receiver status, pressure | Commit decision |
+
+---
+
+### Wide Receiver (WR) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] WR Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> HasBall["[Sequence] Has Ball"]
+    HasBall --> IsBallCarrier["(Has Ball?)"]
+    IsBallCarrier --> |Yes| BCTree["→ Ballcarrier Tree"]
+
+    Root --> Blocking["[Sequence] Run Blocking"]
+    Blocking --> RunPlay["(Is Run Play?)"]
+    RunPlay --> |Yes| BlockSel["[Selector] Block Assignment"]
+    BlockSel --> StalkBlock["[Sequence] Stalk Block"]
+    StalkBlock --> HasDBAssign["(Assigned to DB?)"]
+    HasDBAssign --> |Yes| ExecStalk["[Sequence]"]
+    ExecStalk --> ApproachDB["<Approach DB>"]
+    ExecStalk --> EngageDB["<Engage Block>"]
+    ExecStalk --> Sustain1["<Sustain Block>"]
+    BlockSel --> CrackBlock["[Sequence] Crack Block"]
+    CrackBlock --> CrackAssign["(Crack Assignment?)"]
+    CrackAssign --> |Yes| ExecCrack["<Execute Crack Block>"]
+    BlockSel --> ReleaseDown["<Release Downfield for Block>"]
+
+    Root --> BallInAir["[Selector] Ball In Air"]
+    BallInAir --> ToMe["[Sequence] Ball Thrown to Me"]
+    ToMe --> IsTarget["(Am I Target?)"]
+    IsTarget --> |Yes| CatchSeq["[Sequence] Catch Attempt"]
+    CatchSeq --> TrackBall["<Track Ball>"]
+    CatchSeq --> AdjustPath["<Adjust to Ball>"]
+    CatchSeq --> HighPoint["(High Ball?)"]
+    HighPoint --> |Yes| JumpCatch["<High Point Catch>"]
+    HighPoint --> |No| SecureCatch["<Secure Catch>"]
+    BallInAir --> NotTarget["[Sequence] Not Target"]
+    NotTarget --> OtherTarget["(Ball to Teammate?)"]
+    OtherTarget --> |Yes| BlockForRAC["<Block Nearest Defender>"]
+
+    Root --> Route["[Sequence] Route Running"]
+    Route --> PostSnap["(Post Snap?)"]
+    PostSnap --> |Yes| RouteSel["[Selector] Route Execution"]
+
+    RouteSel --> Release["[Sequence] Release Phase"]
+    Release --> AtLOS["(At LOS?)"]
+    AtLOS --> |Yes| ReleaseSel["[Selector] Release Type"]
+    ReleaseSel --> Press["[Sequence] vs Press"]
+    Press --> IsPress["(DB in Press?)"]
+    IsPress --> |Yes| PressMoves["[Selector] Press Release"]
+    PressMoves --> SwimRel["<Swim Release>"]
+    PressMoves --> RipRel["<Rip Release>"]
+    PressMoves --> SpeedRel["<Speed Release>"]
+    ReleaseSel --> FreeRel["<Free Release>"]
+
+    RouteSel --> Stem["[Sequence] Stem Phase"]
+    Stem --> PreBreak["(Before Break Point?)"]
+    PreBreak --> |Yes| StemExec["[Sequence]"]
+    StemExec --> SellVert["<Sell Vertical>"]
+    StemExec --> SetupDB["<Set Up DB>"]
+    StemExec --> AccelStem["<Accelerate Through Stem>"]
+
+    RouteSel --> Break["[Sequence] Break Phase"]
+    Break --> AtBreak["(At Break Point?)"]
+    AtBreak --> |Yes| BreakExec["[Sequence]"]
+    BreakExec --> PlantFoot["<Plant Foot>"]
+    BreakExec --> SnapHead["<Snap Head Around>"]
+    BreakExec --> DriveOut["<Drive Out of Break>"]
+
+    RouteSel --> PostBreak["[Sequence] Post Break"]
+    PostBreak --> AfterBreak["(After Break?)"]
+    AfterBreak --> |Yes| PostSel["[Selector]"]
+    PostSel --> Separate["[Sequence] Create Separation"]
+    Separate --> DBClose["(DB Within 2 Yards?)"]
+    DBClose --> |Yes| AccelAway["<Accelerate Away>"]
+    PostSel --> FindWindow["<Find Throwing Window>"]
+    PostSel --> StackDB["<Stack DB / Get Leverage>"]
+
+    Root --> PreSnap2["<Set Alignment>"]
+```
+
+#### WR State Variables
+- `route_phase`: RELEASE | STEM | BREAK | POST_BREAK | COMPLETE
+- `current_waypoint`: Index in route path
+- `db_position`: Relative position of covering DB
+- `is_target`: Ball thrown to this receiver
+- `separation`: Yards from nearest defender
+
+#### WR Route Quality Factors
+
+| Factor | Effect on Separation |
+|--------|---------------------|
+| Release Win | +1-2 yards initial advantage |
+| Stem Sell | DB flips hips wrong way = +2-3 yards |
+| Break Crispness | Sharp break = +1-2 yards at break point |
+| Acceleration | Pulls away or gets caught |
+
+---
+
+### Running Back (RB) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] RB Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> HasBall["[Sequence] Has Ball"]
+    HasBall --> Carrier["(Has Ball?)"]
+    Carrier --> |Yes| BCTree["→ Ballcarrier Tree"]
+
+    Root --> PassPro["[Sequence] Pass Protection"]
+    PassPro --> IsPassPro["(Pass Pro Assignment?)"]
+    IsPassPro --> |Yes| PassProSel["[Selector] Protection"]
+
+    PassProSel --> BlitzPick["[Sequence] Blitz Pickup"]
+    BlitzPick --> BlitzComing["(Unblocked Blitzer?)"]
+    BlitzComing --> |Yes| PickUp["[Sequence]"]
+    PickUp --> IdentifyBlitz["<Identify Blitzer>"]
+    PickUp --> SetPosition["<Set in Path>"]
+    PickUp --> Engage2["<Engage Block>"]
+
+    PassProSel --> ChipRelease["[Sequence] Chip and Release"]
+    ChipRelease --> ChipAssign["(Chip Assignment?)"]
+    ChipAssign --> |Yes| ChipSeq["[Sequence]"]
+    ChipSeq --> ChipDL["<Chip Defensive End>"]
+    ChipSeq --> ReleaseRoute["<Release to Route>"]
+
+    PassProSel --> ScanProtect["[Sequence] Scan Protection"]
+    ScanProtect --> NoBlitz["(No Immediate Threat?)"]
+    NoBlitz --> |Yes| ScanSeq["[Sequence]"]
+    ScanSeq --> ScanField["<Scan for Delayed Blitz>"]
+    ScanSeq --> HelpWeak["<Help Weakest Block>"]
+
+    Root --> Receiving["[Sequence] Receiving Route"]
+    Receiving --> RouteAssign["(Route Assignment?)"]
+    RouteAssign --> |Yes| RBRoute["[Sequence]"]
+    RBRoute --> ExecRoute["<Run Assigned Route>"]
+    RBRoute --> CheckBall["(Ball Coming?)"]
+    CheckBall --> |Yes| CatchBall["<Secure Catch>"]
+
+    Root --> RunPlay2["[Sequence] Run Play"]
+    RunPlay2 --> IsRunPlay["(Run Play?)"]
+    IsRunPlay --> |Yes| RunSel["[Selector] Run Execution"]
+
+    RunSel --> PreHandoff["[Sequence] Pre-Handoff"]
+    PreHandoff --> BeforeHand["(Before Handoff Point?)"]
+    BeforeHand --> |Yes| PreSeq["[Sequence]"]
+    PreSeq --> TakePath["<Follow Initial Path>"]
+    PreSeq --> ReadMesh["<Time Mesh Point>"]
+    PreSeq --> SecureHand["<Secure Handoff>"]
+
+    RunSel --> ZoneRead["[Sequence] Zone Read"]
+    ZoneRead --> IsZone["(Zone Scheme?)"]
+    IsZone --> |Yes| ZoneSeq["[Selector]"]
+    ZoneSeq --> Frontside["[Sequence] Frontside"]
+    Frontside --> HoleOpen["(Frontside Hole Open?)"]
+    HoleOpen --> |Yes| HitFront["<Press Frontside Hole>"]
+    ZoneSeq --> Cutback["[Sequence] Cutback"]
+    Cutback --> CutLane["(Cutback Lane Open?)"]
+    CutLane --> |Yes| HitCut["<Cutback>"]
+    ZoneSeq --> Bounce["[Sequence] Bounce"]
+    Bounce --> EdgeClear["(Edge Clear?)"]
+    EdgeClear --> |Yes| BounceOut["<Bounce Outside>"]
+    ZoneSeq --> NorthSouth["<North-South Into Pile>"]
+
+    RunSel --> GapRun["[Sequence] Gap Scheme"]
+    GapRun --> IsGap["(Gap Scheme?)"]
+    IsGap --> |Yes| GapSeq["[Sequence]"]
+    GapSeq --> FollowPuller["<Follow Pulling Guard>"]
+    GapSeq --> ReadKick["<Read Kickout Block>"]
+    GapSeq --> HitDesigned["<Hit Designed Hole>"]
+
+    Root --> Motion["[Sequence] Motion"]
+    Motion --> InMotion["(Motion Assignment?)"]
+    InMotion --> |Yes| MotionSeq["<Execute Motion Path>"]
+
+    Root --> Stance["<Hold Stance>"]
+```
+
+#### RB Decision Points
+
+| Situation | Read | Options |
+|-----------|------|---------|
+| Zone Run | Frontside flow | Frontside, Cutback, Bounce |
+| Gap Run | Kickout block | Follow puller, Bang inside, Bounce |
+| Pass Pro | Blitz scan | Pick up blitzer, Help inside, Release |
+| Screen | Patience | Wait for blocks, Find lane |
+
+---
+
+### Tight End (TE) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] TE Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> HasBall["(Has Ball?)"]
+    HasBall --> |Yes| BCTree["→ Ballcarrier Tree"]
+
+    Root --> RunBlock["[Sequence] Run Blocking"]
+    RunBlock --> RunAssign["(Run Block Assignment?)"]
+    RunAssign --> |Yes| RunBlockSel["[Selector]"]
+
+    RunBlockSel --> BaseBlock["[Sequence] Base Block"]
+    BaseBlock --> BaseAssign["(Base Assignment?)"]
+    BaseAssign --> |Yes| BaseSeq["[Sequence]"]
+    BaseSeq --> FireOut["<Fire Off Ball>"]
+    BaseSeq --> DriveBlock["<Drive Block Defender>"]
+    BaseSeq --> SustainDrive["<Sustain / Move Feet>"]
+
+    RunBlockSel --> DownBlock["[Sequence] Down Block"]
+    DownBlock --> DownAssign["(Down Block?)"]
+    DownAssign --> |Yes| DownSeq["[Sequence]"]
+    DownSeq --> StepDown["<Step Down Inside>"]
+    DownSeq --> SealDefender["<Seal Defender Inside>"]
+
+    RunBlockSel --> KickOut["[Sequence] Kickout Block"]
+    KickOut --> KickAssign["(Kickout Assignment?)"]
+    KickAssign --> |Yes| KickSeq["[Sequence]"]
+    KickSeq --> PullPath["<Pull to Target>"]
+    KickSeq --> KickDefender["<Kick Out Defender>"]
+
+    RunBlockSel --> ReleaseSecond["[Sequence] Release to Second Level"]
+    ReleaseSecond --> SecondAssign["(Second Level Block?)"]
+    SecondAssign --> |Yes| SecondSeq["[Sequence]"]
+    SecondSeq --> Climb["<Climb to LB>"]
+    SecondSeq --> CutOffLB["<Cut Off LB>"]
+
+    Root --> PassRoute["[Sequence] Pass Route"]
+    PassRoute --> PassRouteAssign["(Route Assignment?)"]
+    PassRouteAssign --> |Yes| TERouteSel["[Selector]"]
+
+    TERouteSel --> ChipRoute["[Sequence] Chip and Release"]
+    ChipRoute --> ChipFirst["(Chip Assignment?)"]
+    ChipFirst --> |Yes| ChipRouteSeq["[Sequence]"]
+    ChipRouteSeq --> ChipEnd["<Chip Defensive End>"]
+    ChipRouteSeq --> ReleaseToRoute["<Release to Route>"]
+    ChipRouteSeq --> RunRoute["<Execute Route>"]
+
+    TERouteSel --> FreeRoute["[Sequence] Free Release Route"]
+    FreeRoute --> NoChip["(No Chip?)"]
+    NoChip --> |Yes| FreeSeq["[Sequence]"]
+    FreeSeq --> Release3["<Release into Route>"]
+    FreeSeq --> RunRoute2["<Execute Route>"]
+    FreeSeq --> FindSoft["<Find Soft Spot in Zone>"]
+
+    Root --> PassPro2["[Sequence] Pass Protection"]
+    PassPro2 --> PassProAssign["(Pass Pro Assignment?)"]
+    PassProAssign --> |Yes| TEProSel["[Selector]"]
+
+    TEProSel --> InlineBlock["[Sequence] Inline Protection"]
+    InlineBlock --> InlineAssign["(Inline Block?)"]
+    InlineAssign --> |Yes| InlineSeq["[Sequence]"]
+    InlineSeq --> SetEdge["<Set the Edge>"]
+    InlineSeq --> AnchorRush["<Anchor vs Rush>"]
+
+    TEProSel --> Help["[Sequence] Help Block"]
+    Help --> HelpAssign["(Help Assignment?)"]
+    HelpAssign --> |Yes| HelpSeq["[Sequence]"]
+    HelpSeq --> DoubleTeam["<Double Team with Tackle>"]
+    HelpSeq --> PeelOff["<Peel to Second Threat>"]
+
+    Root --> Stance2["<Hold Stance>"]
+```
+
+#### TE Dual-Role Complexity
+
+The TE is unique in requiring both WR-like route running and OL-like blocking:
+
+| Play Type | Primary Role | Secondary Role |
+|-----------|--------------|----------------|
+| Run Strong | Base/Down Block | Seal defender |
+| Run Weak | Release to 2nd level | Block LB |
+| Play Action | Sell run block | Release late to route |
+| Drop Back | Chip DE or inline pro | Release if clean |
+| Screen | Fake route | Block downfield |
+
+---
+
+### Offensive Line (OL) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] OL Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> PassPro["[Selector] Pass Protection"]
+    PassPro --> PassPlay3["(Is Pass Play?)"]
+    PassPlay3 --> |Yes| PassProSel["[Selector] Protection Scheme"]
+
+    PassProSel --> ManPro["[Sequence] Man Protection"]
+    ManPro --> ManAssign["(Man Assignment?)"]
+    ManAssign --> |Yes| ManSeq["[Sequence]"]
+    ManSeq --> SetKick["<Kick Slide to Assignment>"]
+    ManSeq --> Engage3["<Engage Rusher>"]
+    ManSeq --> WinRep["[Selector] Win Rep"]
+    WinRep --> Counter["[Sequence] Counter Move"]
+    Counter --> RusherMove["(Rusher Using Move?)"]
+    RusherMove --> |Yes| CounterSel["[Selector]"]
+    CounterSel --> AnchorBull["(Bull Rush?) → <Anchor>"]
+    CounterSel --> MirrorSwim["(Swim?) → <Mirror / Punch>"]
+    CounterSel --> CounterSpin["(Spin?) → <Re-leverage>"]
+    CounterSel --> CounterRip["(Rip?) → <Re-fit Hands>"]
+    WinRep --> MaintainLev["<Maintain Leverage / Mirror>"]
+
+    PassProSel --> ZonePro["[Sequence] Zone / Slide Protection"]
+    ZonePro --> ZoneAssign["(Zone Assignment?)"]
+    ZoneAssign --> |Yes| ZoneSeq["[Sequence]"]
+    ZoneSeq --> SlideDir["<Slide to Zone>"]
+    ZoneSeq --> PassOff["[Selector] Hand Off"]
+    PassOff --> ThreatInZone["[Sequence]"]
+    ThreatInZone --> InZone["(Threat in My Zone?)"]
+    InZone --> |Yes| EngageThreat["<Engage Threat>"]
+    PassOff --> PassToNext["[Sequence]"]
+    PassToNext --> ThreatPassing["(Threat Passing Through?)"]
+    ThreatPassing --> |Yes| PassOffSeq["<Pass Off to Adjacent>"]
+    PassOff --> HelpAdj["<Help Adjacent / Look for Work>"]
+
+    PassProSel --> DoublePro["[Sequence] Double Team"]
+    DoublePro --> DoubleAssign["(Double Team Assignment?)"]
+    DoubleAssign --> |Yes| DoubleSeq["[Sequence]"]
+    DoubleSeq --> CombineBlock["<Combine on Target>"]
+    DoubleSeq --> ReadPeel["[Selector] Peel Trigger"]
+    ReadPeel --> LBComing["(LB Blitzing?)"]
+    LBComing --> |Yes| PeelToLB["<Peel to LB>"]
+    ReadPeel --> StuntLoop["(Stunt Looper?)"]
+    StuntLoop --> |Yes| PeelToLoop["<Peel to Looper>"]
+    ReadPeel --> MaintainDouble["<Maintain Double Team>"]
+
+    Root --> RunBlock2["[Selector] Run Blocking"]
+    RunBlock2 --> RunPlay3["(Is Run Play?)"]
+    RunPlay3 --> |Yes| RunBlockSel["[Selector] Run Scheme"]
+
+    RunBlockSel --> ZoneBlock["[Sequence] Zone Blocking"]
+    ZoneBlock --> ZoneScheme["(Zone Scheme?)"]
+    ZoneScheme --> |Yes| ZoneBlockSeq["[Sequence]"]
+    ZoneBlockSeq --> Combo["<Combo Block with Adjacent>"]
+    ZoneBlockSeq --> ClimbRead["[Selector] Climb Decision"]
+    ClimbRead --> Covered["(I'm Covered?)"]
+    Covered --> |Yes| DriveMan["<Drive Defender>"]
+    ClimbRead --> Uncovered["(I'm Uncovered?)"]
+    Uncovered --> |Yes| ClimbLB["<Climb to LB>"]
+    ClimbRead --> DblToSingle["[Sequence]"]
+    DblToSingle --> HelpWin["(Adjacent Winning?)"]
+    HelpWin --> |Yes| ClimbLB2["<Climb to Second Level>"]
+    DblToSingle --> StayDouble["<Stay on Double Team>"]
+
+    RunBlockSel --> GapBlock["[Sequence] Gap Blocking"]
+    GapBlock --> GapScheme2["(Gap Scheme?)"]
+    GapScheme2 --> |Yes| GapBlockSel["[Selector]"]
+
+    GapBlockSel --> DownBlock2["[Sequence] Down Block"]
+    DownBlock2 --> DownRule["(Down Block Rule?)"]
+    DownRule --> |Yes| DownBlockSeq["[Sequence]"]
+    DownBlockSeq --> StepDown2["<Step Playside>"]
+    DownBlockSeq --> DriveDefender["<Drive Defender Down>"]
+    DownBlockSeq --> SealInside["<Seal Inside>"]
+
+    GapBlockSel --> PullBlock["[Sequence] Pull Block"]
+    PullBlock --> PullAssign["(Pull Assignment?)"]
+    PullAssign --> |Yes| PullSeq["[Sequence]"]
+    PullSeq --> OpenPull["<Open / Skip Pull>"]
+    PullSeq --> FindTarget["<Find Kick/Lead Target>"]
+    PullSeq --> ExecKickLead["[Selector]"]
+    ExecKickLead --> Kickout2["(Kickout?) → <Kick Out EMLOS>"]
+    ExecKickLead --> LeadThru["(Lead?) → <Lead Through Hole>"]
+
+    GapBlockSel --> Trap["[Sequence] Trap Block"]
+    Trap --> TrapAssign["(Trap Assignment?)"]
+    TrapAssign --> |Yes| TrapSeq["[Sequence]"]
+    TrapSeq --> LetPenetrate["<Let DL Penetrate>"]
+    TrapSeq --> TrapKick["<Trap Kick>"]
+
+    Root --> Stance3["<Hold Stance>"]
+```
+
+#### OL Communication and Coordination
+
+```mermaid
+sequenceDiagram
+    participant C as Center
+    participant LG as Left Guard
+    participant RG as Right Guard
+    participant LT as Left Tackle
+    participant RT as Right Tackle
+
+    Note over C: Pre-snap: Identify MIKE
+    C->>LG: Point MIKE
+    C->>RG: Point MIKE
+
+    Note over C,RT: Pass Pro Slide Call
+    C->>LG: "Slide Left"
+    LG->>LT: "Slide Left"
+    C->>RG: "Man Right"
+    RG->>RT: "Man Right"
+
+    Note over C,RT: Stunt Recognition
+    LG->>C: "Twist! Twist!"
+    C->>LG: <Pass off DT>
+    LG->>LG: <Pick up End>
+```
+
+#### OL vs DL Move Counter Matrix
+
+| DL Move | Optimal Counter | OL Attribute | Result if Wrong Counter |
+|---------|-----------------|--------------|------------------------|
+| Bull Rush | Anchor | Strength | Driven into QB |
+| Swim | Mirror / Punch | Agility | Beaten outside |
+| Spin | Re-leverage | Awareness | Beaten inside |
+| Rip | Re-fit hands | Technique | Beaten under |
+| Long Arm | Inside hand punch | Strength | Controlled |
+| Speed Rush | Kick slide | Footwork | Beaten to edge |
+
+---
+
+### Defensive Line (DL) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] DL Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> PassRush["[Selector] Pass Rush"]
+    PassRush --> IsPassRush["(Pass Play Read?)"]
+    IsPassRush --> |Yes| PassRushSel["[Selector] Rush Plan"]
+
+    PassRushSel --> FreeRush["[Sequence] Unblocked"]
+    FreeRush --> AmFree["(Am I Free?)"]
+    AmFree --> |Yes| FreeSeq["[Sequence]"]
+    FreeSeq --> AccelToQB["<Accelerate to QB>"]
+    FreeSeq --> ContainCheck["(Edge Rusher?)"]
+    ContainCheck --> |Yes| MaintainContain["<Maintain Contain>"]
+    ContainCheck --> |No| BeeLine["<Bee-line to QB>"]
+    FreeSeq --> CloseOnQB["[Selector] Closing"]
+    CloseOnQB --> TackleQB["(In Range?) → <Tackle QB>"]
+    CloseOnQB --> AdjustPursuit["<Adjust Pursuit Angle>"]
+
+    PassRushSel --> Engaged["[Sequence] Engaged"]
+    Engaged --> AmEngaged["(Engaged with Blocker?)"]
+    AmEngaged --> |Yes| WinRepSel["[Selector] Win Rep"]
+
+    WinRepSel --> FirstMove["[Sequence] Initial Move"]
+    FirstMove --> NoMove["(No Move Started?)"]
+    NoMove --> |Yes| SelectMove["[Selector] Select Move"]
+    SelectMove --> BullSel["[Sequence] Bull Rush"]
+    BullSel --> StrAdv["(Strength Advantage?)"]
+    StrAdv --> |Yes| ExecBull["<Execute Bull Rush>"]
+    SelectMove --> SwimSel["[Sequence] Swim"]
+    SwimSel --> FinAdv["(Finesse Advantage?)"]
+    FinAdv --> |Yes| ExecSwim["<Execute Swim Move>"]
+    SelectMove --> SpinSel["[Sequence] Spin"]
+    SpinSel --> Stalemate["(Stalemate + Agility?)"]
+    Stalemate --> |Yes| ExecSpin["<Execute Spin Move>"]
+    SelectMove --> Rip["<Execute Rip Move>"]
+
+    WinRepSel --> Counter2["[Sequence] Counter Move"]
+    Counter2 --> MoveStalled["(Current Move Stalled?)"]
+    MoveStalled --> |Yes| CounterSel2["[Selector]"]
+    CounterSel2 --> CounterSwim["(Was Bull?) → <Counter with Swim>"]
+    CounterSel2 --> CounterBull["(Was Finesse?) → <Counter with Bull>"]
+    CounterSel2 --> CounterRip["<Counter with Rip>"]
+
+    WinRepSel --> DblTeamResp["[Sequence] vs Double Team"]
+    DblTeamResp --> AmDoubled["(Being Doubled?)"]
+    AmDoubled --> |Yes| DblTeamSel["[Selector]"]
+    DblTeamSel --> Split["[Sequence] Split"]
+    Split --> CanSplit["(Can Split Double?)"]
+    CanSplit --> |Yes| ExecSplit["<Split Double Team>"]
+    DblTeamSel --> Anchor2["[Sequence] Anchor"]
+    Anchor2 --> CantSplit["(Can't Split?)"]
+    CantSplit --> |Yes| AnchorOccupy["<Anchor / Occupy Both>"]
+    DblTeamSel --> LongArm["<Long Arm / Control Gap>"]
+
+    PassRushSel --> StuntExec["[Sequence] Stunt Execution"]
+    StuntExec --> InStunt["(Stunt Called?)"]
+    InStunt --> |Yes| StuntSel["[Selector] Stunt Role"]
+    StuntSel --> Penetrator["[Sequence] Penetrator"]
+    Penetrator --> AmPen["(Am I Penetrator?)"]
+    AmPen --> |Yes| PenSeq["[Sequence]"]
+    PenSeq --> CrashGap["<Crash Assigned Gap>"]
+    PenSeq --> Occupy["<Occupy Blocker>"]
+    PenSeq --> GetSkinny["<Get Skinny / Create Lane>"]
+    StuntSel --> Looper["[Sequence] Looper"]
+    Looper --> AmLoop["(Am I Looper?)"]
+    AmLoop --> |Yes| LoopSeq["[Sequence]"]
+    LoopSeq --> Wait["<Wait for Penetrator>"]
+    LoopSeq --> LoopBehind["<Loop Behind>"]
+    LoopSeq --> AttackGap["<Attack Vacated Gap>"]
+
+    Root --> RunDef["[Selector] Run Defense"]
+    RunDef --> IsRunDef["(Run Play Read?)"]
+    IsRunDef --> |Yes| RunDefSel["[Selector]"]
+
+    RunDefSel --> TwoGap["[Sequence] Two-Gap"]
+    TwoGap --> TwoGapAssign["(Two-Gap Assignment?)"]
+    TwoGapAssign --> |Yes| TwoGapSeq["[Sequence]"]
+    TwoGapSeq --> StackBlocker["<Stack / Control Blocker>"]
+    TwoGapSeq --> ReadRB["<Read RB Direction>"]
+    TwoGapSeq --> ShedToGap["<Shed to Ball-side Gap>"]
+
+    RunDefSel --> OneGap["[Sequence] One-Gap"]
+    OneGap --> OneGapAssign["(One-Gap Assignment?)"]
+    OneGapAssign --> |Yes| OneGapSeq["[Sequence]"]
+    OneGapSeq --> PenetrateGap["<Penetrate Assigned Gap>"]
+    OneGapSeq --> DisruptMesh["<Disrupt Mesh Point>"]
+    OneGapSeq --> MakeTackle["<Make Play in Backfield>"]
+
+    RunDefSel --> Spill["[Sequence] Spill Player"]
+    Spill --> SpillAssign["(Spill Responsibility?)"]
+    SpillAssign --> |Yes| SpillSeq["[Sequence]"]
+    SpillSeq --> WrongArm["<Wrong Arm Kick Block>"]
+    SpillSeq --> SpillOutside["<Spill Play Outside>"]
+
+    Root --> Pursuit2["[Sequence] Pursuit"]
+    Pursuit2 --> BallPastLOS["(Ball Past LOS?)"]
+    BallPastLOS --> |Yes| PursuitSeq["[Sequence]"]
+    PursuitSeq --> TakeAngle["<Take Pursuit Angle>"]
+    PursuitSeq --> ChaseBC["<Chase Ballcarrier>"]
+
+    Root --> Stance4["<Hold Stance>"]
+```
+
+#### DL Pass Rush Moves
+
+| Move | Duration | Key Attribute | Best Against | Weakness |
+|------|----------|---------------|--------------|----------|
+| Bull Rush | 5-7 ticks | Strength, Power | Light blockers | Gets anchored |
+| Swim | 3-4 ticks | Finesse, Length | Oversets | Gets punched |
+| Spin | 2-3 ticks | Agility | Aggressive punchers | Re-leverage |
+| Rip | 4-5 ticks | Finesse, Strength | Wide hands | Inside counter |
+| Long Arm | 4-6 ticks | Length, Strength | Double teams | Inside punch |
+| Speed Rush | Continuous | Speed | Slow feet | Redirect |
+
+---
+
+### Linebacker (LB) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] LB Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> Blitz["[Sequence] Blitz"]
+    Blitz --> BlitzAssign["(Blitz Assignment?)"]
+    BlitzAssign --> |Yes| BlitzSel["[Selector] Blitz Execution"]
+
+    BlitzSel --> ABlitz["[Sequence] A-Gap Blitz"]
+    ABlitz --> AAssign["(A-Gap?)"]
+    AAssign --> |Yes| ASeq["[Sequence]"]
+    ASeq --> TimingA["<Time Snap>"]
+    ASeq --> HitA["<Hit A-Gap>"]
+    ASeq --> AvoidCenter["<Avoid Center>"]
+    ASeq --> GetQB["<Get to QB>"]
+
+    BlitzSel --> EdgeBlitz["[Sequence] Edge Blitz"]
+    EdgeBlitz --> EdgeAssign["(Edge/C-Gap?)"]
+    EdgeAssign --> |Yes| EdgeSeq["[Sequence]"]
+    EdgeSeq --> TimingEdge["<Time Snap>"]
+    EdgeSeq --> BendEdge["<Bend Around Edge>"]
+    EdgeSeq --> ContainQB["<Contain / Collapse>"]
+
+    BlitzSel --> DelayBlitz["[Sequence] Delayed Blitz"]
+    DelayBlitz --> DelayAssign["(Delayed?)"]
+    DelayAssign --> |Yes| DelaySel["[Sequence]"]
+    DelaySel --> FakeZone["<Fake Zone Drop>"]
+    DelaySel --> ReadBlocker["<Read Blockers>"]
+    DelaySel --> FindLane["<Find Rush Lane>"]
+    DelaySel --> Attack["<Attack>"]
+
+    Root --> Reading["[Sequence] Run/Pass Read"]
+    Reading --> PostSnap2["(Post Snap + Not Blitzing?)"]
+    PostSnap2 --> |Yes| ReadSel["[Selector] Diagnose Play"]
+
+    ReadSel --> ReadRun["[Sequence] Read Run"]
+    ReadRun --> RunKeys["(Run Keys?)"]
+    RunKeys --> |Yes| ReadRunSeq["[Sequence]"]
+    ReadRunSeq --> ReadOL["<Read OL Flow>"]
+    ReadRunSeq --> ReadBackfield["<Read Backfield Action>"]
+    ReadRunSeq --> DiagnoseScheme["<Diagnose Run Scheme>"]
+    ReadRunSeq --> TriggerFit["<Trigger to Gap>"]
+
+    ReadSel --> ReadPass["[Sequence] Read Pass"]
+    ReadPass --> PassKeys["(Pass Keys?)"]
+    PassKeys --> |Yes| ReadPassSeq["[Sequence]"]
+    ReadPassSeq --> HighHat["<See High Hat/Pass Set>"]
+    ReadPassSeq --> FindAssign["<Find Coverage Assignment>"]
+    ReadPassSeq --> BeginDrop["<Begin Zone Drop / Man Turn>"]
+
+    ReadSel --> ReadPA["[Sequence] Read Play Action"]
+    ReadPA --> PAKeys["(Play Action Look?)"]
+    PAKeys --> |Yes| PASel["[Selector]"]
+    PASel --> BitOnPA["[Sequence] Bit on Fake"]
+    BitOnPA --> BadRead["(Low Play Rec?)"]
+    BadRead --> |Yes| StepUp2["<Step Up to Run>"]
+    PASel --> RecoverPA["[Sequence] Recovered"]
+    RecoverPA --> GoodRead["(High Play Rec?)"]
+    GoodRead --> |Yes| GetDepth["<Get to Zone Depth>"]
+
+    Root --> RunFit["[Selector] Run Fit"]
+    RunFit --> DiagRun["(Diagnosed Run?)"]
+    DiagRun --> |Yes| RunFitSel["[Selector] Fit Type"]
+
+    RunFitSel --> GapFit["[Sequence] Gap Fit"]
+    GapFit --> GapResp["(Gap Responsibility?)"]
+    GapResp --> |Yes| GapFitSeq["[Sequence]"]
+    GapFitSeq --> AttackGap2["<Attack Assigned Gap>"]
+    GapFitSeq --> TakeOnBlocker["[Selector]"]
+    TakeOnBlocker --> Unblocked2["(Unblocked?) → <Make Tackle>"]
+    TakeOnBlocker --> Blocked["(Blocked?) → <Spill or Squeeze>"]
+
+    RunFitSel --> Scrape["[Sequence] Scrape"]
+    Scrape --> ScrapeAssign["(Scrape Assignment?)"]
+    ScrapeAssign --> |Yes| ScrapeSeq["[Sequence]"]
+    ScrapeSeq --> ReadFit["<Read DL Fit>"]
+    ScrapeSeq --> ScrapeOver["<Scrape Over Top>"]
+    ScrapeSeq --> FillCutback["<Fill Cutback>"]
+
+    RunFitSel --> Pursuit3["[Sequence] Pursuit"]
+    Pursuit3 --> PursuitAngle["(Ball Away?)"]
+    PursuitAngle --> |Yes| PursuitSeq2["[Sequence]"]
+    PursuitSeq2 --> TakeAngle2["<Take Pursuit Angle>"]
+    PursuitSeq2 --> AvoidTrash["<Avoid Trash>"]
+    PursuitSeq2 --> CloseOnBall["<Close on Ballcarrier>"]
+
+    Root --> Zone["[Selector] Zone Coverage"]
+    Zone --> ZoneAssign2["(Zone Assignment?)"]
+    ZoneAssign2 --> |Yes| ZoneSel["[Selector] Zone Type"]
+
+    ZoneSel --> Hook["[Sequence] Hook Zone"]
+    Hook --> HookAssign["(Hook Zone?)"]
+    HookAssign --> |Yes| HookSeq["[Sequence]"]
+    HookSeq --> DropHook["<Drop to Hook>"]
+    HookSeq --> ReadQB["<Read QB Eyes>"]
+    HookSeq --> WallCross["<Wall Off Crossers>"]
+    HookSeq --> BreakOnThrow["(Ball Thrown?) → <Break on Ball>"]
+
+    ZoneSel --> Curl["[Sequence] Curl-Flat"]
+    Curl --> CurlAssign["(Curl-Flat?)"]
+    CurlAssign --> |Yes| CurlSeq["[Sequence]"]
+    CurlSeq --> OpenToCurl["<Open to Curl>"]
+    CurlSeq --> ReadCurlFlat["<Read #2 Receiver>"]
+    CurlSeq --> DropDriveOrSit["[Selector]"]
+    DropDriveOrSit --> Two2Flat["(#2 to Flat?) → <Drive on Flat>"]
+    DropDriveOrSit --> Two2Curl["(#2 Vertical?) → <Sit in Curl Window>"]
+
+    ZoneSel --> Middle["[Sequence] Middle Zone"]
+    Middle --> MidAssign["(Middle/Tampa 2?)"]
+    MidAssign --> |Yes| MidSeq["[Sequence]"]
+    MidSeq --> Sprint["<Sprint to Deep Middle>"]
+    MidSeq --> ReadSeam["<Read Seam Threats>"]
+    MidSeq --> MatchSeam["<Match Vertical Seam>"]
+
+    Root --> Man["[Sequence] Man Coverage"]
+    Man --> ManAssign2["(Man Assignment?)"]
+    ManAssign2 --> |Yes| ManSeq2["[Sequence]"]
+    ManSeq2 --> FindMan["<Find Man>"]
+    ManSeq2 --> PositionSel["[Selector]"]
+    PositionSel --> InPhase["(In Phase?) → <Mirror Route>"]
+    PositionSel --> Trail["(Trailing?) → <Trail / Close Gap>"]
+    PositionSel --> Stacked["(Stacked?) → <Maintain Position>"]
+    ManSeq2 --> ContestCatch["(Ball Coming?) → <Contest Catch>"]
+
+    Root --> Stance5["<Hold Stance>"]
+```
+
+#### LB Key Reads
+
+| Read | Key | Run Indicator | Pass Indicator |
+|------|-----|---------------|----------------|
+| OL | Hat level | Low/Drive block | High/Pass set |
+| Guard | Pull? | Pulling = run | Setting = pass |
+| Backfield | Flow | RB toward LOS | RB in protection |
+| TE | Release | Block = run | Release = pass |
+| QB | Eyes | Handing off | Scanning |
+
+#### LB Run Fit Responsibilities
+
+| Run Type | WILL LB | MIKE LB | SAM LB |
+|----------|---------|---------|---------|
+| Inside Zone | Cutback | A-Gap | Flow |
+| Outside Zone | Pursuit | B-Gap | C-Gap/Contain |
+| Power | Scrape | Fill | Spill |
+| Counter | Cutback | Scrape | Kick Reader |
+
+---
+
+### Cornerback (CB) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] CB Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> BallInAir["[Selector] Ball In Air"]
+    BallInAir --> BallAir["(Ball In Air?)"]
+    BallAir --> |Yes| BallAirSel["[Selector]"]
+
+    BallAirSel --> ToMyMan["[Sequence] Ball to My Man"]
+    ToMyMan --> ToReceiver["(Ball to My Receiver?)"]
+    ToReceiver --> |Yes| ToMySel["[Selector] Contest Type"]
+    ToMySel --> InPosition["[Sequence] In Position"]
+    InPosition --> AmClose["(Within 1 Yard?)"]
+    AmClose --> |Yes| InPosSel["[Selector]"]
+    InPosSel --> PlayBall["[Sequence] Play Ball"]
+    PlayBall --> CanSee["(Can See Ball?)"]
+    CanSee --> |Yes| PlayBallSeq["[Sequence]"]
+    PlayBallSeq --> TrackBall2["<Track Ball>"]
+    PlayBallSeq --> HighPoint2["<High Point / Intercept>"]
+    InPosSel --> PlayReceiver["[Sequence] Play Receiver"]
+    PlayReceiver --> CantSee["(Can't See Ball?)"]
+    CantSee --> |Yes| PlayRecSeq["[Sequence]"]
+    PlayRecSeq --> ReadEyes["<Read Receiver Eyes>"]
+    PlayRecSeq --> PlayHands["<Play Through Hands>"]
+    ToMySel --> Trail2["[Sequence] Trailing"]
+    Trail2 --> AmTrailing["(More than 1 Yard?)"]
+    AmTrailing --> |Yes| TrailSeq["[Sequence]"]
+    TrailSeq --> CloseGround["<Close Ground>"]
+    TrailSeq --> DiveAtBall["<Dive at Ball/Tackle>"]
+
+    BallAirSel --> NotMyMan["[Sequence] Ball Elsewhere"]
+    NotMyMan --> BallAway["(Ball Not to Me?)"]
+    BallAway --> |Yes| RallyBall["<Rally to Ball>"]
+
+    Root --> Press["[Sequence] Press Coverage"]
+    Press --> PressTech["(Press Technique?)"]
+    PressTech --> |Yes| PressSel["[Selector] Press Phase"]
+
+    PressSel --> Jam["[Sequence] Jam at LOS"]
+    Jam --> AtLOS2["(At LOS?)"]
+    AtLOS2 --> |Yes| JamSeq["[Sequence]"]
+    JamSeq --> ReadRelease["<Read Release>"]
+    JamSeq --> JamSel["[Selector] Jam Type"]
+    JamSel --> MirrorJam["(Inside Release?) → <Mirror + Jam>"]
+    JamSel --> RedirectJam["(Outside Release?) → <Redirect Inside>"]
+    JamSel --> CatchJam["(Speed Release?) → <Catch + Funnel>"]
+
+    PressSel --> Phase["[Sequence] In Phase"]
+    Phase --> PostJam["(Post Jam?)"]
+    PostJam --> |Yes| PhaseSel["[Selector]"]
+    PhaseSel --> OnHip["[Sequence] On Hip"]
+    OnHip --> HipPos["(On Hip?)"]
+    HipPos --> |Yes| HipSeq["[Sequence]"]
+    HipSeq --> Plaster["<Plaster to Hip>"]
+    HipSeq --> ReadBreak["<Read for Break>"]
+    HipSeq --> ReactBreak["(Break?) → <React to Break>"]
+    PhaseSel --> Stacked2["[Sequence] Stacked"]
+    Stacked2 --> StackedPos["(Stacked?)"]
+    StackedPos --> |Yes| StackSeq["[Sequence]"]
+    StackSeq --> MaintainStack["<Maintain Stack>"]
+    StackSeq --> UseLeverage["<Use Leverage>"]
+
+    Root --> OffMan["[Sequence] Off Man Coverage"]
+    OffMan --> OffManTech["(Off Man Technique?)"]
+    OffManTech --> |Yes| OffManSel["[Selector] Off Man Phase"]
+
+    OffManSel --> Backpedal["[Sequence] Backpedal Phase"]
+    Backpedal --> PreBreak["(Pre-Break?)"]
+    PreBreak --> |Yes| BPSeq["[Sequence]"]
+    BPSeq --> BPDepth["<Backpedal to Depth>"]
+    BPSeq --> KeyReceiver["<Key Receiver>"]
+    BPSeq --> ReadHips["<Read Hips for Break>"]
+
+    OffManSel --> Transition["[Sequence] Transition"]
+    Transition --> AtBreak2["(WR Breaking?)"]
+    AtBreak2 --> |Yes| TransSeq["[Selector]"]
+    TransSeq --> FlipToIn["(In-Breaking?) → <Flip Hips Inside>"]
+    TransSeq --> FlipToOut["(Out-Breaking?) → <Flip Hips Outside>"]
+    TransSeq --> RunVert["(Vertical?) → <Turn and Run>"]
+
+    OffManSel --> Close["[Sequence] Closing"]
+    Close --> PostBreak2["(Post Break?)"]
+    PostBreak2 --> |Yes| CloseSel["[Selector]"]
+    CloseSel --> InPhase2["(In Phase?) → <Mirror / Close>"]
+    CloseSel --> Trail3["(Out of Phase?) → <Trail / Recover>"]
+
+    Root --> Zone2["[Selector] Zone Coverage"]
+    Zone2 --> ZoneCov["(Zone Assignment?)"]
+    ZoneCov --> |Yes| ZoneCovSel["[Selector] Zone Type"]
+
+    ZoneCovSel --> DeepThird["[Sequence] Deep Third"]
+    DeepThird --> ThirdAssign["(Deep Third?)"]
+    ThirdAssign --> |Yes| ThirdSeq["[Sequence]"]
+    ThirdSeq --> Bail["<Bail to Depth>"]
+    ThirdSeq --> FindThreat["<Find #1 Threat>"]
+    ThirdSeq --> ReadVert["[Selector] Vertical Threat"]
+    ReadVert --> VertTo["(#1 Vertical?) → <Match #1>"]
+    ReadVert --> NoVert["(No Vertical?) → <Rob Underneath>"]
+
+    ZoneCovSel --> Flat["[Sequence] Flat Zone"]
+    Flat --> FlatAssign["(Flat Zone?)"]
+    FlatAssign --> |Yes| FlatSeq["[Sequence]"]
+    FlatSeq --> FunnelOne["<Funnel #1 Inside>"]
+    FlatSeq --> Sink["<Sink to Flat>"]
+    FlatSeq --> ReadTwo["<Read #2>"]
+    FlatSeq --> TwoFlat["(#2 to Flat?) → <Jump #2>"]
+
+    ZoneCovSel --> Quarter["[Sequence] Quarter Zone"]
+    Quarter --> QuarterAssign["(Quarter?)"]
+    QuarterAssign --> |Yes| QuarterSeq["[Sequence]"]
+    QuarterSeq --> Cushion["<Maintain Cushion>"]
+    QuarterSeq --> ReadTwoTwo["<Read #1 and #2>"]
+    QuarterSeq --> QuarterSel["[Selector]"]
+    QuarterSel --> OneVert["(#1 Vert, #2 Out?) → <Carry #1>"]
+    QuarterSel --> TwoVert["(#2 Vert Inside?) → <Pass to Safety, Sink>"]
+
+    Root --> RunSupport["[Sequence] Run Support"]
+    RunSupport --> RunRead["(Run Diagnosed?)"]
+    RunRead --> |Yes| RunSupportSel["[Selector]"]
+
+    RunSupportSel --> Primary["[Sequence] Primary Force"]
+    Primary --> ForceAssign["(Force Player?)"]
+    ForceAssign --> |Yes| ForceSeq["[Sequence]"]
+    ForceSeq --> AttackAlley["<Attack Alley>"]
+    ForceSeq --> TakeOnBlock["<Take On Block>"]
+    ForceSeq --> TurnPlay["<Turn Play Inside>"]
+
+    RunSupportSel --> Contain2["[Sequence] Contain"]
+    Contain2 --> ContainAssign["(Contain?)"]
+    ContainAssign --> |Yes| ContainSeq["[Sequence]"]
+    ContainSeq --> WidenOut["<Widen / Get Depth>"]
+    ContainSeq --> SqueezeBC["<Squeeze Ballcarrier>"]
+    ContainSeq --> NoOutside["<Don't Let Outside>"]
+
+    RunSupportSel --> Alley["[Sequence] Alley Player"]
+    Alley --> AlleyAssign["(Alley Fill?)"]
+    AlleyAssign --> |Yes| AlleySeq["[Sequence]"]
+    AlleySeq --> FillAlley["<Fill Alley>"]
+    AlleySeq --> FitInside["<Fit Inside Force>"]
+    AlleySeq --> MakeTackle2["<Make Tackle>"]
+
+    Root --> Stance6["<Hold Stance>"]
+```
+
+#### CB Coverage Techniques
+
+| Technique | Alignment | Key | Best Against | Weakness |
+|-----------|-----------|-----|--------------|----------|
+| Press | 0-1 yard | Hands, feet | Timing routes | Speed release |
+| Off (5-7 yards) | Cushion | Hip read | Go routes | Slants, hitches |
+| Bail | Start close, bail | #1 vertical | Deep shots | Underneath |
+| Catch | Press shell, soft | Jam and trail | Play action | Quick game |
+
+#### CB Zone Landmarks
+
+| Zone | Depth | Width | Key Read |
+|------|-------|-------|----------|
+| Deep Third | 12-15+ yards | Sideline to hash | #1 vertical |
+| Flat | 5-8 yards | Sideline to numbers | #2 to flat |
+| Quarter | 10-12 yards | Quarter of field | #1 and #2 |
+
+---
+
+### Safety (S) Behavior Tree
+
+```mermaid
+flowchart TB
+    Root[["[Selector] Safety Root"]]
+
+    Root --> Down["(Is Down?)"]
+    Down --> |Yes| Stay["<Stay Down>"]
+
+    Root --> BallAir2["[Selector] Ball In Air"]
+    BallAir2 --> IsBallAir["(Ball In Air?)"]
+    IsBallAir --> |Yes| BallAirSafety["[Selector]"]
+
+    BallAirSafety --> BreakOnBall["[Sequence] Break on Ball"]
+    BreakOnBall --> CanIntercept["(Intercept Angle?)"]
+    CanIntercept --> |Yes| InterceptSeq["[Sequence]"]
+    InterceptSeq --> CalculateAngle["<Calculate Intercept>"]
+    InterceptSeq --> DriveOnBall["<Drive on Ball>"]
+    InterceptSeq --> PlayBall2["<High Point / Intercept>"]
+
+    BallAirSafety --> RallyTackle["[Sequence] Rally"]
+    RallyTackle --> NoIntercept["(No Intercept Angle?)"]
+    NoIntercept --> |Yes| RallySeq["[Sequence]"]
+    RallySeq --> RallyPoint["<Rally to Catch Point>"]
+    RallySeq --> PrepTackle["<Prepare to Tackle>"]
+
+    Root --> Deep["[Selector] Deep Coverage"]
+    Deep --> DeepAssign["(Deep Assignment?)"]
+    DeepAssign --> |Yes| DeepSel["[Selector] Deep Zone Type"]
+
+    DeepSel --> SingleHigh["[Sequence] Single High (Cover 1/3)"]
+    SingleHigh --> SingleAssign["(Single High?)"]
+    SingleAssign --> |Yes| SingleSeq["[Sequence]"]
+    SingleSeq --> CenterField["<Align Center Field>"]
+    SingleSeq --> ReadQBEyes["<Read QB Eyes>"]
+    SingleSeq --> Triangulate["<Triangulate Deep Threats>"]
+    SingleSeq --> BreakSeq["[Selector]"]
+    BreakSeq --> BreakPost["(Post Threat?) → <Break on Post>"]
+    BreakSeq --> BreakSeam["(Seam Threat?) → <Break on Seam>"]
+    BreakSeq --> BreakCorner["(Corner?) → <Help Over Top>"]
+    BreakSeq --> HoldMiddle["<Hold Deep Middle>"]
+
+    DeepSel --> Half["[Sequence] Deep Half (Cover 2)"]
+    Half --> HalfAssign["(Deep Half?)"]
+    HalfAssign --> |Yes| HalfSeq["[Sequence]"]
+    HalfSeq --> HalfAlignment["<Align Hash to Sideline>"]
+    HalfSeq --> ReadTwo3["<Read #1 and #2>"]
+    HalfSeq --> HalfSel["[Selector]"]
+    HalfSel --> OneDeep["(#1 Deep Outside?) → <Carry to Sideline>"]
+    HalfSel --> TwoDeep["(#2 Up Seam?) → <Squeeze Seam>"]
+    HalfSel --> AllUnder["(All Underneath?) → <Squeeze Down>"]
+
+    DeepSel --> QuarterS["[Sequence] Quarter (Cover 4)"]
+    QuarterS --> QuarterSAssign["(Quarter?)"]
+    QuarterSAssign --> |Yes| QuarterSSeq["[Sequence]"]
+    QuarterSSeq --> QuarterSAlign["<Align over #2>"]
+    QuarterSSeq --> ReadTwoS["<Read #2>"]
+    QuarterSSeq --> QuarterSSel["[Selector]"]
+    QuarterSSel --> TwoVertS["(#2 Vertical?) → <Carry #2 Deep>"]
+    QuarterSSel --> TwoOutS["(#2 Out?) → <Look for #1>"]
+    QuarterSSel --> TwoInS["(#2 In?) → <Squeeze Inside>"]
+
+    Root --> Robber["[Sequence] Robber Coverage"]
+    Robber --> RobberAssign["(Robber?)"]
+    RobberAssign --> |Yes| RobberSeq["[Sequence]"]
+    RobberSeq --> FakeDeep["<Show Deep>"]
+    RobberSeq --> TriggerDown["<Trigger on Throw>"]
+    RobberSeq --> JumpRoute["<Jump Underneath Route>"]
+
+    Root --> ManS["[Sequence] Man Coverage"]
+    ManS --> ManSAssign["(Man Assignment?)"]
+    ManSAssign --> |Yes| ManSSel["[Selector]"]
+
+    ManSSel --> ManTE["[Sequence] Man on TE"]
+    ManTE --> TEAssign["(TE?)"]
+    TEAssign --> |Yes| ManTESeq["[Sequence]"]
+    ManTESeq --> AlignTE["<Inside Leverage>"]
+    ManTESeq --> JamTE["<Jam at Release>"]
+    ManTESeq --> TrailTE["<Trail in Phase>"]
+
+    ManSSel --> ManRB["[Sequence] Man on RB"]
+    ManRB --> RBAssign["(RB?)"]
+    RBAssign --> |Yes| ManRBSeq["[Sequence]"]
+    ManRBSeq --> KeyRB["<Key RB in Backfield>"]
+    ManRBSeq --> PassCheck["(RB Releases?) → <Match Release>"]
+    ManRBSeq --> RunCheck["(RB Runs?) → <Pursue>"]
+
+    ManSSel --> ManSlot["[Sequence] Man on Slot"]
+    ManSlot --> SlotAssign["(Slot?)"]
+    SlotAssign --> |Yes| ManSlotSeq["[Sequence]"]
+    ManSlotSeq --> AlignSlot["<Inside Leverage on Slot>"]
+    ManSlotSeq --> PassRead["<Pass Read>"]
+    ManSlotSeq --> RunOrPass["[Selector]"]
+    RunOrPass --> SlotRoute["(Slot Releases?) → <Cover Route>"]
+    RunOrPass --> SlotBlock["(Slot Blocks?) → <Trigger Run>"]
+
+    Root --> RunS["[Selector] Run Support"]
+    RunS --> RunReadS["(Run Diagnosed?)"]
+    RunReadS --> |Yes| RunSSel["[Selector]"]
+
+    RunSSel --> Alley2["[Sequence] Alley Fill"]
+    Alley2 --> AlleyS["(Alley Player?)"]
+    AlleyS --> |Yes| AlleySSeq["[Sequence]"]
+    AlleySSeq --> TriggerAlley["<Trigger Downhill>"]
+    AlleySSeq --> FillBetween["<Fill Between Force/LB>"]
+    AlleySSeq --> TakeTackle["<Take on Lead / Make Tackle>"]
+
+    RunSSel --> Cutback2["[Sequence] Cutback"]
+    Cutback2 --> CutbackS["(Cutback Player?)"]
+    CutbackS --> |Yes| CutbackSeq["[Sequence]"]
+    CutbackSeq --> SlowRead["<Slow Read>"]
+    CutbackSeq --> FillBackside["<Fill Backside>"]
+    CutbackSeq --> CutoffBC["<Cut Off Cutback>"]
+
+    RunSSel --> Force["[Sequence] Force Player"]
+    Force --> ForceS["(Force?)"]
+    ForceS --> |Yes| ForceSSeq["[Sequence]"]
+    ForceSSeq --> AttackPlayside["<Attack Playside>"]
+    ForceSSeq --> SetEdge2["<Set Edge>"]
+    ForceSSeq --> ForceTurn["<Force Ball Inside>"]
+
+    Root --> Blitz2["[Sequence] Safety Blitz"]
+    Blitz2 --> BlitzS["(Blitz Assignment?)"]
+    BlitzS --> |Yes| BlitzSSel["[Selector]"]
+    BlitzSSel --> EdgeS["[Sequence] Edge Blitz"]
+    EdgeS --> EdgeSAssign["(Edge?)"]
+    EdgeSAssign --> |Yes| EdgeSSeq["[Sequence]"]
+    EdgeSSeq --> CreepEdge["<Creep to Edge>"]
+    EdgeSSeq --> TimeSnap["<Time Snap>"]
+    EdgeSSeq --> AttackEdge["<Attack Edge>"]
+    BlitzSSel --> InsideS["[Sequence] Inside Blitz"]
+    InsideS --> InsideSAssign["(A/B Gap?)"]
+    InsideSAssign --> |Yes| InsideSSeq["[Sequence]"]
+    InsideSSeq --> CreepIn["<Creep Pre-Snap>"]
+    InsideSSeq --> HitGap["<Hit Gap>"]
+    InsideSSeq --> FindQB["<Find QB>"]
+
+    Root --> Stance7["<Hold Stance>"]
+```
+
+#### Safety Coverage Landmarks
+
+| Coverage | FS Alignment | SS Alignment | Primary Key |
+|----------|--------------|--------------|-------------|
+| Cover 1 | 12-14 deep center | 8 over #2/#3 | QB to receivers |
+| Cover 2 | 12 deep hash to sideline | 12 deep hash to sideline | #1 and #2 |
+| Cover 3 | 12-15 deep middle third | 8 rolled down | FS: Post, SS: Flat/Run |
+| Cover 4 | 10-12 over #2 | 10-12 over #2 | #2 vertical or out |
+| Cover 6 | Quarter to field | Half to boundary | Split rules |
+
+---
+
+### Ballcarrier (Universal) Behavior Tree
+
+This tree applies to ANY player who has the ball—RB, WR after catch, QB scrambling, or defender after interception.
+
+```mermaid
+flowchart TB
+    Root[["[Selector] Ballcarrier Root"]]
+
+    Root --> Down2["(Is Down?)"]
+    Down2 --> |Yes| Stay2["<Stay Down>"]
+
+    Root --> Scoring["[Sequence] Scoring Position"]
+    Scoring --> NearGoal["(Within 5 Yards of Goal?)"]
+    NearGoal --> |Yes| ScoreSel["[Selector]"]
+    ScoreSel --> ClearPath["(Clear Path?) → <Sprint to End Zone>"]
+    ScoreSel --> Dive["(Defender Close?) → <Dive for Pylon/Goal>"]
+    ScoreSel --> LowerPad["<Lower Pad Level, Fight Forward>"]
+
+    Root --> OpenField["[Selector] Open Field"]
+    OpenField --> InSpace["(In Open Field?)"]
+    InSpace --> |Yes| OpenSel["[Selector] Open Field Running"]
+
+    OpenSel --> NoThreat["[Sequence] No Immediate Threat"]
+    NoThreat --> ClearAhead["(No Defender Within 7 Yards?)"]
+    ClearAhead --> |Yes| NoThreatSeq["[Sequence]"]
+    NoThreatSeq --> PickLane["<Pick Best Lane>"]
+    NoThreatSeq --> Accelerate["<Accelerate>"]
+    NoThreatSeq --> SetupBlock["<Set Up Blocker>"]
+
+    OpenSel --> OneThreat["[Sequence] Single Threat"]
+    OneThreat --> OneDefender["(One Defender to Beat?)"]
+    OneDefender --> |Yes| OneSel["[Selector] 1v1"]
+    OneSel --> SpeedWin["[Sequence] Speed Win"]
+    SpeedWin --> SpeedAdv["(Speed Advantage?)"]
+    SpeedAdv --> |Yes| SpeedSeq["[Sequence]"]
+    SpeedSeq --> SetupAngle["<Set Up Angle>"]
+    SpeedSeq --> SpeedBurst2["<Speed Burst Past>"]
+    OneSel --> MakeMove["[Sequence] Make Move"]
+    MakeMove --> NoSpeedAdv["(No Speed Advantage?)"]
+    NoSpeedAdv --> |Yes| MoveSel["[Selector] Move Selection"]
+    MoveSel --> Juke["[Sequence]"]
+    Juke --> JukeSpace["(Space to Cut?)"]
+    JukeSpace --> |Yes| ExecJuke["<Execute Juke>"]
+    MoveSel --> Spin2["[Sequence]"]
+    Spin2 --> SpinAngle["(Defender Committed?)"]
+    SpinAngle --> |Yes| ExecSpin["<Execute Spin>"]
+    MoveSel --> StiffArm["[Sequence]"]
+    StiffArm --> StiffPos["(Defender Reaching?)"]
+    StiffPos --> |Yes| ExecStiff["<Execute Stiff Arm>"]
+    MoveSel --> Power["<Lower Shoulder / Truck>"]
+
+    OpenSel --> MultiThreat["[Sequence] Multiple Threats"]
+    MultiThreat --> MultDef["(Multiple Defenders?)"]
+    MultDef --> |Yes| MultSel["[Selector]"]
+    MultSel --> FindSeam["[Sequence] Find Seam"]
+    FindSeam --> SeamExists["(Seam Between Defenders?)"]
+    SeamExists --> |Yes| HitSeam["<Split Defenders>"]
+    MultSel --> UseBlocker["[Sequence] Set Up Block"]
+    UseBlocker --> BlockerAvail["(Blocker Available?)"]
+    BlockerAvail --> |Yes| BlockerSeq["[Sequence]"]
+    BlockerSeq --> SetupBlocker["<Set Up Blocker>"]
+    BlockerSeq --> ReadBlock["<Read Block>"]
+    BlockerSeq --> CutOffBlock["<Cut Off Block>"]
+    MultSel --> Boundary["[Sequence] Use Boundary"]
+    Boundary --> NearSide["(Near Sideline?)"]
+    NearSide --> |Yes| UseSideline["<Use Sideline as Extra Defender>"]
+    MultSel --> North2["<North/South, Minimize Loss>"]
+
+    Root --> Congestion["[Selector] Congested Running"]
+    Congestion --> InTraffic["(In Traffic?)"]
+    InTraffic --> |Yes| TrafficSel["[Selector]"]
+
+    TrafficSel --> HitHole["[Sequence] Hit Hole"]
+    HitHole --> HoleVisible["(Hole Visible?)"]
+    HoleVisible --> |Yes| HoleSeq["[Selector]"]
+    HoleSeq --> BigHole["(Hole > 2 Yards?) → <Accelerate Through>"]
+    HoleSeq --> SmallHole["(Hole 1-2 Yards?) → <Squeeze Through>"]
+    HoleSeq --> ClosingHole["(Hole Closing?) → <Hit It Now>"]
+
+    TrafficSel --> Cutback3["[Sequence] Cutback"]
+    TrafficSel --> CutbackVis["(Cutback Lane?)"]
+    CutbackVis --> |Yes| CutbackRun["[Sequence]"]
+    CutbackRun --> PatienceCut["<Patience / Set Up Cut>"]
+    CutbackRun --> PlantCut["<Plant and Cut>"]
+    CutbackRun --> AccelCut["<Accelerate Through Cutback>"]
+
+    TrafficSel --> Bounce2["[Sequence] Bounce"]
+    Bounce2 --> BounceVis["(Edge Available?)"]
+    BounceVis --> |Yes| BounceRun["[Sequence]"]
+    BounceRun --> ReadEdge["<Read Edge Block>"]
+    BounceRun --> BounceOut2["<Bounce Outside>"]
+    BounceRun --> TurnCorner["<Turn Corner>"]
+
+    TrafficSel --> ChurnLegs["[Sequence] Churn Legs"]
+    ChurnLegs --> NoLane["(No Lanes?)"]
+    NoLane --> |Yes| ChurnSeq["[Sequence]"]
+    ChurnSeq --> LowerPad2["<Lower Pad Level>"]
+    ChurnSeq --> DriveLegs["<Drive Legs>"]
+    ChurnSeq --> FallForward["<Fall Forward>"]
+
+    Root --> Contact["[Selector] Contact Imminent"]
+    Contact --> TacklerClose["(Tackler Within 1 Yard?)"]
+    TacklerClose --> |Yes| ContactSel["[Selector]"]
+
+    ContactSel --> AvoidContact["[Sequence] Avoid"]
+    AvoidContact --> CanAvoid["(Can Avoid Contact?)"]
+    CanAvoid --> |Yes| LastMove["[Selector] Last Second Move"]
+    LastMove --> LastJuke["<Last Second Juke>"]
+    LastMove --> LastSpin["<Spin Out>"]
+    LastMove --> Hurdle2["<Hurdle>"]
+
+    ContactSel --> Brace["[Sequence] Brace for Contact"]
+    Brace --> MustTakeHit["(Must Take Hit?)"]
+    MustTakeHit --> |Yes| BraceSel["[Selector]"]
+    BraceSel --> LowerBrace["<Lower Pad / Absorb>"]
+    BraceSel --> TruckHit["<Truck / Initiate Contact>"]
+    BraceSel --> ProtectBall2["<Protect Ball / Brace>"]
+
+    ContactSel --> YAC["[Sequence] Fight for YAC"]
+    YAC --> Contact2["(In Contact?)"]
+    Contact2 --> |Yes| YACSel["[Selector]"]
+    YACSel --> DriveLegs2["<Drive Legs>"]
+    YACSel --> SpinOut2["<Spin Out of Contact>"]
+    YACSel --> ReachBall["<Reach Ball Forward>"]
+
+    Root --> Safety2["[Selector] Safety First"]
+    Safety2 --> NeedSafety["(Late in Game / Protecting Lead?)"]
+    NeedSafety --> |Yes| SafetySel["[Selector]"]
+    SafetySel --> OOB["(Near Sideline?) → <Go Out of Bounds>"]
+    SafetySel --> Slide["(QB?) → <Slide>"]
+    SafetySel --> GiveUp["(Wrapped Up?) → <Give Up / Protect>"]
+    SafetySel --> CoverBall["<Cover Ball with Both Hands>"]
+
+    Root --> Default["<Run North-South>"]
+```
+
+#### Ballcarrier Vision Tiers
+
+| Vision Rating | Can Perceive | Decision Quality |
+|---------------|--------------|------------------|
+| < 60 | Primary hole, 2 nearest defenders | Often misses cutback |
+| 60-74 | 2-3 holes, 4-5 defenders | Sees obvious cutback |
+| 75-84 | All holes, pursuit angles | Good cutback timing |
+| 85-99 | Blocker leverage, second level | Elite anticipation |
+
+#### Move Selection Matrix
+
+| Situation | Best Move | Required Attribute | Risk Level |
+|-----------|-----------|-------------------|------------|
+| Defender reaching | Stiff Arm | Strength 75+ | Low |
+| Defender committed upfield | Spin | Agility 80+ | Medium |
+| Space to side | Juke | Agility 70+ | Low |
+| Low tackler | Hurdle | Agility 85+ | High |
+| Smaller defender | Truck | Strength 80+, Weight | Medium |
+| Speed advantage | Speed burst | Speed diff 3+ | Low |
+| No space | Dead leg | Agility 70+ | Low |
+
+---
+
+### Behavior Tree Implementation Notes
+
+#### Tree Evaluation Order
+
+```python
+class BehaviorTree:
+    """Evaluates behavior tree each tick."""
+
+    def evaluate(self, context: Context) -> Action:
+        """
+        Traverse tree from root, return first successful action.
+
+        Evaluation rules:
+        1. Selectors try children left-to-right, return first success
+        2. Sequences require all children to succeed
+        3. Conditions return SUCCESS or FAILURE
+        4. Actions return SUCCESS, FAILURE, or RUNNING
+        """
+        return self.root.evaluate(context)
+
+class Selector(Node):
+    """Try children until one succeeds (OR logic)."""
+
+    def evaluate(self, context: Context) -> Status:
+        for child in self.children:
+            status = child.evaluate(context)
+            if status != Status.FAILURE:
+                return status
+        return Status.FAILURE
+
+class Sequence(Node):
+    """All children must succeed (AND logic)."""
+
+    def evaluate(self, context: Context) -> Status:
+        for child in self.children:
+            status = child.evaluate(context)
+            if status != Status.SUCCESS:
+                return status
+        return Status.SUCCESS
+```
+
+#### Attribute Influence on Trees
+
+Attributes don't change tree structure—they influence:
+
+1. **Condition thresholds** - Higher awareness = earlier blitz recognition
+2. **Action success rates** - Higher agility = better juke success
+3. **Timing windows** - Higher play recognition = faster reads
+4. **Option availability** - Low speed = speed burst not viable
+
+```python
+def can_use_speed_burst(ballcarrier: Player, defender: Player) -> bool:
+    """Speed burst only viable with significant speed advantage."""
+    speed_diff = ballcarrier.attributes.speed - defender.attributes.speed
+    return speed_diff >= 3  # Need 3+ rating points
+```
+
+---
+
 ## Open Questions
 
 1. **Fatigue modeling**: How does player stamina affect capabilities over a play? Over a game?
