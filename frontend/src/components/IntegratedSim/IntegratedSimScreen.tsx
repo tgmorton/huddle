@@ -497,7 +497,7 @@ export function IntegratedSimScreen() {
             <IntegratedSimCanvas
               playState={playState}
               pocketState={pocketState}
-              pressureState={pressure}
+              pressureState={pressure ?? null}
             />
           )}
 

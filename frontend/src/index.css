@@ -7,14 +7,66 @@
   line-height: 1.5;
   font-weight: 400;
 
+  /* Dark theme (default) */
+  --bg-base: #0f0f1a;
+  --bg-surface: #1a1d24;
+  --bg-elevated: #1e2128;
+  --bg-card: #252830;
+  --bg-hover: #2a2f38;
+
+  --border-color: #333;
+  --border-subtle: #2a2f38;
+
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: #c9cdd4;
+  --text-muted: #8a8f98;
+  --text-faint: #6b7280;
+
+  --accent: #4ecdc4;
+  --accent-hover: #6ee7df;
+  --accent-blue: #4a9eff;
+  --accent-green: #81c784;
+  --accent-amber: #ffb74d;
+  --accent-red: #e57373;
+  --accent-purple: #8b5cf6;
+
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f0f1a;
+  color: var(--text-primary);
+  background-color: var(--bg-base);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sepia/Warm Light Mode */
+:root.sepia-mode {
+  --bg-base: #f5f0e6;
+  --bg-surface: #faf6ed;
+  --bg-elevated: #fffcf5;
+  --bg-card: #f0ebe0;
+  --bg-hover: #e8e2d6;
+
+  --border-color: #d4cbb8;
+  --border-subtle: #e0d9ca;
+
+  --text-primary: #3d3529;
+  --text-secondary: #524a3a;
+  --text-muted: #7a7060;
+  --text-faint: #998f7d;
+
+  --accent: #2a7a72;
+  --accent-hover: #1d5c56;
+  --accent-blue: #4a76b8;
+  --accent-green: #5a8a5c;
+  --accent-amber: #b8863a;
+  --accent-red: #b85a5a;
+  --accent-purple: #7a5ab8;
+
+  color-scheme: light;
+  color: var(--text-primary);
+  background-color: var(--bg-base);
 }
 
 body {
@@ -25,12 +77,12 @@ body {
 
 a {
   font-weight: 500;
-  color: #4ecdc4;
+  color: var(--accent);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #6ee7df;
+  color: var(--accent-hover);
 }
 
 button {

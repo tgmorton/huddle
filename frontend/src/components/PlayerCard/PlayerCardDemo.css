@@ -1,0 +1,296 @@
+/* ==========================================================================
+   Player Card Demo Page
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap');
+
+.player-card-demo {
+  min-height: 100vh;
+  padding: 40px 24px 80px;
+  font-family: 'Source Sans 3', -apple-system, sans-serif;
+  transition: background 0.5s ease, color 0.5s ease;
+
+  /* Practice theme default */
+  --demo-bg: #010409;
+  --demo-surface: #0d1117;
+  --demo-border: #30363d;
+  --demo-accent: #58a6ff;
+  --demo-text: #c9d1d9;
+  --demo-text-muted: #8b949e;
+
+  background: var(--demo-bg);
+  color: var(--demo-text);
+}
+
+.player-card-demo[data-phase="gameday"] {
+  --demo-bg: #000000;
+  --demo-surface: #0a0a0a;
+  --demo-border: #2a2a2a;
+  --demo-accent: #ff4444;
+  --demo-text: #ffffff;
+  --demo-text-muted: #888888;
+}
+
+.player-card-demo[data-phase="recovery"] {
+  --demo-bg: #0f0d0a;
+  --demo-surface: #1a1510;
+  --demo-border: #3d3428;
+  --demo-accent: #d4a574;
+  --demo-text: #e8dcc8;
+  --demo-text-muted: #9a8b74;
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+
+.demo-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.demo-header h1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+  color: var(--demo-text);
+}
+
+.demo-subtitle {
+  font-size: 16px;
+  color: var(--demo-text-muted);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Phase Selector
+   ========================================================================== */
+
+.phase-selector {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+
+.phase-selector__label {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--demo-text-muted);
+}
+
+.phase-selector__btn {
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: 1px solid var(--demo-border);
+  border-radius: 6px;
+  background: var(--demo-surface);
+  color: var(--demo-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.phase-selector__btn:hover {
+  border-color: var(--demo-accent);
+  color: var(--demo-text);
+}
+
+.phase-selector__btn--active {
+  background: var(--demo-accent);
+  border-color: var(--demo-accent);
+  color: var(--demo-bg);
+}
+
+/* ==========================================================================
+   Sections
+   ========================================================================== */
+
+.demo-section {
+  max-width: 900px;
+  margin: 0 auto 64px;
+}
+
+.demo-section__title {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--demo-accent);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.demo-section__desc {
+  font-size: 15px;
+  color: var(--demo-text-muted);
+  text-align: center;
+  margin: 0 0 32px;
+}
+
+/* ==========================================================================
+   Card Rows
+   ========================================================================== */
+
+.card-row {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.card-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-label {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--demo-text-muted);
+  padding: 4px 12px;
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   The Test Section
+   ========================================================================== */
+
+.demo-section--test {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: 12px;
+  padding: 32px;
+  margin-top: 48px;
+}
+
+.test-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 600px) {
+  .test-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.test-question,
+.test-answer {
+  display: flex;
+  gap: 12px;
+}
+
+.test-q,
+.test-a {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--demo-accent);
+  flex-shrink: 0;
+}
+
+.test-question p,
+.test-answer p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.test-answer p strong {
+  color: var(--demo-accent);
+}
+
+/* ==========================================================================
+   Footer / Design Notes
+   ========================================================================== */
+
+.demo-footer {
+  max-width: 900px;
+  margin: 64px auto 0;
+  padding-top: 32px;
+  border-top: 1px solid var(--demo-border);
+}
+
+.demo-footer h3 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--demo-text-muted);
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.treatment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .treatment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.treatment {
+  background: var(--demo-surface);
+  border: 1px solid var(--demo-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.treatment__label {
+  display: block;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.treatment--confident .treatment__label {
+  color: var(--demo-accent);
+}
+
+.treatment--neutral .treatment__label {
+  color: var(--demo-text-muted);
+}
+
+.treatment--struggling .treatment__label {
+  color: #f85149;
+}
+
+.treatment ul {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--demo-text-muted);
+}
+
+.treatment li {
+  margin-bottom: 4px;
+}

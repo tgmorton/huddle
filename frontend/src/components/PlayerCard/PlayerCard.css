@@ -1,0 +1,404 @@
+/* ==========================================================================
+   Player Card Component
+
+   Morale is communicated through portrait treatment:
+   - Confident: Bright, saturated, subtle glow
+   - Neutral: Default state
+   - Struggling: Desaturated, shadowed, muted
+
+   "If users are noticing the paper texture, you've failed.
+    If users are noticing their struggling player needs attention, you've succeeded."
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap');
+
+/* ==========================================================================
+   CSS Custom Properties - Phase Theming
+   ========================================================================== */
+
+.player-card {
+  /* Practice Phase - Cool, analytical */
+  --phase-bg: #0d1117;
+  --phase-surface: #161b22;
+  --phase-border: #30363d;
+  --phase-accent: #58a6ff;
+  --phase-text: #c9d1d9;
+  --phase-text-muted: #8b949e;
+
+  /* Card dimensions */
+  --card-width: 220px;
+  --card-radius: 8px;
+  --portrait-size: 140px;
+}
+
+.player-card--phase-gameday {
+  /* Game Day - High contrast, intense */
+  --phase-bg: #000000;
+  --phase-surface: #0a0a0a;
+  --phase-border: #2a2a2a;
+  --phase-accent: #ff4444;
+  --phase-text: #ffffff;
+  --phase-text-muted: #888888;
+}
+
+.player-card--phase-recovery {
+  /* Recovery - Warm, relaxed */
+  --phase-bg: #1a1510;
+  --phase-surface: #221c14;
+  --phase-border: #3d3428;
+  --phase-accent: #d4a574;
+  --phase-text: #e8dcc8;
+  --phase-text-muted: #9a8b74;
+}
+
+/* ==========================================================================
+   Base Card Styles
+   ========================================================================== */
+
+.player-card {
+  position: relative;
+  width: var(--card-width);
+  background: var(--phase-surface);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  cursor: default;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+  font-family: 'Source Sans 3', -apple-system, sans-serif;
+}
+
+.player-card[role="button"] {
+  cursor: pointer;
+}
+
+.player-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.player-card:focus-visible {
+  outline: 2px solid var(--phase-accent);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Portrait Container
+   ========================================================================== */
+
+.player-card__portrait-container {
+  position: relative;
+  padding: 16px 16px 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.player-card__portrait-frame {
+  position: relative;
+  width: var(--portrait-size);
+  height: var(--portrait-size);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--phase-bg);
+}
+
+.player-card__portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.4s ease;
+}
+
+.player-card__portrait-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition:
+    background 0.4s ease,
+    box-shadow 0.4s ease;
+}
+
+/* ==========================================================================
+   MORALE TREATMENTS - The Core Visual System
+   ========================================================================== */
+
+/* --- Confident: Bright, alive, ready --- */
+.player-card--confident .player-card__portrait {
+  filter:
+    brightness(1.1)
+    saturate(1.25)
+    contrast(1.05);
+}
+
+.player-card--confident .player-card__portrait-frame {
+  box-shadow:
+    0 0 0 2px rgba(88, 166, 255, 0.3),
+    0 4px 16px rgba(88, 166, 255, 0.15);
+}
+
+.player-card--confident .player-card__portrait-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(88, 166, 255, 0.08) 0%,
+    transparent 50%
+  );
+}
+
+/* Ambient glow effect for confident players */
+.player-card__glow {
+  display: none;
+}
+
+.player-card--confident .player-card__glow {
+  display: block;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(
+    circle,
+    rgba(88, 166, 255, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+
+/* Game day confident uses team accent */
+.player-card--phase-gameday.player-card--confident .player-card__portrait-frame {
+  box-shadow:
+    0 0 0 2px rgba(255, 68, 68, 0.4),
+    0 4px 16px rgba(255, 68, 68, 0.2);
+}
+
+.player-card--phase-gameday.player-card--confident .player-card__glow {
+  background: radial-gradient(
+    circle,
+    rgba(255, 68, 68, 0.2) 0%,
+    transparent 70%
+  );
+}
+
+/* Recovery confident uses warm gold */
+.player-card--phase-recovery.player-card--confident .player-card__portrait-frame {
+  box-shadow:
+    0 0 0 2px rgba(212, 165, 116, 0.4),
+    0 4px 16px rgba(212, 165, 116, 0.15);
+}
+
+.player-card--phase-recovery.player-card--confident .player-card__glow {
+  background: radial-gradient(
+    circle,
+    rgba(212, 165, 116, 0.2) 0%,
+    transparent 70%
+  );
+}
+
+/* --- Neutral: Clean, default state --- */
+.player-card--neutral .player-card__portrait {
+  filter: brightness(1) saturate(1);
+}
+
+.player-card--neutral .player-card__portrait-frame {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Struggling: Desaturated, heavy, weighed down --- */
+.player-card--struggling .player-card__portrait {
+  filter:
+    brightness(0.7)
+    saturate(0.4)
+    contrast(0.95);
+}
+
+.player-card--struggling .player-card__portrait-frame {
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.player-card--struggling .player-card__portrait-overlay {
+  background:
+    radial-gradient(
+      ellipse at center,
+      transparent 30%,
+      rgba(0, 0, 0, 0.4) 100%
+    );
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Struggling card has muted border */
+.player-card--struggling {
+  border-color: rgba(48, 54, 61, 0.5);
+}
+
+/* ==========================================================================
+   Jersey Number Badge
+   ========================================================================== */
+
+.player-card__number {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--phase-text);
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 0, 0, 0.3);
+  opacity: 0.9;
+}
+
+.player-card--struggling .player-card__number {
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   Position Tag
+   ========================================================================== */
+
+.player-card__position {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--phase-bg);
+  background: var(--phase-accent);
+  padding: 3px 10px 2px;
+  border-radius: 2px;
+}
+
+.player-card--struggling .player-card__position {
+  opacity: 0.6;
+  background: var(--phase-text-muted);
+}
+
+/* ==========================================================================
+   Player Info Section
+   ========================================================================== */
+
+.player-card__info {
+  padding: 12px 16px 16px;
+  text-align: center;
+}
+
+.player-card__name {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--phase-text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.player-card--struggling .player-card__name {
+  color: var(--phase-text-muted);
+}
+
+/* ==========================================================================
+   Morale Hint Text
+   ========================================================================== */
+
+.player-card__morale-hint {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.player-card__morale-hint--confident {
+  color: var(--phase-accent);
+}
+
+.player-card__morale-hint--struggling {
+  color: #f85149;
+  animation: hint-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ==========================================================================
+   Stats Row
+   ========================================================================== */
+
+.player-card__stats {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--phase-border);
+}
+
+.player-card__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.player-card__stat-value {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--phase-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-card__stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--phase-text-muted);
+}
+
+.player-card--struggling .player-card__stat-value {
+  color: var(--phase-text-muted);
+}
+
+/* ==========================================================================
+   Starter Badge
+   ========================================================================== */
+
+.player-card__starter-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--phase-bg);
+  background: var(--phase-accent);
+  padding: 4px 8px 3px;
+  border-radius: 0 0 4px 0;
+}
+
+.player-card--struggling .player-card__starter-badge {
+  background: var(--phase-text-muted);
+  opacity: 0.7;
+}
