@@ -111,7 +111,7 @@ class EventGenerator:
 
         # Tracking to avoid duplicate events
         self._generated_game_weeks: set[int] = set()
-        self._last_practice_date: Optional[datetime] = None
+        self._generated_practice_dates: set[str] = set()  # Track by date string
         self._last_fa_check: Optional[datetime] = None
 
         # Register calendar callbacks
@@ -234,8 +234,16 @@ class EventGenerator:
 
     def _generate_practice_event(self, current: datetime) -> None:
         """Generate a practice event for today."""
-        if self._last_practice_date and self._last_practice_date.date() == current.date():
-            return  # Already generated
+        date_key = current.strftime("%Y-%m-%d")
+        if date_key in self._generated_practice_dates:
+            return  # Already generated for this date
+
+        # Also check if there's already a practice event in the queue for today
+        # This handles edge cases where the set wasn't populated
+        for event in self.events.get_by_category(EventCategory.PRACTICE):
+            if event.scheduled_for and event.scheduled_for.strftime("%Y-%m-%d") == date_key:
+                self._generated_practice_dates.add(date_key)
+                return  # Practice already exists for this day
 
         practice_time = current.replace(
             hour=self.config.practice_time_hour,
@@ -250,7 +258,7 @@ class EventGenerator:
             duration_minutes=120,
         )
         self.events.add(practice)
-        self._last_practice_date = current
+        self._generated_practice_dates.add(date_key)
 
     def _generate_game_event(self, week: int) -> None:
         """Generate a game event for the given week."""

@@ -105,11 +105,14 @@
 
 /* Event Card */
 .event-card {
+  position: relative;
   background: #374151;
   border-radius: 6px;
   border-left: 4px solid #6b7280;
   padding: 0.75rem;
+  padding-top: calc(0.75rem + 3px); /* Account for deadline bar */
   transition: all 0.15s ease;
+  overflow: hidden;
 }
 
 .event-card:hover {
@@ -128,6 +131,30 @@
   50% {
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
   }
+}
+
+/* Deadline progress bar */
+.event-card__deadline-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #1f2937;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+}
+
+.event-card__deadline-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.event-card__time-left {
+  margin-left: auto;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #fbbf24;
 }
 
 .event-card__header {

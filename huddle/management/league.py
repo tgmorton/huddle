@@ -81,46 +81,58 @@ class LeagueState:
         self.calendar.on_daily(self._handle_new_day)
         self.calendar.on_weekly(self._handle_new_week)
 
-    def tick(self, current_time: Optional[datetime] = None) -> None:
+    def tick(self, elapsed_seconds: Optional[float] = None) -> int:
         """
         Main game loop tick.
 
-        Should be called regularly (e.g., every frame or every 100ms).
+        Should be called regularly (e.g., every frame or every 50ms).
         Advances time and processes events.
 
         Args:
-            current_time: Current real-world time. If None, uses datetime.now()
+            elapsed_seconds: Real-world seconds since last tick. If None, calculates from wall clock.
+
+        Returns:
+            Number of game minutes advanced this tick.
         """
-        if current_time is None:
+        if elapsed_seconds is None:
             current_time = datetime.now()
+            elapsed_seconds = (current_time - self._last_tick_time).total_seconds()
+            self._last_tick_time = current_time
+        else:
+            self._last_tick_time = datetime.now()
 
-        # Calculate real elapsed time since last tick
-        elapsed = (current_time - self._last_tick_time).total_seconds()
-        self._last_tick_time = current_time
-
-        # Advance calendar time
-        self.calendar.tick(elapsed)
+        # Advance calendar time (returns minutes advanced)
+        minutes_advanced = self.calendar.tick(elapsed_seconds)
 
         # Update event queue with current game time
         newly_activated = self.events.update(self.calendar.current_date)
 
-        # Check for auto-pause conditions
+        # Check for auto-pause/slow conditions when events activate
         for event in newly_activated:
             if self._should_auto_pause(event):
                 self.pause()
                 for callback in self._on_pause:
                     callback(self)
                 break
+            elif self._should_auto_slow(event):
+                # Slow down (don't pause) so player notices the event
+                self.calendar.set_speed(TimeSpeed.SLOW)
+                # Notify via pause callbacks (they handle the UI update)
+                for callback in self._on_event_needs_attention:
+                    callback(self, event)
 
         # Update clipboard badges
         self._update_clipboard_badges()
 
-        # Clean up expired ticker items periodically
+        # Clean up expired/completed events and ticker items periodically
+        self.events.clear_completed()
         self.ticker.cleanup_expired()
 
         # Fire tick callbacks
         for callback in self._on_tick:
             callback(self)
+
+        return minutes_advanced
 
     def _should_auto_pause(self, event: ManagementEvent) -> bool:
         """Check if an event should trigger auto-pause."""
@@ -139,6 +151,20 @@ class LeagueState:
 
         if event.category == EventCategory.DEADLINE and self.auto_pause_on_deadline:
             return True
+
+        return False
+
+    def _should_auto_slow(self, event: ManagementEvent) -> bool:
+        """Check if an event should trigger auto-slow (not pause, just slow down)."""
+        # Don't slow for events that would pause (they're handled separately)
+        if self._should_auto_pause(event):
+            return False
+
+        # Slow down for any pending event that requires attention
+        if event.requires_attention and event.status == EventStatus.PENDING:
+            # Only for events relevant to player's team (or league-wide)
+            if event.team_id is None or event.team_id == self.player_team_id:
+                return True
 
         return False
 
@@ -257,13 +283,21 @@ class LeagueState:
 
     def attend_event(self, event_id: UUID) -> Optional[ManagementEvent]:
         """
-        Mark an event as being attended.
+        Navigate to an event to interact with it.
+
+        For most events, this marks them as IN_PROGRESS.
+        For practice events, we just navigate (status changes when practice runs).
 
         Returns the event if found, None otherwise.
         """
         event = self.events.get(event_id)
         if event:
-            event.attend()
+            # Practice and Game events stay PENDING until the user takes action
+            # - Practice: stays PENDING until user runs the practice
+            # - Game: stays PENDING until user sims or plays the game
+            # This allows the panel to display and user to interact
+            if event.category not in (EventCategory.PRACTICE, EventCategory.GAME):
+                event.attend()
             # Navigate clipboard to event
             self.clipboard.navigate_to_event(event_id)
         return event
@@ -279,6 +313,393 @@ class LeagueState:
             event.dismiss()
             return True
         return False
+
+    def run_practice(
+        self,
+        event_id: UUID,
+        playbook: int = 34,
+        development: int = 33,
+        game_prep: int = 33,
+        team=None,
+    ) -> bool:
+        """
+        Run a practice session with the given time allocation.
+
+        This:
+        1. Marks the practice event as attended
+        2. Advances game time by the practice duration
+        3. Applies practice effects based on allocation
+        4. Returns to dashboard
+
+        Args:
+            event_id: The practice event to run
+            playbook: % time on playbook learning (helps team execution)
+            development: % time on player development (grows young players)
+            game_prep: % time on game preparation (edge vs next opponent)
+            team: The team running practice (optional, needed for actual effects)
+
+        Returns:
+            True if practice was run successfully
+        """
+        event = self.events.get(event_id)
+        if not event or event.category != EventCategory.PRACTICE:
+            return False
+
+        # Get practice duration from event payload
+        duration_minutes = event.payload.get("duration_minutes", 120)
+
+        # Mark event as attended
+        event.attend()
+
+        # Advance time by the practice duration
+        self.calendar.advance_minutes(duration_minutes)
+
+        # Apply practice effects
+        self._apply_practice_effects(playbook, development, game_prep, duration_minutes, team)
+
+        # Go back to dashboard
+        self.clipboard.go_back()
+
+        # Add ticker item about practice completion
+        from huddle.management.ticker import TickerItem, TickerCategory
+        practice_item = TickerItem(
+            category=TickerCategory.RUMOR,
+            headline="Practice complete",
+            detail=f"Focus: {playbook}% playbook, {development}% development, {game_prep}% game prep",
+            priority=2,
+        )
+        self.ticker.add(practice_item)
+
+        return True
+
+    def _apply_practice_effects(
+        self,
+        playbook_pct: int,
+        development_pct: int,
+        game_prep_pct: int,
+        duration_minutes: int,
+        team=None,
+    ) -> None:
+        """
+        Apply the effects of a practice session.
+
+        This is where the actual game mechanics happen:
+        - Playbook learning increases team's play execution rating
+        - Development improves young players' skills
+        - Game prep gives bonuses vs the next opponent
+
+        Args:
+            playbook_pct: Percentage of practice time on playbook (0-100)
+            development_pct: Percentage on player development (0-100)
+            game_prep_pct: Percentage on game preparation (0-100)
+            duration_minutes: Total practice duration
+            team: The team running practice (optional)
+        """
+        if team is None:
+            return
+
+        # Initialize playbook if needed
+        if team.playbook is None:
+            team.initialize_playbook()
+
+        # Calculate practice reps based on time and allocation
+        # Roughly 1 rep per 5 minutes of focused practice
+        total_reps = duration_minutes // 5
+        playbook_reps = int(total_reps * playbook_pct / 100)
+
+        if playbook_reps > 0:
+            self._practice_playbook(team, playbook_reps)
+
+        # Development effects (improve young player attributes)
+        development_reps = int(total_reps * development_pct / 100)
+        if development_reps > 0:
+            self._apply_development(team, development_reps)
+
+        # Game prep effects (bonuses vs next opponent)
+        game_prep_reps = int(total_reps * game_prep_pct / 100)
+        if game_prep_reps > 0:
+            self._apply_game_prep(team, game_prep_reps)
+
+    def _practice_playbook(self, team, total_reps: int) -> dict:
+        """
+        Distribute practice reps across the team's playbook.
+
+        All roster players practice the plays relevant to their position.
+        Reps are spread across active plays in the playbook.
+
+        Args:
+            team: The team running practice
+            total_reps: Total practice reps to distribute
+
+        Returns:
+            Dict with statistics about the practice session
+        """
+        from huddle.core.playbook import apply_practice_rep, ALL_PLAYS
+
+        if not team.playbook:
+            return {"error": "No playbook"}
+
+        # Get all active plays
+        active_plays = list(team.playbook.offensive_plays | team.playbook.defensive_plays)
+        if not active_plays:
+            return {"error": "Empty playbook"}
+
+        # Calculate reps per play (spread evenly with minimum of 1)
+        reps_per_play = max(1, total_reps // len(active_plays))
+
+        stats = {
+            "players_practiced": 0,
+            "total_reps_given": 0,
+            "tier_advancements": 0,
+            "plays_practiced": len(active_plays),
+        }
+
+        # Practice each player on relevant plays
+        for player in team.roster.players.values():
+            knowledge = team.get_player_knowledge(player.id)
+            player_reps = 0
+
+            for play_code in active_plays:
+                play_def = ALL_PLAYS.get(play_code)
+                if not play_def:
+                    continue
+
+                # Skip if player's position isn't involved in this play
+                if player.position.value not in play_def.positions_involved:
+                    continue
+
+                mastery = knowledge.get_mastery(play_code)
+
+                # Apply reps for this play
+                for _ in range(reps_per_play):
+                    if apply_practice_rep(player, mastery, play_def.complexity):
+                        stats["tier_advancements"] += 1
+                    player_reps += 1
+
+            if player_reps > 0:
+                stats["players_practiced"] += 1
+                stats["total_reps_given"] += player_reps
+
+        return stats
+
+    def _apply_development(self, team, development_reps: int) -> dict:
+        """
+        Apply development reps to improve young player attributes.
+
+        Young players with potential higher than their current overall
+        can improve through practice. Development rate depends on:
+        - Age (younger = faster)
+        - Learning attribute (smarter = faster)
+        - Room to grow (more gap = faster)
+
+        Args:
+            team: The team running practice
+            development_reps: Number of reps allocated to development
+
+        Returns:
+            Dict with development statistics
+        """
+        from huddle.core.development import can_develop, develop_player
+
+        stats = {
+            "players_developed": 0,
+            "total_points_gained": 0.0,
+            "attributes_improved": {},
+        }
+
+        # Filter to players who can benefit from development
+        developable_players = [
+            p for p in team.roster.players.values()
+            if can_develop(p)
+        ]
+
+        if not developable_players:
+            return stats
+
+        # Distribute reps among developable players
+        reps_per_player = max(1, development_reps // len(developable_players))
+
+        for player in developable_players:
+            gains = develop_player(player, reps_per_player)
+
+            if gains:
+                stats["players_developed"] += 1
+                for attr, gain in gains.items():
+                    stats["total_points_gained"] += gain
+                    if attr not in stats["attributes_improved"]:
+                        stats["attributes_improved"][attr] = 0
+                    stats["attributes_improved"][attr] += gain
+
+        return stats
+
+    def _apply_game_prep(self, team, game_prep_reps: int) -> dict:
+        """
+        Apply game prep reps to study the next opponent.
+
+        Creates or strengthens a GamePrepBonus for the upcoming game.
+        The bonus provides scheme recognition and execution bonuses
+        during the game against that opponent.
+
+        Args:
+            team: The team running practice
+            game_prep_reps: Number of reps allocated to game prep
+
+        Returns:
+            Dict with game prep statistics
+        """
+        from huddle.core.game_prep import apply_prep_bonus
+
+        stats = {
+            "opponent": None,
+            "prep_level": 0.0,
+            "scheme_bonus": 0.0,
+            "execution_bonus": 0.0,
+        }
+
+        # Get next opponent from events
+        next_game = self._get_next_game_info(team.id)
+        if not next_game:
+            return stats
+
+        opponent_name = next_game.get("opponent_name", "Unknown")
+        opponent_id = next_game.get("opponent_id")
+        week = next_game.get("week", 0)
+
+        stats["opponent"] = opponent_name
+
+        # Apply prep bonus
+        team.game_prep_bonus = apply_prep_bonus(
+            existing=team.game_prep_bonus,
+            opponent_id=opponent_id,
+            opponent_name=opponent_name,
+            week=week,
+            reps=game_prep_reps,
+        )
+
+        stats["prep_level"] = team.game_prep_bonus.prep_level
+        stats["scheme_bonus"] = team.game_prep_bonus.scheme_recognition
+        stats["execution_bonus"] = team.game_prep_bonus.execution_bonus
+
+        return stats
+
+    def _get_next_game_info(self, team_id: UUID) -> Optional[dict]:
+        """
+        Get information about the team's next scheduled game.
+
+        Looks through active events for the next GAME event
+        for the specified team.
+
+        Args:
+            team_id: UUID of the team
+
+        Returns:
+            Dict with opponent_name, opponent_id, week, or None if no game found
+        """
+        from huddle.management.events import EventCategory
+
+        for event in self.events.get_active():
+            if event.category == EventCategory.GAME and event.team_id == team_id:
+                return {
+                    "opponent_name": event.payload.get("opponent_name"),
+                    "opponent_id": event.payload.get("opponent_id"),
+                    "week": event.payload.get("week"),
+                }
+
+        # Also check pending events (future games)
+        for event in self.events.get_pending():
+            if event.category == EventCategory.GAME and event.team_id == team_id:
+                return {
+                    "opponent_name": event.payload.get("opponent_name"),
+                    "opponent_id": event.payload.get("opponent_id"),
+                    "week": event.payload.get("week"),
+                }
+
+        return None
+
+    def sim_game(self, event_id: UUID, league) -> bool:
+        """
+        Simulate a game using the full simulation engine.
+
+        This:
+        1. Marks the game event as attended
+        2. Runs the full game simulation
+        3. Updates the schedule with the score
+        4. Advances time by game duration
+        5. Returns to dashboard
+
+        Args:
+            event_id: The game event to simulate
+            league: Core League with teams, players, schedule
+
+        Returns:
+            True if game was simulated successfully
+        """
+        event = self.events.get(event_id)
+        if not event or event.category != EventCategory.GAME:
+            return False
+
+        # Get game info from event payload
+        opponent_name = event.payload.get("opponent_name", "Opponent")
+        is_home = event.payload.get("is_home", True)
+        week = event.payload.get("week", 1)
+
+        # Use real simulation engine
+        from huddle.simulation import SeasonSimulator, SimulationMode
+
+        # Find the scheduled game in the league
+        scheduled_game = None
+        player_team_abbr = "PHI"  # TODO: get from state
+        for game in league.schedule:
+            if game.week == week:
+                if (game.home_team_abbr == player_team_abbr or
+                    game.away_team_abbr == player_team_abbr):
+                    scheduled_game = game
+                    break
+
+        if not scheduled_game:
+            return False
+
+        simulator = SeasonSimulator(league, mode=SimulationMode.FAST)
+        result = simulator.simulate_game(scheduled_game)
+
+        # Determine scores based on home/away
+        if is_home:
+            our_score = result.home_score
+            their_score = result.away_score
+        else:
+            our_score = result.away_score
+            their_score = result.home_score
+
+        # Determine winner for headline
+        if our_score > their_score:
+            headline = f"Victory! PHI defeats {opponent_name} {our_score}-{their_score}"
+        elif our_score < their_score:
+            headline = f"PHI falls to {opponent_name} {their_score}-{our_score}"
+        else:
+            headline = f"PHI ties {opponent_name} {our_score}-{their_score}"
+
+        # Mark event as attended
+        event.attend()
+
+        # Advance time by game duration (3 hours)
+        duration_minutes = event.payload.get("duration_minutes", 180)
+        self.calendar.advance_minutes(duration_minutes)
+
+        # Go back to dashboard
+        self.clipboard.go_back()
+
+        # Add ticker item about game result
+        from huddle.management.ticker import TickerItem, TickerCategory
+        game_item = TickerItem(
+            category=TickerCategory.SCORE,
+            headline=headline,
+            detail=f"Week {week} {'Home' if is_home else 'Away'} game",
+            is_breaking=True,
+            priority=5,
+        )
+        self.ticker.add(game_item)
+
+        return True
 
     def get_pending_events(self) -> list[ManagementEvent]:
         """Get all pending events for the player's team."""
@@ -347,6 +768,161 @@ class LeagueState:
     def season_year(self) -> int:
         """Get current season year."""
         return self.calendar.season_year
+
+    # === Approval & Depth Chart Management ===
+
+    def update_depth_chart(
+        self,
+        team,
+        position: str,
+        player_id: UUID,
+        new_depth: int,
+    ) -> dict:
+        """
+        Update a player's position on the depth chart with approval tracking.
+
+        Handles the approval implications of promotions and demotions.
+
+        Args:
+            team: The team to update
+            position: Position code (e.g., "QB", "WR")
+            player_id: The player being moved
+            new_depth: New depth (1 = starter, 2 = backup, etc.)
+
+        Returns:
+            Dict with old_depth, new_depth, and approval_change
+        """
+        from huddle.core.approval import (
+            get_depth_chart_event,
+            apply_approval_event,
+            create_player_approval,
+        )
+
+        result = {
+            "player_id": str(player_id),
+            "position": position,
+            "old_depth": None,
+            "new_depth": new_depth,
+            "approval_change": 0.0,
+            "event": None,
+        }
+
+        # Find current depth
+        old_depth = None
+        for depth in range(1, 10):
+            slot = f"{position}{depth}"
+            if team.roster.depth_chart.get(slot) == player_id:
+                old_depth = depth
+                break
+
+        result["old_depth"] = old_depth
+
+        # Get the player
+        player = team.roster.get_player(player_id)
+        if not player:
+            return result
+
+        # Ensure player has approval tracking
+        if player.approval is None:
+            player.approval = create_player_approval(player_id)
+
+        # Determine approval event
+        if old_depth is not None:
+            event = get_depth_chart_event(old_depth, new_depth)
+            if event:
+                result["event"] = event.value
+                # Apply approval change
+                old_approval = player.approval.approval
+                apply_approval_event(player, event, reason=f"Depth chart: {position}{old_depth} → {position}{new_depth}")
+                result["approval_change"] = player.approval.approval - old_approval
+
+        # Actually update the depth chart
+        new_slot = f"{position}{new_depth}"
+        team.roster.depth_chart.set(new_slot, player_id)
+
+        # If this was a swap, we may need to handle the displaced player
+        # (The displaced player's approval would be handled in a separate call)
+
+        return result
+
+    def process_weekly_approval(self, team, team_winning: bool = False, team_losing: bool = False) -> dict:
+        """
+        Process weekly approval drift for all players on a team.
+
+        Should be called at the end of each week to allow approval
+        to naturally trend toward baseline.
+
+        Args:
+            team: The team to process
+            team_winning: True if team is on a winning streak
+            team_losing: True if team is on a losing streak
+
+        Returns:
+            Dict with processing statistics
+        """
+        from huddle.core.approval import create_player_approval
+
+        stats = {
+            "players_processed": 0,
+            "total_drift": 0.0,
+            "trade_candidates": 0,
+            "holdout_risks": 0,
+        }
+
+        for player in team.roster.players.values():
+            # Ensure player has approval tracking
+            if player.approval is None:
+                player.approval = create_player_approval(player.id)
+                continue  # New approval starts at baseline, no drift needed
+
+            old_approval = player.approval.approval
+            player.approval.apply_weekly_drift(team_winning, team_losing)
+            drift = player.approval.approval - old_approval
+
+            stats["players_processed"] += 1
+            stats["total_drift"] += drift
+
+            if player.approval.is_trade_candidate():
+                stats["trade_candidates"] += 1
+            if player.approval.is_holdout_risk():
+                stats["holdout_risks"] += 1
+
+        return stats
+
+    def apply_team_result_approval(self, team, won: bool) -> dict:
+        """
+        Apply approval changes based on a game result.
+
+        Winning helps morale, losing hurts it.
+
+        Args:
+            team: The team
+            won: True if team won the game
+
+        Returns:
+            Dict with processing statistics
+        """
+        from huddle.core.approval import ApprovalEvent, apply_approval_event, create_player_approval
+
+        event = ApprovalEvent.WIN if won else ApprovalEvent.LOSS
+
+        stats = {
+            "players_affected": 0,
+            "total_change": 0.0,
+        }
+
+        for player in team.roster.players.values():
+            if player.approval is None:
+                player.approval = create_player_approval(player.id)
+
+            old_approval = player.approval.approval
+            apply_approval_event(player, event)
+            change = player.approval.approval - old_approval
+
+            stats["players_affected"] += 1
+            stats["total_change"] += change
+
+        return stats
 
     # === Serialization ===
 

@@ -107,14 +107,22 @@ class SeasonPhase(Enum):
 
 
 class TimeSpeed(Enum):
-    """Time progression speed settings."""
+    """
+    Time progression speed settings.
+
+    The multiplier represents game-minutes per real-second.
+    Time advances smoothly minute-by-minute at all speeds.
+
+    Target feel: You see every minute tick, just faster or slower.
+    SLOW is for when events are active - deliberate, readable pace.
+    """
 
     PAUSED = 0
-    SLOW = 1  # 1 game-minute = 2 real seconds
-    NORMAL = 2  # 1 game-minute = 1 real second
-    FAST = 4  # 1 game-minute = 0.5 real seconds
-    VERY_FAST = 10  # 1 game-minute = 0.2 real seconds
-    INSTANT = 100  # For simulating through periods quickly
+    SLOW = 2  # 1 real second = 2 game minutes (deliberate, for active events)
+    NORMAL = 30  # 1 real second = 30 game minutes
+    FAST = 240  # 1 real second = 4 game hours
+    VERY_FAST = 720  # 1 real second = 12 game hours (2 sec/day, ~14 sec/week)
+    INSTANT = 2880  # 1 real second = 48 hours (instant but still visible)
 
     @property
     def multiplier(self) -> float:
@@ -200,29 +208,49 @@ class LeagueCalendar:
     _last_processed_date: Optional[datetime] = None
     _last_processed_week: int = 0
 
-    def tick(self, real_elapsed_seconds: float) -> None:
+    def tick(self, real_elapsed_seconds: float, max_minutes_per_tick: int = 5) -> int:
         """
         Advance time based on real elapsed time and current speed.
 
         This should be called regularly (e.g., every frame or every 100ms)
-        to progress game time.
+        to progress game time. Time advances smoothly minute-by-minute
+        so the player can see the clock tick.
 
         Args:
             real_elapsed_seconds: Real-world seconds since last tick
+            max_minutes_per_tick: Cap on minutes to process per call (for smooth UI)
+
+        Returns:
+            Number of game minutes advanced this tick
         """
         if self.speed == TimeSpeed.PAUSED:
-            return
+            return 0
 
         # Calculate game time to add (in seconds)
-        # At NORMAL speed: 1 real second = 1 game minute
+        # The multiplier is game-minutes per real-second
         game_minutes = real_elapsed_seconds * self.speed.multiplier
         game_seconds = game_minutes * 60
 
         self._accumulated_time += game_seconds
 
-        # Process whole minutes
-        while self._accumulated_time >= 60:
+        # Process whole minutes, but cap how many per tick for smooth visuals
+        # This means at very high speeds, we tick more frequently rather than jumping
+        minutes_processed = 0
+        while self._accumulated_time >= 60 and minutes_processed < max_minutes_per_tick:
             self._accumulated_time -= 60
+            self._advance_one_minute()
+            minutes_processed += 1
+
+        return minutes_processed
+
+    def advance_minutes(self, minutes: int) -> None:
+        """
+        Advance the calendar by a fixed number of game minutes.
+
+        Used when an action takes a known amount of time (e.g., practice).
+        This bypasses the speed multiplier and immediately advances time.
+        """
+        for _ in range(minutes):
             self._advance_one_minute()
 
     def _advance_one_minute(self) -> None:
@@ -390,16 +418,22 @@ class LeagueCalendar:
     def pause(self) -> None:
         """Pause time progression."""
         self.speed = TimeSpeed.PAUSED
+        # Clear accumulated time so we don't jump when unpausing
+        self._accumulated_time = 0.0
 
     def play(self, speed: TimeSpeed = TimeSpeed.NORMAL) -> None:
         """Start or resume time progression."""
         if speed == TimeSpeed.PAUSED:
             speed = TimeSpeed.NORMAL
         self.speed = speed
+        # Clear accumulated time on speed change
+        self._accumulated_time = 0.0
 
     def set_speed(self, speed: TimeSpeed) -> None:
         """Set time progression speed."""
         self.speed = speed
+        # Clear accumulated time so speed change takes effect immediately
+        self._accumulated_time = 0.0
 
     def toggle_pause(self) -> None:
         """Toggle between paused and normal speed."""

@@ -204,7 +204,10 @@ export type ManagementWSMessageType =
   | 'attend_event'
   | 'dismiss_event'
   | 'go_back'
-  | 'request_sync';
+  | 'request_sync'
+  | 'run_practice'
+  | 'play_game'
+  | 'sim_game';
 
 export interface ManagementWSMessage {
   type: ManagementWSMessageType;
@@ -270,4 +273,104 @@ export const SPEED_LABELS: Record<TimeSpeed, string> = {
   FAST: 'Fast',
   VERY_FAST: 'Very Fast',
   INSTANT: 'Instant',
+};
+
+// === Roster & Player Types ===
+
+export interface PlayerSummary {
+  id: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  position: string;
+  overall: number;
+  potential: number;
+  age: number;
+  experience: number;
+  jersey_number: number;
+  team_abbr: string | null;
+  morale?: number; // 0-100, optional
+}
+
+// Morale state for visual treatment
+export type MoraleState = 'confident' | 'neutral' | 'struggling';
+
+export function getMoraleState(morale: number | undefined): MoraleState {
+  if (morale === undefined) return 'neutral';
+  if (morale >= 70) return 'confident';
+  if (morale <= 40) return 'struggling';
+  return 'neutral';
+}
+
+export interface PlayerDetail extends PlayerSummary {
+  height: string;
+  weight: number;
+  college: string | null;
+  draft_year: number | null;
+  draft_round: number | null;
+  draft_pick: number | null;
+  years_on_team: number;
+  is_rookie: boolean;
+  is_veteran: boolean;
+  attributes: Record<string, number>;
+}
+
+export interface DepthChartEntry {
+  slot: string;
+  player_id: string | null;
+  player_name: string | null;
+  position: string | null;
+  overall: number | null;
+}
+
+export interface DepthChartResponse {
+  team_abbr: string;
+  offense: DepthChartEntry[];
+  defense: DepthChartEntry[];
+  special_teams: DepthChartEntry[];
+}
+
+export interface ScheduledGame {
+  game_id: string;
+  week: number;
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  is_played: boolean;
+  is_home: boolean;
+  opponent: string;
+  result: string | null;
+  day_of_week: string;
+  time: string;
+  is_primetime: boolean;
+  is_division_game: boolean;
+  is_conference_game: boolean;
+}
+
+// Position group for roster display
+export type PositionGroup = 'QB' | 'RB' | 'WR' | 'TE' | 'OL' | 'DL' | 'LB' | 'DB' | 'ST';
+
+export const POSITION_GROUPS: Record<PositionGroup, string[]> = {
+  QB: ['QB'],
+  RB: ['RB', 'FB'],
+  WR: ['WR'],
+  TE: ['TE'],
+  OL: ['LT', 'LG', 'C', 'RG', 'RT', 'OT', 'OG'],
+  DL: ['DE', 'DT', 'NT', 'EDGE'],
+  LB: ['MLB', 'OLB', 'ILB', 'LB'],
+  DB: ['CB', 'FS', 'SS', 'S'],
+  ST: ['K', 'P', 'LS'],
+};
+
+export const POSITION_GROUP_NAMES: Record<PositionGroup, string> = {
+  QB: 'Quarterbacks',
+  RB: 'Running Backs',
+  WR: 'Wide Receivers',
+  TE: 'Tight Ends',
+  OL: 'Offensive Line',
+  DL: 'Defensive Line',
+  LB: 'Linebackers',
+  DB: 'Defensive Backs',
+  ST: 'Special Teams',
 };

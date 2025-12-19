@@ -296,6 +296,9 @@ def create_practice_event(
     duration_minutes: int = 120,
 ) -> ManagementEvent:
     """Create a practice event."""
+    # Practice deadline is when it ends - you can attend anytime during
+    deadline = scheduled_for + timedelta(minutes=duration_minutes)
+
     return ManagementEvent(
         event_type="practice",
         category=EventCategory.PRACTICE,
@@ -304,9 +307,10 @@ def create_practice_event(
         description=f"Team practice scheduled",
         icon="practice",
         scheduled_for=scheduled_for,
+        deadline=deadline,
         duration_minutes=duration_minutes,
         auto_pause=False,
-        requires_attention=False,  # Practices run automatically but can be attended
+        requires_attention=True,  # Player can choose to attend and allocate focus
         can_dismiss=False,
         team_id=team_id,
         payload={

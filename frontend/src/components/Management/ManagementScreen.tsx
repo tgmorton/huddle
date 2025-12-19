@@ -41,6 +41,9 @@ export const ManagementScreen: React.FC<ManagementScreenProps> = ({ franchiseId 
     selectTab,
     attendEvent,
     dismissEvent,
+    runPractice,
+    playGame,
+    simGame,
     goBack,
   } = useManagementWebSocket({ franchiseId });
 
@@ -91,7 +94,12 @@ export const ManagementScreen: React.FC<ManagementScreenProps> = ({ franchiseId 
       <div className="management-screen__content">
         {/* Active Panel (Left) */}
         <div className="management-screen__panel">
-          <ActivePanel onGoBack={goBack} />
+          <ActivePanel
+            onGoBack={goBack}
+            onRunPractice={runPractice}
+            onPlayGame={playGame}
+            onSimGame={simGame}
+          />
         </div>
 
         {/* Clipboard (Right) */}

@@ -3,7 +3,7 @@
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 from uuid import UUID
 
 from fastapi import WebSocket
@@ -16,6 +16,9 @@ from huddle.management import (
     ManagementEvent,
     ClipboardTab,
 )
+
+if TYPE_CHECKING:
+    from huddle.core.league import League
 from huddle.api.schemas.management import (
     LeagueStateResponse,
     CalendarStateResponse,
@@ -75,10 +78,12 @@ class ManagementService:
     Service that manages a franchise/career mode session.
 
     Wraps LeagueState and provides async tick loop for WebSocket updates.
+    Uses the core League for all game data (teams, players, schedule, stats).
     """
 
-    def __init__(self, state: LeagueState) -> None:
+    def __init__(self, state: LeagueState, league: "League") -> None:
         self.state = state
+        self.league = league  # Core league with teams, players, schedule
         self._is_running = False
         self._tick_task: Optional[asyncio.Task] = None
         self._websocket: Optional[WebSocket] = None
@@ -94,12 +99,51 @@ class ManagementService:
             player_team_id=state.player_team_id,
         )
 
-        # Generate sample data for testing
-        schedule = self._generator.generate_sample_schedule(state.season_year)
-        self._generator.set_schedule(schedule)
+        # Build schedule from core league
+        from huddle.management.generators import ScheduledGame as MgmtScheduledGame
+        from datetime import datetime, timedelta
+        mgmt_schedule = []
+        player_team_abbr = "PHI"  # TODO: get from state
 
-        free_agents = self._generator.generate_sample_free_agents(50)
-        self._generator.set_free_agents(free_agents)
+        # NFL season typically starts first Sunday in September
+        season_start = datetime(state.season_year, 9, 1)
+        # Find first Sunday
+        days_until_sunday = (6 - season_start.weekday()) % 7
+        first_sunday = season_start + timedelta(days=days_until_sunday)
+
+        if league.schedule:
+            for game in league.schedule:
+                # Find games involving player's team
+                if game.home_team_abbr == player_team_abbr or game.away_team_abbr == player_team_abbr:
+                    is_home = game.home_team_abbr == player_team_abbr
+                    opponent = game.away_team_abbr if is_home else game.home_team_abbr
+                    # Compute game_time from week (1pm Sunday)
+                    game_sunday = first_sunday + timedelta(weeks=game.week - 1)
+                    game_time = game_sunday.replace(hour=13, minute=0)
+                    mgmt_schedule.append(MgmtScheduledGame(
+                        week=game.week,
+                        opponent_id=game.id,
+                        opponent_name=opponent,
+                        is_home=is_home,
+                        game_time=game_time,
+                        is_divisional=game.is_divisional if hasattr(game, 'is_divisional') else False,
+                    ))
+        self._generator.set_schedule(mgmt_schedule)
+
+        # Get free agents from core league
+        from huddle.management.generators import FreeAgentInfo
+        fa_list = []
+        if hasattr(league, 'free_agents') and league.free_agents:
+            for player in league.free_agents:
+                fa_list.append(FreeAgentInfo(
+                    player_id=player.id,
+                    name=player.full_name,
+                    position=player.position.value if hasattr(player.position, 'value') else str(player.position),
+                    overall=player.overall,
+                    age=player.age,
+                    asking_price=player.salary // 1000 if player.salary else 1000,
+                ))
+        self._generator.set_free_agents(fa_list)
 
         # Register state callbacks
         self.state.on_pause(self._on_pause)
@@ -131,23 +175,30 @@ class ManagementService:
 
     async def _tick_loop(self) -> None:
         """Main tick loop - runs continuously while service is active."""
+        last_tick_time = datetime.now()
         last_calendar_update = datetime.now()
-        calendar_update_interval = 1.0  # Send calendar updates every second
+
+        # Tick interval in seconds - fast enough for smooth minute-by-minute display
+        tick_interval = 0.05  # 50ms = 20 ticks per second
 
         while self._is_running:
             try:
-                # Tick the state
-                self.state.tick()
+                now = datetime.now()
+                elapsed = (now - last_tick_time).total_seconds()
+                last_tick_time = now
 
-                # Send periodic calendar updates when not paused
-                if not self.state.is_paused:
-                    now = datetime.now()
-                    if (now - last_calendar_update).total_seconds() >= calendar_update_interval:
+                # Tick the state with actual elapsed time
+                minutes_advanced = self.state.tick(elapsed)
+
+                # Send calendar updates whenever time actually advanced
+                # This gives smooth visual feedback of time ticking
+                if not self.state.is_paused and minutes_advanced > 0:
+                    # Throttle updates to max ~10 per second to avoid flooding
+                    if (now - last_calendar_update).total_seconds() >= 0.1:
                         await self._send_calendar_update()
                         last_calendar_update = now
 
-                # Sleep for tick interval (100ms)
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(tick_interval)
 
             except asyncio.CancelledError:
                 break
@@ -165,7 +216,7 @@ class ManagementService:
         asyncio.create_task(self._send_event_added(event))
 
     async def _send_calendar_update(self) -> None:
-        """Send calendar update via WebSocket."""
+        """Send calendar and events update via WebSocket."""
         if not self._websocket:
             return
 
@@ -173,7 +224,8 @@ class ManagementService:
 
         try:
             calendar = self._get_calendar_response()
-            msg = ManagementWSMessage.calendar_update(calendar)
+            events_response = self._get_events_response()
+            msg = ManagementWSMessage.calendar_update(calendar, events_response.pending)
             await self._websocket.send_json(msg.model_dump(mode="json"))
         except Exception:
             pass  # WebSocket may be closed
@@ -245,6 +297,39 @@ class ManagementService:
     def dismiss_event(self, event_id: UUID) -> bool:
         """Dismiss an event."""
         return self.state.dismiss_event(event_id)
+
+    def run_practice(
+        self,
+        event_id: UUID,
+        playbook: int = 34,
+        development: int = 33,
+        game_prep: int = 33,
+    ) -> bool:
+        """
+        Run a practice session with the given allocation.
+
+        Args:
+            event_id: The practice event ID
+            playbook: Percentage of time on playbook learning (0-100)
+            development: Percentage of time on player development (0-100)
+            game_prep: Percentage of time on game preparation (0-100)
+
+        Returns:
+            True if practice was run successfully
+        """
+        return self.state.run_practice(event_id, playbook, development, game_prep)
+
+    def sim_game(self, event_id: UUID) -> bool:
+        """
+        Simulate a game using the full simulation engine.
+
+        Args:
+            event_id: The game event ID
+
+        Returns:
+            True if game was simulated successfully
+        """
+        return self.state.sim_game(event_id, self.league)
 
     def go_back(self) -> bool:
         """Go back in panel navigation."""
@@ -359,15 +444,19 @@ class ManagementSessionManager:
         team_id: UUID,
         season_year: int = 2024,
         start_phase: SeasonPhase = SeasonPhase.TRAINING_CAMP,
+        league: "League" = None,
     ) -> ManagementSession:
-        """Create a new management session."""
+        """Create a new management session with the core League."""
+        if not league:
+            raise ValueError("League is required to create a management session")
+
         state = LeagueState.new_franchise(
             player_team_id=team_id,
             season_year=season_year,
             start_phase=start_phase,
         )
 
-        service = ManagementService(state)
+        service = ManagementService(state, league)
         session = ManagementSession(
             franchise_id=state.id,
             service=service,

@@ -37,6 +37,7 @@ export function useManagementWebSocket({
     setFullState,
     updateCalendar,
     updateEvents,
+    setEvents,
     updateClipboard,
     addTickerItem,
     addEvent,
@@ -60,6 +61,11 @@ export function useManagementWebSocket({
           case 'calendar_update':
             if (message.payload) {
               updateCalendar(message.payload as unknown as CalendarState);
+              // Also update events if included in the payload
+              const payload = message.payload as { events?: ManagementEvent[] };
+              if (payload.events) {
+                setEvents(payload.events);
+              }
             }
             break;
 
@@ -109,6 +115,7 @@ export function useManagementWebSocket({
       setFullState,
       updateCalendar,
       updateEvents,
+      setEvents,
       updateClipboard,
       addTickerItem,
       addEvent,
@@ -219,6 +226,34 @@ export function useManagementWebSocket({
     send({ type: 'dismiss_event', payload: { event_id: eventId } });
   }, [send]);
 
+  const runPractice = useCallback((eventId: string, allocation: {
+    playbook: number;
+    development: number;
+    gamePrep: number;
+  }) => {
+    send({
+      type: 'run_practice',
+      payload: {
+        event_id: eventId,
+        allocation,
+      },
+    });
+  }, [send]);
+
+  const playGame = useCallback((eventId: string) => {
+    send({
+      type: 'play_game',
+      payload: { event_id: eventId },
+    });
+  }, [send]);
+
+  const simGame = useCallback((eventId: string) => {
+    send({
+      type: 'sim_game',
+      payload: { event_id: eventId },
+    });
+  }, [send]);
+
   const goBack = useCallback(() => {
     send({ type: 'go_back' });
   }, [send]);
@@ -258,6 +293,9 @@ export function useManagementWebSocket({
     // Events
     attendEvent,
     dismissEvent,
+    runPractice,
+    playGame,
+    simGame,
 
     // Utility
     requestSync,

@@ -145,6 +145,61 @@ async def _handle_client_message(session, websocket: WebSocket, message: dict) -
             except ValueError:
                 pass
 
+    elif msg_type == ManagementWSMessageType.RUN_PRACTICE.value:
+        event_id_str = payload.get("event_id")
+        allocation = payload.get("allocation", {})
+        if event_id_str:
+            try:
+                event_id = UUID(event_id_str)
+                session.service.run_practice(
+                    event_id,
+                    playbook=allocation.get("playbook", 34),
+                    development=allocation.get("development", 33),
+                    game_prep=allocation.get("gamePrep", 33),
+                )
+                await _send_clipboard_update(session, websocket)
+                await _send_events_update(session, websocket)
+            except ValueError:
+                await websocket.send_json(
+                    ManagementWSMessage.create_error(
+                        "Invalid event ID",
+                        "INVALID_EVENT_ID"
+                    ).model_dump(mode="json")
+                )
+
+    elif msg_type == ManagementWSMessageType.PLAY_GAME.value:
+        event_id_str = payload.get("event_id")
+        if event_id_str:
+            try:
+                event_id = UUID(event_id_str)
+                # For now, play_game does the same as sim - just with more fanfare later
+                session.service.sim_game(event_id)
+                await _send_clipboard_update(session, websocket)
+                await _send_events_update(session, websocket)
+            except ValueError:
+                await websocket.send_json(
+                    ManagementWSMessage.create_error(
+                        "Invalid event ID",
+                        "INVALID_EVENT_ID"
+                    ).model_dump(mode="json")
+                )
+
+    elif msg_type == ManagementWSMessageType.SIM_GAME.value:
+        event_id_str = payload.get("event_id")
+        if event_id_str:
+            try:
+                event_id = UUID(event_id_str)
+                session.service.sim_game(event_id)
+                await _send_clipboard_update(session, websocket)
+                await _send_events_update(session, websocket)
+            except ValueError:
+                await websocket.send_json(
+                    ManagementWSMessage.create_error(
+                        "Invalid event ID",
+                        "INVALID_EVENT_ID"
+                    ).model_dump(mode="json")
+                )
+
     elif msg_type == ManagementWSMessageType.GO_BACK.value:
         session.service.go_back()
         await _send_clipboard_update(session, websocket)

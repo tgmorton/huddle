@@ -45,6 +45,7 @@ interface ManagementStore {
   setFullState: (state: LeagueState) => void;
   updateCalendar: (calendar: CalendarState) => void;
   updateEvents: (events: EventQueue) => void;
+  setEvents: (events: ManagementEvent[]) => void;
   updateClipboard: (clipboard: ClipboardState) => void;
   addTickerItem: (item: TickerItem) => void;
   addEvent: (event: ManagementEvent) => void;
@@ -114,6 +115,23 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
       });
     } else {
       set({ events });
+    }
+  },
+
+  setEvents: (eventsList) => {
+    const { state } = get();
+    const newEvents: EventQueue = {
+      pending: eventsList,
+      urgent_count: eventsList.filter(e => e.is_urgent).length,
+      total_count: eventsList.length,
+    };
+    if (state) {
+      set({
+        events: newEvents,
+        state: { ...state, events: newEvents },
+      });
+    } else {
+      set({ events: newEvents });
     }
   },
 

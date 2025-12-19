@@ -268,6 +268,9 @@ class ManagementWSMessageType(str, Enum):
     SELECT_TAB = "select_tab"
     ATTEND_EVENT = "attend_event"
     DISMISS_EVENT = "dismiss_event"
+    RUN_PRACTICE = "run_practice"
+    PLAY_GAME = "play_game"
+    SIM_GAME = "sim_game"
     GO_BACK = "go_back"
     REQUEST_SYNC = "request_sync"
 
@@ -288,11 +291,18 @@ class ManagementWSMessage(BaseModel):
         )
 
     @classmethod
-    def calendar_update(cls, calendar: CalendarStateResponse) -> "ManagementWSMessage":
-        """Create a calendar update message."""
+    def calendar_update(
+        cls,
+        calendar: CalendarStateResponse,
+        events: Optional[list["ManagementEventResponse"]] = None,
+    ) -> "ManagementWSMessage":
+        """Create a calendar update message, optionally including events."""
+        payload = calendar.model_dump(mode="json")
+        if events is not None:
+            payload["events"] = [e.model_dump(mode="json") for e in events]
         return cls(
             type=ManagementWSMessageType.CALENDAR_UPDATE,
-            payload=calendar.model_dump(mode="json"),
+            payload=payload,
         )
 
     @classmethod

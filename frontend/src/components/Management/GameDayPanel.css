@@ -1,0 +1,177 @@
+/* GameDayPanel.css */
+
+.game-day-panel {
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #1e3a5f 0%, #1f2937 100%);
+  border-radius: 8px;
+}
+
+.game-day-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.game-day-panel__week {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #f9fafb);
+}
+
+.game-day-panel__location {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.game-day-panel__location--home {
+  background: #10b981;
+  color: white;
+}
+
+.game-day-panel__location--away {
+  background: #6366f1;
+  color: white;
+}
+
+.game-day-panel__matchup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.game-day-panel__team {
+  text-align: center;
+}
+
+.game-day-panel__team-name {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #f9fafb);
+  line-height: 1;
+}
+
+.game-day-panel__team-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #9ca3af);
+  margin-top: 0.25rem;
+}
+
+.game-day-panel__vs {
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--text-tertiary, #6b7280);
+}
+
+.game-day-panel__preview {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.game-day-panel__preview h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 1rem;
+}
+
+.game-day-panel__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.game-day-panel__stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-day-panel__stat-row:last-child {
+  border-bottom: none;
+}
+
+.game-day-panel__stat-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.game-day-panel__stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary, #f9fafb);
+}
+
+.game-day-panel__actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.game-day-panel__btn {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.game-day-panel__btn--sim {
+  background: var(--bg-tertiary, #374151);
+  color: var(--text-primary, #f9fafb);
+}
+
+.game-day-panel__btn--sim:hover {
+  background: #4b5563;
+}
+
+.game-day-panel__btn--play {
+  background: #10b981;
+  color: white;
+}
+
+.game-day-panel__btn--play:hover {
+  background: #059669;
+}
+
+.game-day-panel__btn-hint {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.game-day-panel__back {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #9ca3af);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.game-day-panel__back:hover {
+  color: var(--text-primary, #f9fafb);
+}

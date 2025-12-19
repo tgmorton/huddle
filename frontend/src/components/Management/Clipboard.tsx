@@ -12,15 +12,20 @@ import {
 } from '../../stores/managementStore';
 import type { ClipboardTab, ManagementEvent } from '../../types/management';
 import { TAB_DISPLAY_NAMES, PRIORITY_COLORS } from '../../types/management';
+import { RosterPanel } from './RosterPanel';
+import { DepthChartPanel } from './DepthChartPanel';
+import { SchedulePanel } from './SchedulePanel';
 import './Clipboard.css';
 
 interface ClipboardProps {
+  teamAbbr?: string;
   onSelectTab: (tab: ClipboardTab) => void;
   onAttendEvent: (eventId: string) => void;
   onDismissEvent: (eventId: string) => void;
 }
 
 export const Clipboard: React.FC<ClipboardProps> = ({
+  teamAbbr = 'PHI', // Default to PHI for demo
   onSelectTab,
   onAttendEvent,
   onDismissEvent,
@@ -57,9 +62,9 @@ export const Clipboard: React.FC<ClipboardProps> = ({
             onDismiss={onDismissEvent}
           />
         )}
-        {activeTab === 'ROSTER' && <PlaceholderPanel title="Roster" />}
-        {activeTab === 'DEPTH_CHART' && <PlaceholderPanel title="Depth Chart" />}
-        {activeTab === 'SCHEDULE' && <PlaceholderPanel title="Schedule" />}
+        {activeTab === 'ROSTER' && <RosterPanel teamAbbr={teamAbbr} />}
+        {activeTab === 'DEPTH_CHART' && <DepthChartPanel teamAbbr={teamAbbr} />}
+        {activeTab === 'SCHEDULE' && <SchedulePanel teamAbbr={teamAbbr} />}
         {activeTab === 'COACHING_STAFF' && <PlaceholderPanel title="Coaching Staff" />}
         {activeTab === 'STANDINGS' && <PlaceholderPanel title="Standings" />}
       </div>
@@ -107,14 +112,55 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, onAttend, onDismiss }) => {
+  const calendar = useManagementStore((state) => state.calendar);
   const priorityColor = PRIORITY_COLORS[event.priority];
   const isUrgent = event.is_urgent;
+
+  // Calculate deadline progress (percentage of time remaining)
+  // Uses GAME time from calendar, not real-world time
+  const getDeadlineProgress = () => {
+    if (!event.deadline || !calendar?.current_date) return null;
+
+    const gameNow = new Date(calendar.current_date);
+    const deadline = new Date(event.deadline);
+    const scheduled = event.scheduled_for ? new Date(event.scheduled_for) : new Date(event.created_at);
+
+    const totalDuration = deadline.getTime() - scheduled.getTime();
+    const remaining = deadline.getTime() - gameNow.getTime();
+
+    if (remaining <= 0) return 0;
+    if (totalDuration <= 0) return 100;
+
+    return Math.min(100, Math.max(0, (remaining / totalDuration) * 100));
+  };
+
+  const deadlineProgress = getDeadlineProgress();
+
+  // Determine bar color based on time remaining
+  const getBarColor = (progress: number) => {
+    if (progress > 50) return '#10b981'; // Green
+    if (progress > 25) return '#f59e0b'; // Yellow/Orange
+    return '#ef4444'; // Red
+  };
 
   return (
     <div
       className={`event-card ${isUrgent ? 'urgent' : ''}`}
       style={{ borderLeftColor: priorityColor }}
     >
+      {/* Deadline progress bar at top */}
+      {deadlineProgress !== null && (
+        <div className="event-card__deadline-bar">
+          <div
+            className="event-card__deadline-fill"
+            style={{
+              width: `${deadlineProgress}%`,
+              backgroundColor: getBarColor(deadlineProgress),
+            }}
+          />
+        </div>
+      )}
+
       <div className="event-card__header">
         <span
           className="event-card__priority"
@@ -123,16 +169,15 @@ const EventCard: React.FC<EventCardProps> = ({ event, onAttend, onDismiss }) => 
           {event.priority}
         </span>
         <span className="event-card__category">{event.category}</span>
+        {event.deadline && calendar?.current_date && (
+          <span className="event-card__time-left">
+            {formatDeadline(event.deadline, new Date(calendar.current_date))}
+          </span>
+        )}
       </div>
 
       <div className="event-card__title">{event.title}</div>
       <div className="event-card__description">{event.description}</div>
-
-      {event.deadline && (
-        <div className="event-card__deadline">
-          Deadline: {formatDeadline(event.deadline)}
-        </div>
-      )}
 
       <div className="event-card__actions">
         <button className="event-card__btn event-card__btn--attend" onClick={onAttend}>
@@ -164,10 +209,9 @@ const PlaceholderPanel: React.FC<PlaceholderPanelProps> = ({ title }) => {
   );
 };
 
-function formatDeadline(deadline: string): string {
+function formatDeadline(deadline: string, gameNow: Date): string {
   const date = new Date(deadline);
-  const now = new Date();
-  const diff = date.getTime() - now.getTime();
+  const diff = date.getTime() - gameNow.getTime();
 
   if (diff < 0) return 'Expired';
 

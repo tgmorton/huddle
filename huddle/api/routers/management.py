@@ -22,6 +22,7 @@ from huddle.api.schemas.management import (
     ClipboardTabSchema,
 )
 from huddle.api.services.management_service import management_session_manager
+from huddle.api.routers.admin import get_active_league
 
 router = APIRouter(prefix="/management", tags=["management"])
 
@@ -47,12 +48,20 @@ async def create_franchise(request: CreateFranchiseRequest) -> FranchiseCreatedR
     Create a new franchise/career mode session.
 
     This initializes the management game loop with the specified team
-    and starting phase.
+    and starting phase. Requires a league to be loaded via /admin/league/generate.
     """
+    league = get_active_league()
+    if not league:
+        raise HTTPException(
+            status_code=400,
+            detail="No league loaded. Generate a league first via /admin/league/generate"
+        )
+
     session = await management_session_manager.create_session(
         team_id=request.team_id,
         season_year=request.season_year,
         start_phase=_schema_to_season_phase(request.start_phase),
+        league=league,
     )
 
     return FranchiseCreatedResponse(

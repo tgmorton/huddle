@@ -1,0 +1,187 @@
+.schedule-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.schedule-panel--loading,
+.schedule-panel--error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9ca3af;
+}
+
+.schedule-panel__error {
+  color: #ef4444;
+}
+
+/* Header */
+.schedule-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #374151;
+  margin-bottom: 0.5rem;
+}
+
+.schedule-panel__title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.schedule-panel__team {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f3f4f6;
+}
+
+.schedule-panel__label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.schedule-panel__record {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  background: #374151;
+  border-radius: 4px;
+}
+
+/* Games List */
+.schedule-panel__games {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Game Row */
+.game-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #374151;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.game-row:hover {
+  background: #4b5563;
+}
+
+.game-row--current {
+  background: #1e3a5f;
+  border-left: 3px solid #3b82f6;
+}
+
+.game-row--current:hover {
+  background: #234b7c;
+}
+
+.game-row--played {
+  opacity: 0.7;
+}
+
+.game-row--played:hover {
+  opacity: 1;
+}
+
+.game-row__week {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  min-width: 32px;
+}
+
+.game-row__matchup {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.game-row__venue {
+  font-size: 0.6875rem;
+  color: #6b7280;
+  min-width: 16px;
+}
+
+.game-row__opponent {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+/* Result (played games) */
+.game-row__result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-row__outcome {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+}
+
+.game-row__outcome--w {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.game-row__outcome--l {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.game-row__outcome--t {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+}
+
+.game-row__score {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.game-row__ot {
+  margin-left: 4px;
+  font-size: 0.5625rem;
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+/* Upcoming (unplayed games) */
+.game-row__upcoming {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.game-row__day {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.game-row__time {
+  font-size: 0.6875rem;
+  color: #6b7280;
+}
