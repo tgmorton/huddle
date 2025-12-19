@@ -40,6 +40,9 @@ import type {
 } from './types';
 import { TYPE_SIZE, TYPE_CONFIG, NAV_GROUPS, PANEL_WIDTHS } from './constants';
 import { DEMO_EVENTS, INITIAL_WORKSPACE_ITEMS, DEMO_NEWS, DEMO_PLAYERS, DEMO_ROSTER } from './data/demo';
+import { TimeControls } from './components/TimeControls';
+import { EventModal } from './components/EventModal';
+// QueuePanel exported from ./components/QueuePanel but not currently used in main layout
 
 export const ManagementV2: React.FC = () => {
   const [leftPanel, setLeftPanel] = useState<LeftPanelView>(null);
@@ -429,96 +432,6 @@ export const ManagementV2: React.FC = () => {
 
 // === Sub-components ===
 
-interface TimeControlsProps {
-  isPaused: boolean;
-  speed: 1 | 2 | 3;
-  onTogglePause: () => void;
-  onSetSpeed: (speed: 1 | 2 | 3) => void;
-}
-
-const TimeControls: React.FC<TimeControlsProps> = ({ isPaused, speed, onTogglePause, onSetSpeed }) => {
-  const speedLabels = ['Slow', 'Normal', 'Fast'];
-
-  return (
-    <div className="time-ctrl">
-      <button
-        className={`time-ctrl__play ${isPaused ? '' : 'time-ctrl__play--active'}`}
-        onClick={onTogglePause}
-      >
-        {isPaused ? '▶ Play' : '❚❚ Pause'}
-      </button>
-
-      <div className="time-ctrl__speed">
-        {[1, 2, 3].map(s => (
-          <button
-            key={s}
-            className={`time-ctrl__speed-btn ${speed === s ? 'time-ctrl__speed-btn--active' : ''}`}
-            onClick={() => onSetSpeed(s as 1 | 2 | 3)}
-            disabled={isPaused}
-          >
-            {speedLabels[s - 1]}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// === Event Modal (Interruption Layer) ===
-
-interface EventModalProps {
-  event: GameEvent;
-  onDismiss: () => void;
-}
-
-const EventModal: React.FC<EventModalProps> = ({ event, onDismiss }) => {
-  const typeIcon = {
-    injury: '🏥',
-    trade_offer: '🔄',
-    media: '🎤',
-    contract_demand: '💰',
-    morale: '😤',
-  };
-
-  return (
-    <div className="event-modal-overlay" onClick={onDismiss}>
-      <div
-        className="event-modal"
-        data-severity={event.severity}
-        onClick={e => e.stopPropagation()}
-      >
-        <button className="event-modal__close" onClick={onDismiss}>
-          <X size={18} />
-        </button>
-
-        <header className="event-modal__header">
-          <span className="event-modal__icon">{typeIcon[event.type]}</span>
-          <div className="event-modal__titles">
-            <h2 className="event-modal__title">{event.title}</h2>
-            <span className="event-modal__subtitle">{event.subtitle}</span>
-          </div>
-        </header>
-
-        <div className="event-modal__body">
-          <p className="event-modal__description">{event.description}</p>
-        </div>
-
-        <footer className="event-modal__footer">
-          {event.options.map((option, idx) => (
-            <button
-              key={idx}
-              className={`event-modal__btn event-modal__btn--${option.variant}`}
-              onClick={onDismiss}
-            >
-              {option.label}
-            </button>
-          ))}
-        </footer>
-      </div>
-    </div>
-  );
-};
-
 interface FocusCardProps {
   item: AgendaItem;
   onAction?: () => void;
@@ -556,27 +469,6 @@ export const FocusCard: React.FC<FocusCardProps> = ({ item, onAction }) => {
   );
 };
 
-interface QueueCardProps {
-  item: AgendaItem;
-  onClick?: () => void;
-}
-
-const QueueCard: React.FC<QueueCardProps> = ({ item, onClick }) => {
-  const config = TYPE_CONFIG[item.type];
-
-  return (
-    <button className="queue-card" data-type={item.type} onClick={onClick}>
-      <span className="queue-card__abbr" data-type={item.type}>{config.abbr}</span>
-      <div className="queue-card__content">
-        <h3 className="queue-card__title">{item.title}</h3>
-        <p className="queue-card__subtitle">{item.subtitle}</p>
-      </div>
-      {item.timeLeft && (
-        <span className="queue-card__time">{item.timeLeft}</span>
-      )}
-    </button>
-  );
-};
 
 // === Agenda Card (compact, for main area list) ===
 interface AgendaCardProps {
@@ -748,28 +640,6 @@ const DeadlinePane: React.FC<{ item: WorkspaceItem; onComplete: () => void }> = 
   </div>
 );
 
-// === Queue Panel ===
-interface QueuePanelProps {
-  items: AgendaItem[];
-  onItemClick?: (item: AgendaItem) => void;
-}
-
-export const QueuePanel: React.FC<QueuePanelProps> = ({ items, onItemClick }) => {
-  return (
-    <div className="queue-panel">
-      <h2 className="queue-panel__title">Up Next</h2>
-      {items.length > 0 ? (
-        <div className="queue-panel__list">
-          {items.map(item => (
-            <QueueCard key={item.id} item={item} onClick={() => onItemClick?.(item)} />
-          ))}
-        </div>
-      ) : (
-        <p className="queue-panel__empty">Nothing else today</p>
-      )}
-    </div>
-  );
-};
 
 // === Reference Panel (no header - icon nav shows selection) ===
 
