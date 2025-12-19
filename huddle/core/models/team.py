@@ -1,13 +1,17 @@
 """Team and roster models."""
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Dict, Optional, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from huddle.core.enums import Position
 from huddle.core.models.player import Player
 from huddle.core.models.tendencies import TeamTendencies
 from huddle.core.models.team_identity import TeamFinancials
+
+if TYPE_CHECKING:
+    from huddle.core.playbook import Playbook, PlayerPlayKnowledge
+    from huddle.core.game_prep import GamePrepBonus
 
 
 @dataclass
@@ -282,6 +286,13 @@ class Team:
     # Salary cap and financial state
     financials: TeamFinancials = field(default_factory=TeamFinancials)
 
+    # Playbook system (play knowledge tracking)
+    playbook: Optional["Playbook"] = None
+    player_knowledge: Dict[UUID, "PlayerPlayKnowledge"] = field(default_factory=dict)
+
+    # Game prep bonus (temporary, expires after game)
+    game_prep_bonus: Optional["GamePrepBonus"] = None
+
     # Convenience properties for backward compatibility
     @property
     def run_tendency(self) -> float:
@@ -349,9 +360,62 @@ class Team:
         """Check if team can afford a contract with given salary."""
         return self.financials.can_sign(salary)
 
+    def get_player_knowledge(self, player_id: UUID) -> "PlayerPlayKnowledge":
+        """
+        Get or create play knowledge for a player.
+
+        Args:
+            player_id: The player's unique identifier
+
+        Returns:
+            PlayerPlayKnowledge for tracking play mastery
+        """
+        from huddle.core.playbook import PlayerPlayKnowledge
+
+        if player_id not in self.player_knowledge:
+            self.player_knowledge[player_id] = PlayerPlayKnowledge(player_id=player_id)
+        return self.player_knowledge[player_id]
+
+    def initialize_playbook(self) -> None:
+        """
+        Initialize the team's playbook with default plays.
+
+        Call this when creating a new team or resetting their playbook.
+        """
+        from huddle.core.playbook import Playbook
+
+        if self.playbook is None:
+            self.playbook = Playbook.default(self.id)
+
+    def clear_expired_prep(self, current_week: int) -> None:
+        """
+        Clear game prep bonus if the game has passed.
+
+        Should be called after each game to clean up expired prep.
+
+        Args:
+            current_week: Current game week
+        """
+        if self.game_prep_bonus and self.game_prep_bonus.is_expired(current_week):
+            self.game_prep_bonus = None
+
+    def get_game_prep_bonus(self, opponent_id: UUID) -> float:
+        """
+        Get the game prep bonus multiplier for a specific opponent.
+
+        Args:
+            opponent_id: UUID of the opponent team
+
+        Returns:
+            Bonus multiplier (1.0 = no bonus)
+        """
+        if self.game_prep_bonus and self.game_prep_bonus.is_valid_for_opponent(opponent_id):
+            return self.game_prep_bonus.get_total_bonus()
+        return 1.0
+
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
-        return {
+        data = {
             "id": str(self.id),
             "name": self.name,
             "abbreviation": self.abbreviation,
@@ -368,6 +432,23 @@ class Team:
                 "cap_penalties": self.financials.cap_penalties,
             },
         }
+
+        # Include playbook if present
+        if self.playbook:
+            data["playbook"] = self.playbook.to_dict()
+
+        # Include player knowledge if any
+        if self.player_knowledge:
+            data["player_knowledge"] = {
+                str(pid): pk.to_dict()
+                for pid, pk in self.player_knowledge.items()
+            }
+
+        # Include game prep bonus if present
+        if self.game_prep_bonus:
+            data["game_prep_bonus"] = self.game_prep_bonus.to_dict()
+
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "Team":
@@ -396,6 +477,25 @@ class Team:
         else:
             financials = TeamFinancials()
 
+        # Load playbook if present
+        playbook = None
+        if "playbook" in data:
+            from huddle.core.playbook import Playbook
+            playbook = Playbook.from_dict(data["playbook"])
+
+        # Load player knowledge if present
+        player_knowledge: Dict[UUID, "PlayerPlayKnowledge"] = {}
+        if "player_knowledge" in data:
+            from huddle.core.playbook import PlayerPlayKnowledge
+            for pid_str, pk_data in data["player_knowledge"].items():
+                player_knowledge[UUID(pid_str)] = PlayerPlayKnowledge.from_dict(pk_data)
+
+        # Load game prep bonus if present
+        game_prep_bonus = None
+        if "game_prep_bonus" in data:
+            from huddle.core.game_prep import GamePrepBonus
+            game_prep_bonus = GamePrepBonus.from_dict(data["game_prep_bonus"])
+
         team = cls(
             id=UUID(data["id"]) if "id" in data else uuid4(),
             name=data.get("name", ""),
@@ -406,6 +506,9 @@ class Team:
             secondary_color=data.get("secondary_color", "#FFFFFF"),
             tendencies=tendencies,
             financials=financials,
+            playbook=playbook,
+            player_knowledge=player_knowledge,
+            game_prep_bonus=game_prep_bonus,
         )
 
         # If no financials in data, calculate from roster

@@ -12,6 +12,9 @@ from huddle.api.routers.management import router as management_router
 from huddle.api.routers.management_websocket import router as management_websocket_router
 from huddle.api.routers.play_sim import router as play_sim_router
 from huddle.api.routers.integrated_sim import router as integrated_sim_router
+from huddle.api.routers.v2_sim import router as v2_sim_router
+from huddle.api.routers.agentmail import router as agentmail_router
+from huddle.api.routers.agentmail_websocket import router as agentmail_websocket_router
 
 __all__ = [
     "games_router",
@@ -26,4 +29,7 @@ __all__ = [
     "management_websocket_router",
     "play_sim_router",
     "integrated_sim_router",
+    "v2_sim_router",
+    "agentmail_router",
+    "agentmail_websocket_router",
 ]

@@ -36,6 +36,11 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 _active_league: Optional[League] = None
 _active_draft: Optional[Draft] = None
 
+
+def get_active_league() -> Optional[League]:
+    """Get the currently active league instance."""
+    return _active_league
+
 # Position display order (familiar football ordering)
 POSITION_ORDER = {
     # Offense - skill positions first

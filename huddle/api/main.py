@@ -20,6 +20,9 @@ from huddle.api.routers import (
     websocket_router,
     management_router,
     management_websocket_router,
+    v2_sim_router,
+    agentmail_router,
+    agentmail_websocket_router,
 )
 from huddle.api.routers.admin import router as admin_router
 
@@ -80,9 +83,12 @@ def create_app() -> FastAPI:
     app.include_router(integrated_sim_router, prefix="/api/v1")
     app.include_router(management_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
+    app.include_router(v2_sim_router, prefix="/api/v1")
+    app.include_router(agentmail_router, prefix="/api/v1")  # Agent communication
     app.include_router(websocket_router)
     app.include_router(sandbox_websocket_router)
     app.include_router(management_websocket_router)
+    app.include_router(agentmail_websocket_router)
 
     return app
 

@@ -125,17 +125,33 @@ def start_negotiation(player: "Player") -> NegotiationState:
 
     Returns the initial negotiation state including player's
     market value and opening demands.
+
+    If player has a personality, it affects:
+    - Opening demand multiplier
+    - Initial patience level
     """
     market = calculate_market_value(player)
 
-    # Player's opening demand is slightly above market (agents inflate)
-    demand_multiplier = random.uniform(1.05, 1.20)  # 5-20% above market
+    # Get demand multiplier from personality (or use default)
+    if player.personality:
+        base_multiplier = player.personality.get_opening_demand_modifier()
+        # Add small random variance within personality bounds
+        demand_multiplier = base_multiplier * random.uniform(0.97, 1.03)
+    else:
+        # Legacy: random 5-20% above market
+        demand_multiplier = random.uniform(1.05, 1.20)
 
     opening_demand = ContractOffer(
         years=market.years,
         salary=int(market.base_salary * demand_multiplier),
         signing_bonus=int(market.signing_bonus * demand_multiplier),
     )
+
+    # Get initial patience from personality
+    if player.personality:
+        initial_patience = player.personality.get_patience_modifier()
+    else:
+        initial_patience = 1.0
 
     return NegotiationState(
         player_id=str(player.id),
@@ -144,13 +160,14 @@ def start_negotiation(player: "Player") -> NegotiationState:
         player_overall=player.overall,
         market_value=market,
         current_demand=opening_demand,
-        patience=1.0,
+        patience=initial_patience,
     )
 
 
 def evaluate_offer(
     state: NegotiationState,
     offer: ContractOffer,
+    player: "Player" = None,
 ) -> NegotiationResponse:
     """
     Evaluate a contract offer and return the player's response.
@@ -159,6 +176,7 @@ def evaluate_offer(
     - How offer compares to market value
     - Number of negotiation rounds
     - Player's remaining patience
+    - Player's personality (if available)
     """
     state.rounds += 1
     state.offers_made.append(offer)
@@ -172,30 +190,59 @@ def evaluate_offer(
     # Calculate offer as percentage of market value
     offer_pct = offer.total_value / market.total_value if market.total_value > 0 else 1.0
 
-    # Thresholds for different responses
-    # These create the HC09-style negotiation feel
-    ACCEPT_THRESHOLD = 0.95      # 95%+ of market = likely accept
-    COUNTER_LOW = 0.80          # 80-95% = counter offer
-    REJECT_LOW = 0.70           # 70-80% = reject but continue
-    WALKAWAY_THRESHOLD = 0.60   # <60% = risk walking away
+    # Get personality-aware thresholds
+    accept_threshold, counter_low, reject_low, walkaway_threshold = _get_thresholds(player)
 
     # Adjust thresholds based on rounds (player gets more flexible)
     flexibility_bonus = min(0.10, state.rounds * 0.02)  # Up to 10% more flexible
-
-    accept_threshold = ACCEPT_THRESHOLD - flexibility_bonus
+    accept_threshold = accept_threshold - flexibility_bonus
 
     # Determine response
     if offer_pct >= accept_threshold:
         return _accept_offer(state, offer, offer_pct)
 
-    elif offer_pct >= COUNTER_LOW:
-        return _counter_offer(state, offer, offer_pct)
+    elif offer_pct >= counter_low:
+        return _counter_offer(state, offer, offer_pct, player)
 
-    elif offer_pct >= REJECT_LOW:
-        return _reject_offer(state, offer, offer_pct)
+    elif offer_pct >= reject_low:
+        return _reject_offer(state, offer, offer_pct, player)
 
     else:
-        return _maybe_walk_away(state, offer, offer_pct)
+        return _maybe_walk_away(state, offer, offer_pct, player)
+
+
+def _get_thresholds(player: "Player" = None) -> tuple[float, float, float, float]:
+    """
+    Get personality-aware negotiation thresholds.
+
+    Returns:
+        Tuple of (accept_threshold, counter_low, reject_low, walkaway_threshold)
+    """
+    # Base thresholds (HC09-style)
+    accept_threshold = 0.95      # 95%+ of market = likely accept
+    counter_low = 0.80           # 80-95% = counter offer
+    reject_low = 0.70            # 70-80% = reject but continue
+    walkaway_threshold = 0.60    # <60% = risk walking away
+
+    if player and player.personality:
+        personality = player.personality
+
+        # Loyal/team players accept lower offers
+        loyalty_mod = personality.get_loyalty_modifier()
+        accept_threshold -= loyalty_mod * 0.5  # e.g., +0.05 loyalty = -2.5% threshold
+
+        # Get walkaway threshold from personality
+        walkaway_threshold = personality.get_walkaway_threshold()
+
+        # Adjust counter_low based on aggressiveness
+        aggressiveness = personality.get_counter_offer_aggressiveness()
+        # More aggressive (lower concession) = higher counter threshold
+        counter_low = 0.75 + (0.50 - aggressiveness) * 0.10
+
+        # Adjust reject_low to be between counter_low and walkaway
+        reject_low = (counter_low + walkaway_threshold) / 2
+
+    return accept_threshold, counter_low, reject_low, walkaway_threshold
 
 
 def _accept_offer(
@@ -243,6 +290,7 @@ def _counter_offer(
     state: NegotiationState,
     offer: ContractOffer,
     offer_pct: float,
+    player: "Player" = None,
 ) -> NegotiationResponse:
     """Player makes a counter-offer."""
     market = state.market_value
@@ -251,8 +299,15 @@ def _counter_offer(
     # The closer the offer is to market, the more they'll come down
     gap = 1.0 - offer_pct
 
-    # Player comes down by 30-60% of the gap
-    concession = gap * random.uniform(0.30, 0.60)
+    # Get concession rate from personality (or use default 0.30-0.60)
+    if player and player.personality:
+        base_concession = player.personality.get_counter_offer_aggressiveness()
+        # Add small variance
+        concession_rate = base_concession * random.uniform(0.85, 1.15)
+    else:
+        concession_rate = random.uniform(0.30, 0.60)
+
+    concession = gap * concession_rate
     counter_pct = max(offer_pct + concession, 0.95)  # Won't go below 95% of market
 
     counter = ContractOffer(
@@ -292,12 +347,18 @@ def _reject_offer(
     state: NegotiationState,
     offer: ContractOffer,
     offer_pct: float,
+    player: "Player" = None,
 ) -> NegotiationResponse:
     """Player rejects but is willing to continue negotiating."""
     market = state.market_value
 
-    # Decrease patience
-    state.patience -= 0.15
+    # Decrease patience (personality affects decay rate)
+    base_decay = 0.15
+    if player and player.personality:
+        # Patient players lose patience slower
+        patience_mod = player.personality.get_patience_modifier()
+        base_decay = base_decay / patience_mod  # e.g., 1.3 patience = 0.115 decay
+    state.patience -= base_decay
 
     # Tell them what they need to come up to
     target = ContractOffer(
@@ -326,11 +387,18 @@ def _maybe_walk_away(
     state: NegotiationState,
     offer: ContractOffer,
     offer_pct: float,
+    player: "Player" = None,
 ) -> NegotiationResponse:
     """Player might walk away from a lowball offer."""
+    # Get walkaway threshold from personality (or use default 0.60)
+    if player and player.personality:
+        walkaway_threshold = player.personality.get_walkaway_threshold()
+    else:
+        walkaway_threshold = 0.60
+
     # Calculate walk-away chance
     # Very low offers have high chance, especially with low patience
-    base_walkaway = (0.60 - offer_pct) * 2  # 0-60% becomes 0-120% base
+    base_walkaway = (walkaway_threshold - offer_pct) * 2  # Below threshold becomes walkaway risk
     patience_factor = 1.0 - state.patience  # Low patience = more likely to walk
 
     walkaway_chance = min(0.80, base_walkaway + patience_factor * 0.3)
@@ -357,7 +425,12 @@ def _maybe_walk_away(
         )
 
     # Didn't walk away, but very upset - reject harshly
-    state.patience -= 0.25  # Big patience hit
+    # Big patience hit (personality affects decay rate)
+    big_decay = 0.25
+    if player and player.personality:
+        patience_mod = player.personality.get_patience_modifier()
+        big_decay = big_decay / patience_mod
+    state.patience -= big_decay
 
     market = state.market_value
     target = ContractOffer(
@@ -394,4 +467,4 @@ def quick_negotiate(
     Good for AI team decisions or quick checks.
     """
     state = start_negotiation(player)
-    return evaluate_offer(state, offer)
+    return evaluate_offer(state, offer, player)

@@ -1,11 +1,16 @@
 """Player model."""
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from huddle.core.attributes import PlayerAttributes
 from huddle.core.enums import Position
+
+if TYPE_CHECKING:
+    from huddle.core.personality import PersonalityProfile, Trait, ArchetypeType
+    from huddle.core.approval import PlayerApproval
+    from huddle.core.mental_state import WeeklyMentalState, PlayerGameState
 
 
 @dataclass
@@ -50,6 +55,12 @@ class Player:
     signing_bonus: Optional[int] = None  # Total signing bonus
     signing_bonus_remaining: Optional[int] = None  # Prorated bonus remaining (for dead money)
 
+    # Personality (HC09-style archetypes)
+    personality: Optional["PersonalityProfile"] = None
+
+    # Approval tracking (morale/satisfaction)
+    approval: Optional["PlayerApproval"] = None
+
     @property
     def overall(self) -> int:
         """Calculate overall rating based on position."""
@@ -93,6 +104,154 @@ class Player:
     def is_franchise_player(self) -> bool:
         """Check if player has been with team long-term (5+ years)."""
         return self.years_on_team >= 5
+
+    @property
+    def archetype(self) -> Optional["ArchetypeType"]:
+        """Get player's personality archetype, if assigned."""
+        if self.personality:
+            return self.personality.archetype
+        return None
+
+    def get_trait(self, trait: "Trait", default: float = 0.5) -> float:
+        """
+        Get a personality trait value.
+
+        Args:
+            trait: The trait to query
+            default: Value if no personality assigned (0.5 = neutral)
+
+        Returns:
+            Trait value between 0.0 and 1.0
+        """
+        if self.personality:
+            return self.personality.get_trait(trait, default)
+        return default
+
+    def has_strong_trait(self, trait: "Trait", threshold: float = 0.7) -> bool:
+        """
+        Check if player has a strong personality trait.
+
+        Args:
+            trait: The trait to check
+            threshold: Minimum value to be considered "strong"
+
+        Returns:
+            True if trait is above threshold (or False if no personality)
+        """
+        if self.personality:
+            return self.personality.is_trait_strong(trait, threshold)
+        return False
+
+    def get_approval_rating(self) -> float:
+        """
+        Get player's current approval rating.
+
+        Returns:
+            Approval value (0-100), default 50 if not tracked
+        """
+        if self.approval:
+            return self.approval.approval
+        return 50.0
+
+    def get_performance_modifier(self) -> float:
+        """
+        Get performance modifier based on approval.
+
+        Returns:
+            Multiplier for performance (0.92 to 1.05)
+        """
+        if self.approval:
+            return self.approval.get_performance_modifier()
+        return 1.0
+
+    def is_unhappy(self) -> bool:
+        """Check if player is unhappy (may request trade)."""
+        if self.approval:
+            return self.approval.is_trade_candidate()
+        return False
+
+    def is_disgruntled(self) -> bool:
+        """Check if player is disgruntled (holdout risk)."""
+        if self.approval:
+            return self.approval.is_holdout_risk()
+        return False
+
+    # =========================================================================
+    # Inner Weather: Mental State Helpers
+    # =========================================================================
+
+    def get_weekly_mental_state(self, team=None) -> "WeeklyMentalState":
+        """
+        Build the weekly mental state snapshot for this player.
+
+        Pulls from morale/approval, game prep, and playbook familiarity.
+
+        Args:
+            team: Player's team (optional, for prep/familiarity data)
+
+        Returns:
+            WeeklyMentalState populated from current systems
+        """
+        from huddle.core.mental_state import build_weekly_mental_state
+        return build_weekly_mental_state(self, team)
+
+    def prepare_for_game(self, team=None) -> "PlayerGameState":
+        """
+        Package everything simulation needs about this player's mental state.
+
+        This is the handoff from management layer to simulation layer.
+        Called before each game.
+
+        Args:
+            team: Player's team (optional, for prep data)
+
+        Returns:
+            PlayerGameState ready for simulation
+        """
+        from huddle.core.mental_state import prepare_player_for_game
+        return prepare_player_for_game(self, team)
+
+    def get_confidence_volatility(self) -> float:
+        """
+        Get how much this player's confidence swings during games.
+
+        Returns:
+            Volatility multiplier (0.6 = steady, 1.0 = normal, 1.4 = volatile)
+        """
+        if self.personality:
+            return self.personality.get_confidence_volatility()
+        return 1.0
+
+    def get_pressure_response(self) -> float:
+        """
+        Get how this player responds to pressure situations.
+
+        Returns:
+            Response modifier (-0.3 = wilts, 0 = neutral, +0.3 = rises)
+        """
+        if self.personality:
+            return self.personality.get_pressure_response()
+        return 0.0
+
+    def get_morale(self) -> float:
+        """
+        Get current morale (from approval system).
+
+        Returns:
+            Morale value (0-100), 50 is neutral
+        """
+        return self.get_approval_rating()
+
+    def get_cognitive_capacity(self) -> int:
+        """
+        Get cognitive capacity (from awareness attribute).
+
+        Higher values = can track more information under pressure.
+
+        Returns:
+            Cognitive capacity (0-100)
+        """
+        return self.attributes.get("awareness", 50)
 
     def get_attribute(self, attr_name: str) -> int:
         """Get a specific attribute value."""
@@ -171,7 +330,7 @@ class Player:
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
-        return {
+        data = {
             "id": str(self.id),
             "first_name": self.first_name,
             "last_name": self.last_name,
@@ -194,10 +353,29 @@ class Player:
             "signing_bonus": self.signing_bonus,
             "signing_bonus_remaining": self.signing_bonus_remaining,
         }
+        # Include personality if assigned
+        if self.personality:
+            data["personality"] = self.personality.to_dict()
+        # Include approval if tracked
+        if self.approval:
+            data["approval"] = self.approval.to_dict()
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "Player":
         """Create from dictionary."""
+        # Load personality if present
+        personality = None
+        if "personality" in data:
+            from huddle.core.personality import PersonalityProfile
+            personality = PersonalityProfile.from_dict(data["personality"])
+
+        # Load approval if present
+        approval = None
+        if "approval" in data:
+            from huddle.core.approval import PlayerApproval
+            approval = PlayerApproval.from_dict(data["approval"])
+
         return cls(
             id=UUID(data["id"]) if "id" in data else uuid4(),
             first_name=data.get("first_name", ""),
@@ -220,6 +398,8 @@ class Player:
             salary=data.get("salary"),
             signing_bonus=data.get("signing_bonus"),
             signing_bonus_remaining=data.get("signing_bonus_remaining"),
+            personality=personality,
+            approval=approval,
         )
 
     def __str__(self) -> str:
