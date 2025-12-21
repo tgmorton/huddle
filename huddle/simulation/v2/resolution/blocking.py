@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 ENGAGEMENT_RANGE = 1.5  # Yards - players within this are engaged
 SHED_THRESHOLD = 1.0    # Shed progress reaches this = DL is free
+MIN_SEPARATION = 0.8    # Yards - minimum distance between OL/DL bodies (can't clip through)
 
 # Base win rates (before attribute modifiers)
 BASE_OL_WIN_RATE = 0.50  # 50/50 at equal attributes
@@ -61,16 +62,63 @@ RUN_DEFENSE_WEIGHTS = {
     "awareness": 0.15,
 }
 
-# Shed progress rates per tick when winning
-SHED_RATE_DOMINANT = 0.15   # DL dominating
-SHED_RATE_WINNING = 0.08    # DL winning
+# Shed progress rates per tick when winning (RUN BLOCKING)
+# Run blocking is quicker - need to make fast decisions
+SHED_RATE_DOMINANT = 0.15   # DL dominating - sheds in ~0.35s
+SHED_RATE_WINNING = 0.08    # DL winning - sheds in ~0.6s
 SHED_RATE_NEUTRAL = 0.02    # Stalemate (slow progress)
 SHED_RATE_LOSING = -0.05    # OL winning (progress reversed)
 
+# Shed progress rates for PASS PROTECTION
+# Pass pro is slower - OL sets up and maintains leverage
+# Target: average matchup holds ~2.5-3 seconds
+PASS_PRO_SHED_RATE_DOMINANT = 0.06   # DL dominating - sheds in ~0.8s
+PASS_PRO_SHED_RATE_WINNING = 0.03    # DL winning - sheds in ~1.7s
+PASS_PRO_SHED_RATE_NEUTRAL = 0.01    # Stalemate - sheds in ~5s
+PASS_PRO_SHED_RATE_LOSING = -0.02    # OL winning (slow reversal)
+
 # Movement rates (yards per second)
-PUSH_RATE_DOMINANT = 1.5    # Winner pushing loser back
-PUSH_RATE_WINNING = 0.8
-PUSH_RATE_NEUTRAL = 0.0
+# Increased for visual clarity in demos - real NFL would be slower
+PUSH_RATE_DOMINANT = 1.2    # Clear winner - ~6 yards over 5 sec (pancake territory)
+PUSH_RATE_WINNING = 0.5     # Has edge - ~2.5 yards over 5 sec
+PUSH_RATE_NEUTRAL = 0.0     # Stalemate - both hold position
+
+# =============================================================================
+# Momentum System Constants
+# =============================================================================
+
+# Leverage change rate - how fast leverage shifts per tick
+# Based on attribute advantage (per 10 pts of advantage)
+# Higher = faster visual feedback for attribute differences
+LEVERAGE_SHIFT_RATE = 0.12  # Needs to be high enough to break out of neutral zone
+
+# Momentum decay - leverage momentum decays each tick
+# 1.0 = no decay, 0.5 = halves each tick
+MOMENTUM_DECAY = 0.85
+
+# Momentum influence - how much momentum contributes to leverage shift
+MOMENTUM_FACTOR = 0.6
+
+# Stagger threshold - when leverage hits these, player staggers
+STAGGER_THRESHOLD = 0.85
+
+# Stagger duration in ticks
+STAGGER_DURATION = 8
+
+# Stagger leverage bonus - staggered player gives up leverage faster
+STAGGER_LEVERAGE_BONUS = 0.08
+
+# Drive threshold - commit to drive when leverage advantage is this high
+DRIVE_THRESHOLD = 0.6
+
+# Drive duration in ticks
+DRIVE_DURATION = 6
+
+# Drive leverage bonus during committed drive
+DRIVE_LEVERAGE_BONUS = 0.03
+
+# Random variance added each tick (small)
+VARIANCE_PER_TICK = 0.02
 
 
 # =============================================================================
@@ -130,6 +178,21 @@ class EngagementState:
     # Last actions (for counter detection)
     last_ol_action: Optional[str] = None
     last_dl_action: Optional[str] = None
+
+    # Momentum system - makes blocking feel weighty
+    # leverage: -1.0 = DL fully dominant, +1.0 = OL fully dominant
+    leverage: float = 0.0
+
+    # How fast leverage is shifting (positive = toward OL, negative = toward DL)
+    leverage_momentum: float = 0.0
+
+    # Stagger: when a player gets knocked back hard, they need recovery
+    # Positive = OL staggered, Negative = DL staggered
+    stagger_ticks: int = 0
+
+    # Drive state: when one side commits to driving, they push for several ticks
+    drive_direction: Optional[Vec2] = None
+    drive_ticks_remaining: int = 0
 
 
 # =============================================================================
@@ -237,6 +300,57 @@ class BlockResolver:
         """Clear all engagement states (start of new play)."""
         self._engagements.clear()
 
+    def remove_engagement(self, dl_id: str) -> bool:
+        """Remove engagement for a DL (when they disengage to tackle).
+
+        Returns True if an engagement was removed.
+        """
+        keys_to_remove = []
+        for key, engagement in self._engagements.items():
+            if engagement.dl_id == dl_id:
+                keys_to_remove.append(key)
+
+        for key in keys_to_remove:
+            del self._engagements[key]
+
+        return len(keys_to_remove) > 0
+
+    def attempt_emergency_shed(self, dl_id: str) -> tuple[bool, float]:
+        """Attempt emergency shed when ballcarrier is nearby.
+
+        When an RB runs past an engaged DL, the DL can try to disengage
+        and make a tackle. Success depends on current shed_progress.
+
+        Args:
+            dl_id: ID of the defensive lineman
+
+        Returns:
+            (success, probability): Whether shed succeeded and what the roll was
+        """
+        import random
+
+        engagement = self.get_engagement_for_player(dl_id)
+        if not engagement:
+            return False, 0.0
+
+        # Emergency shed probability based on current shed progress
+        # Already winning the battle = easier to disengage
+        # shed_progress 0.0 = 15% chance (OL dominant, hard to escape)
+        # shed_progress 0.5 = 40% chance (neutral battle)
+        # shed_progress 0.8 = 65% chance (already close to shedding)
+        # shed_progress 1.0 = already shed, should be free
+        base_prob = 0.15 + (engagement.shed_progress * 0.55)
+
+        # Leverage also matters - positive leverage = DL winning
+        leverage_bonus = max(0, -engagement.leverage) * 0.15  # Up to +15% if DL has leverage
+
+        final_prob = min(0.75, base_prob + leverage_bonus)
+
+        roll = random.random()
+        success = roll < final_prob
+
+        return success, final_prob
+
     def is_engaged(self, ol: Player, dl: Player) -> bool:
         """Check if two players are within engagement range."""
         return ol.pos.distance_to(dl.pos) <= ENGAGEMENT_RANGE
@@ -251,8 +365,13 @@ class BlockResolver:
         dt: float,
         tick: int = 0,
         time: float = 0.0,
+        block_direction: str = "",  # "left", "right", or "straight" - OL's intended push direction
     ) -> BlockResult:
         """Resolve one tick of blocking between OL and DL.
+
+        Uses a momentum-based system where leverage shifts gradually based on
+        attribute matchups. Creates sustained advantages rather than coin-flip
+        outcomes each tick.
 
         Args:
             ol: Offensive lineman
@@ -293,34 +412,86 @@ class BlockResolver:
         state.last_ol_action = ol_action
         state.last_dl_action = dl_action
 
-        # Calculate win probability
-        ol_win_prob = self._calculate_win_probability(
+        # === MOMENTUM-BASED LEVERAGE SYSTEM ===
+
+        # 1. Calculate base leverage shift from attributes and actions
+        leverage_shift = self._calculate_leverage_shift(
             ol, dl, ol_action, dl_action, block_type
         )
 
-        # Roll for this tick's outcome
-        roll = random.random()
+        # 2. Handle stagger state - staggered player gives up leverage faster
+        if state.stagger_ticks > 0:
+            state.stagger_ticks -= 1
+            # Apply stagger penalty (positive stagger = OL staggered)
+            if state.stagger_ticks > 0:
+                leverage_shift -= STAGGER_LEVERAGE_BONUS  # Shifts toward DL
 
-        # Determine outcome based on roll vs probability
-        margin = roll - ol_win_prob
+        # 3. Handle drive state - committed drive maintains pressure
+        if state.drive_ticks_remaining > 0:
+            state.drive_ticks_remaining -= 1
+            # Drive direction: positive leverage = OL driving
+            if state.leverage > 0:
+                leverage_shift += DRIVE_LEVERAGE_BONUS
+            else:
+                leverage_shift -= DRIVE_LEVERAGE_BONUS
 
-        if margin < -0.25:
-            outcome = BlockOutcome.OL_DOMINANT
-            shed_delta = SHED_RATE_LOSING * 1.5
-        elif margin < -0.10:
-            outcome = BlockOutcome.OL_WINNING
-            shed_delta = SHED_RATE_LOSING
-        elif margin < 0.10:
-            outcome = BlockOutcome.NEUTRAL
-            shed_delta = SHED_RATE_NEUTRAL
-        elif margin < 0.25:
-            outcome = BlockOutcome.DL_WINNING
-            shed_delta = SHED_RATE_WINNING
+        # 4. Apply momentum - smooth out the leverage changes
+        # Momentum decays each tick
+        state.leverage_momentum *= MOMENTUM_DECAY
+
+        # Add this tick's influence to momentum
+        state.leverage_momentum += leverage_shift * (1.0 - MOMENTUM_DECAY)
+
+        # Apply momentum to leverage
+        leverage_delta = leverage_shift + state.leverage_momentum * MOMENTUM_FACTOR
+
+        # 5. Add small random variance (keeps it from being perfectly deterministic)
+        variance = (random.random() - 0.5) * VARIANCE_PER_TICK * 2
+        leverage_delta += variance
+
+        # 6. Update leverage
+        state.leverage = max(-1.0, min(1.0, state.leverage + leverage_delta))
+
+        # 7. Check for stagger trigger (big leverage swing)
+        if abs(state.leverage) >= STAGGER_THRESHOLD and state.stagger_ticks == 0:
+            # Player getting dominated staggers
+            state.stagger_ticks = STAGGER_DURATION
+            # Reset leverage slightly (stagger creates a pause)
+            if state.leverage > 0:
+                state.leverage = STAGGER_THRESHOLD * 0.7
+            else:
+                state.leverage = -STAGGER_THRESHOLD * 0.7
+
+        # 8. Check for drive trigger (sustained advantage)
+        if abs(state.leverage) >= DRIVE_THRESHOLD and state.drive_ticks_remaining == 0:
+            state.drive_ticks_remaining = DRIVE_DURATION
+            # Set drive direction based on who's winning
+            push_dir = (dl.pos - ol.pos).normalized() if ol.pos.distance_to(dl.pos) > 0.1 else Vec2(0, 1)
+            if state.leverage > 0:
+                state.drive_direction = push_dir  # OL driving forward
+            else:
+                state.drive_direction = push_dir * -1  # DL driving backward
+
+        # === MAP LEVERAGE TO OUTCOME ===
+        outcome = self._leverage_to_outcome(state.leverage)
+
+        # === UPDATE SHED PROGRESS ===
+        # Shed progress only advances when DL has leverage advantage
+        # Use different rates for pass protection vs run blocking
+        is_pass_pro = block_type == BlockType.PASS_PRO
+
+        if state.leverage < -0.5:
+            shed_delta = PASS_PRO_SHED_RATE_DOMINANT if is_pass_pro else SHED_RATE_DOMINANT
+        elif state.leverage < -0.2:
+            shed_delta = PASS_PRO_SHED_RATE_WINNING if is_pass_pro else SHED_RATE_WINNING
+        elif state.leverage < 0.2:
+            shed_delta = PASS_PRO_SHED_RATE_NEUTRAL if is_pass_pro else SHED_RATE_NEUTRAL
+        elif state.leverage < 0.5:
+            shed_delta = PASS_PRO_SHED_RATE_LOSING if is_pass_pro else SHED_RATE_LOSING
         else:
-            outcome = BlockOutcome.DL_DOMINANT
-            shed_delta = SHED_RATE_DOMINANT
+            losing_rate = PASS_PRO_SHED_RATE_LOSING if is_pass_pro else SHED_RATE_LOSING
+            shed_delta = losing_rate * 1.5
 
-        # Update shed progress
         state.shed_progress = max(0.0, min(1.0, state.shed_progress + shed_delta))
 
         # Check for shed
@@ -336,22 +507,75 @@ class BlockResolver:
             # Remove engagement
             del self._engagements[key]
 
-        # Calculate movement
+        # Calculate movement - now influenced by drive state and block direction
         ol_new_pos, dl_new_pos = self._calculate_movement(
-            ol, dl, outcome, block_type, dt
+            ol, dl, outcome, block_type, dt, state, block_direction
         )
 
-        # Build reasoning
-        reasoning = f"{ol_action} vs {dl_action}: {outcome.value} (OL win prob: {ol_win_prob:.0%}, shed: {state.shed_progress:.0%})"
+        # Build reasoning with momentum info
+        reasoning = (
+            f"{ol_action} vs {dl_action}: {outcome.value} "
+            f"(leverage: {state.leverage:+.2f}, momentum: {state.leverage_momentum:+.2f}, "
+            f"shed: {state.shed_progress:.0%})"
+        )
 
         return BlockResult(
             outcome=outcome,
             ol_new_pos=ol_new_pos,
             dl_new_pos=dl_new_pos,
             shed_progress=state.shed_progress,
-            ol_win_prob=ol_win_prob,
+            ol_win_prob=0.5 + state.leverage * 0.35,  # Approximate for debugging
             reasoning=reasoning,
         )
+
+    def _calculate_leverage_shift(
+        self,
+        ol: Player,
+        dl: Player,
+        ol_action: str,
+        dl_action: str,
+        block_type: BlockType,
+    ) -> float:
+        """Calculate how much leverage shifts this tick.
+
+        Positive = shifts toward OL (OL gaining advantage)
+        Negative = shifts toward DL (DL gaining advantage)
+        """
+        # Get attribute weights based on block type
+        if block_type == BlockType.PASS_PRO:
+            ol_weights = PASS_BLOCK_WEIGHTS
+            dl_weights = PASS_RUSH_WEIGHTS
+        else:
+            ol_weights = RUN_BLOCK_WEIGHTS
+            dl_weights = RUN_DEFENSE_WEIGHTS
+
+        # Calculate weighted attribute scores
+        ol_score = self._calculate_attribute_score(ol, ol_weights)
+        dl_score = self._calculate_attribute_score(dl, dl_weights)
+
+        # Attribute difference drives leverage shift
+        # +10 attribute advantage = +0.04 leverage shift per tick
+        attr_diff = (ol_score - dl_score) / 10.0
+        shift = attr_diff * LEVERAGE_SHIFT_RATE
+
+        # Action matchup modifier
+        matchup_mod = self._get_action_matchup(dl_action, ol_action)
+        shift -= matchup_mod * LEVERAGE_SHIFT_RATE * 2  # Actions have big impact
+
+        return shift
+
+    def _leverage_to_outcome(self, leverage: float) -> BlockOutcome:
+        """Map leverage value to outcome enum."""
+        if leverage >= 0.6:
+            return BlockOutcome.OL_DOMINANT
+        elif leverage >= 0.25:
+            return BlockOutcome.OL_WINNING
+        elif leverage >= -0.25:
+            return BlockOutcome.NEUTRAL
+        elif leverage >= -0.6:
+            return BlockOutcome.DL_WINNING
+        else:
+            return BlockOutcome.DL_DOMINANT
 
     def _calculate_win_probability(
         self,
@@ -429,8 +653,22 @@ class BlockResolver:
         outcome: BlockOutcome,
         block_type: BlockType,
         dt: float,
+        state: Optional[EngagementState] = None,
+        block_direction: str = "",
     ) -> Tuple[Vec2, Vec2]:
-        """Calculate new positions based on outcome."""
+        """Calculate new positions based on outcome and momentum state.
+
+        Key insight: DL is ALWAYS trying to get to their target (QB/ball).
+        OL is trying to hold them back. The outcome determines who wins
+        each tick, but there's always tension - it never fully stabilizes.
+
+        During a committed drive, movement is more consistent and sustained.
+        Otherwise, movement follows the outcome but with inertia from momentum.
+
+        block_direction controls the "wash" - when OL is winning, they push
+        the DL in their intended direction (playside for runs, slide direction
+        for pass pro).
+        """
         ol_pos = ol.pos
         dl_pos = dl.pos
 
@@ -440,40 +678,125 @@ class BlockResolver:
         else:
             push_dir = Vec2(0, 1)  # Default to upfield
 
+        # DL's target direction (toward QB/backfield = negative Y)
+        # This represents the DL's constant effort to reach their target
+        target_dir = Vec2(0, -1)  # Always pushing toward backfield
+        DL_PRESSURE_RATE = 0.3  # Base pressure rate regardless of outcome
+
+        # During a committed drive, use drive direction for consistent movement
+        in_drive = state and state.drive_ticks_remaining > 0 and state.drive_direction
+        drive_bonus = 1.3 if in_drive else 1.0  # 30% more movement during drive
+
+        # Calculate wash direction based on OL's blocking intent
+        # When OL is winning, they push DL in their intended direction
+        # For runs: playside creates running lanes
+        # For pass pro: slide direction walls off that side
+        wash_dir = Vec2(0, 0)
+        WASH_RATE = 0.8  # Yards per second of wash movement when OL winning
+        if block_direction == "right":
+            # Push DL right and back (positive y = toward defense backfield)
+            wash_dir = Vec2(1, 1).normalized()
+        elif block_direction == "left":
+            # Push DL left and back
+            wash_dir = Vec2(-1, 1).normalized()
+        # "straight" or empty = no lateral wash, just drive back
+
         # Determine push rate and direction based on outcome
+        # DL always applies pressure toward backfield, outcome determines if OL can counter it
         if outcome == BlockOutcome.OL_DOMINANT:
-            # OL drives DL back
-            push_rate = PUSH_RATE_DOMINANT
-            dl_new = dl_pos + push_dir * push_rate * dt
-            ol_new = ol_pos + push_dir * push_rate * dt * 0.5  # OL follows
+            # OL DOMINATES - drives DL in blocking direction
+            # In run blocking, this creates the "wash" that opens lanes
+            push_rate = PUSH_RATE_DOMINANT * drive_bonus * 0.3
+            # Strong wash: OL drives DL at angle (playside + downfield)
+            wash_movement = wash_dir * WASH_RATE * dt * 1.2
+            dl_new = dl_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1 + wash_movement
+            ol_new = ol_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1 + wash_movement * 0.8
 
         elif outcome == BlockOutcome.OL_WINNING:
-            # OL pushes DL back slightly
-            push_rate = PUSH_RATE_WINNING
-            dl_new = dl_pos + push_dir * push_rate * dt
-            ol_new = ol_pos + push_dir * push_rate * dt * 0.3
+            # OL winning - sustains block with moderate wash
+            drift_rate = DL_PRESSURE_RATE * 0.25
+            # Moderate wash: OL drives DL at angle
+            wash_movement = wash_dir * WASH_RATE * dt * 0.7
+            dl_new = dl_pos + target_dir * drift_rate * dt + wash_movement
+            ol_new = ol_pos + target_dir * drift_rate * dt * 0.8 + wash_movement * 0.8
 
         elif outcome == BlockOutcome.DL_DOMINANT:
-            # DL drives through OL
-            push_rate = PUSH_RATE_DOMINANT
-            ol_new = ol_pos - push_dir * push_rate * dt  # OL pushed back
-            dl_new = dl_pos - push_dir * push_rate * dt * 0.5  # DL advances
+            # DL pressure overwhelms OL, drives through
+            # DL advances toward QB while maintaining contact with OL
+            # Both move toward backfield together until shed
+            push_rate = PUSH_RATE_DOMINANT * drive_bonus
+            # Both move toward backfield, DL slightly faster (closing in)
+            ol_new = ol_pos + target_dir * push_rate * dt * 0.8
+            dl_new = dl_pos + target_dir * push_rate * dt  # DL advances toward QB
 
         elif outcome == BlockOutcome.DL_WINNING:
-            # DL pushes through slowly
-            push_rate = PUSH_RATE_WINNING
-            ol_new = ol_pos - push_dir * push_rate * dt
-            dl_new = dl_pos - push_dir * push_rate * dt * 0.3
+            # DL pressure winning, pushing through slowly
+            # Both move toward backfield, maintaining contact
+            push_rate = PUSH_RATE_WINNING * drive_bonus
+            ol_new = ol_pos + target_dir * push_rate * dt * 0.5
+            dl_new = dl_pos + target_dir * push_rate * dt * 0.7  # DL advances
 
         elif outcome == BlockOutcome.DL_SHED:
-            # DL breaks free, moves toward QB area
+            # DL breaks free, sprints toward QB area
             ol_new = ol_pos  # OL stays (beat)
-            # DL moves past OL
-            dl_new = dl_pos - push_dir * 2.0 * dt
+            dl_new = dl_pos + target_dir * 2.0 * dt  # Sprint toward backfield
 
         else:  # NEUTRAL or DISENGAGED
-            ol_new = ol_pos
-            dl_new = dl_pos
+            # Stalemate - DL applies pressure, OL holds, slight oscillation
+            # Neither side gaining ground but constant tension
+            if state and abs(state.leverage_momentum) > 0.01:
+                # Momentum causes slight drift
+                drift = state.leverage_momentum * 0.3 * dt
+                if state.leverage_momentum > 0:
+                    # OL has momentum, DL gets pushed slightly
+                    dl_new = dl_pos + push_dir * drift
+                    ol_new = ol_pos + push_dir * drift * 0.3
+                else:
+                    # DL has momentum toward target
+                    ol_new = ol_pos + target_dir * abs(drift) * 0.3
+                    dl_new = dl_pos + target_dir * abs(drift) * 0.5
+            else:
+                # True stalemate - tiny oscillation to show tension
+                dl_new = dl_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1
+                ol_new = ol_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1
+
+        # Enforce minimum separation - prevent clipping through each other
+        ol_new, dl_new = self._enforce_separation(ol_new, dl_new, MIN_SEPARATION)
+
+        return ol_new, dl_new
+
+    def _enforce_separation(
+        self,
+        ol_pos: Vec2,
+        dl_pos: Vec2,
+        min_dist: float,
+    ) -> Tuple[Vec2, Vec2]:
+        """Ensure OL and DL maintain minimum separation distance.
+
+        If players are too close, push them apart along their connecting axis.
+        Each player is pushed proportionally (50/50 split).
+        """
+        dist = ol_pos.distance_to(dl_pos)
+
+        if dist >= min_dist:
+            return ol_pos, dl_pos
+
+        if dist < 0.01:
+            # Exactly overlapping - push apart along Y axis
+            separation_dir = Vec2(0, 1)
+            dist = 0.01
+        else:
+            # Push apart along connecting axis
+            separation_dir = (dl_pos - ol_pos).normalized()
+
+        # How much to separate
+        overlap = min_dist - dist
+
+        # Push each player half the overlap distance
+        half_push = overlap / 2.0
+
+        ol_new = ol_pos - separation_dir * half_push
+        dl_new = dl_pos + separation_dir * half_push
 
         return ol_new, dl_new
 
@@ -508,37 +831,39 @@ def find_blocking_matchups(
 ) -> List[Tuple[Player, Player]]:
     """Find OL/DL pairs that are engaged or should engage.
 
-    Simple nearest-neighbor matching for now.
+    Uses greedy optimal matching: closest pairs matched first,
+    regardless of player list order.
     """
     from ..core.entities import Position
 
     OL_POSITIONS = {Position.LT, Position.LG, Position.C, Position.RG, Position.RT}
     DL_POSITIONS = {Position.DE, Position.DT, Position.NT}
 
-    matchups = []
-    used_dl = set()
-
-    # For each OL, find nearest DL
+    # Collect all potential OL-DL pairs with distances
+    candidates = []
     for ol in offense:
         if ol.position not in OL_POSITIONS:
             continue
-
-        nearest_dl = None
-        nearest_dist = float('inf')
-
         for dl in defense:
             if dl.position not in DL_POSITIONS:
                 continue
-            if dl.id in used_dl:
-                continue
-
             dist = ol.pos.distance_to(dl.pos)
-            if dist < nearest_dist and dist < 5.0:  # Max 5 yards to consider
-                nearest_dist = dist
-                nearest_dl = dl
+            if dist < 5.0:  # Max 5 yards to consider
+                candidates.append((dist, ol, dl))
 
-        if nearest_dl:
-            matchups.append((ol, nearest_dl))
-            used_dl.add(nearest_dl.id)
+    # Sort by distance (closest first)
+    candidates.sort(key=lambda x: x[0])
+
+    # Greedily assign closest matches
+    matchups = []
+    used_ol = set()
+    used_dl = set()
+
+    for dist, ol, dl in candidates:
+        if ol.id in used_ol or dl.id in used_dl:
+            continue
+        matchups.append((ol, dl))
+        used_ol.add(ol.id)
+        used_dl.add(dl.id)
 
     return matchups

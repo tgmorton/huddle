@@ -32,17 +32,21 @@ from huddle.simulation.v2.core.entities import (
 from huddle.simulation.v2.core.clock import Clock
 from huddle.simulation.v2.core.events import EventBus, Event, EventType
 from huddle.simulation.v2.orchestrator import (
-    Orchestrator, PlayConfig, PlayPhase, PlayResult, BrainDecision
+    Orchestrator, PlayConfig, PlayPhase, PlayResult, BrainDecision, DropbackType
 )
 from huddle.simulation.v2.plays.routes import RouteType, ROUTE_LIBRARY
 from huddle.simulation.v2.plays.concepts import CONCEPT_LIBRARY
 from huddle.simulation.v2.plays.schemes import SCHEME_LIBRARY
 from huddle.simulation.v2.plays.matchup import create_matchup, describe_matchup, CLASSIC_MATCHUPS
+from huddle.simulation.v2.plays.run_concepts import get_run_concept, list_run_concepts, RUN_CONCEPT_LIBRARY
 from huddle.simulation.v2.systems.route_runner import RouteAssignment
 from huddle.simulation.v2.systems.coverage import (
     CoverageType, CoverageAssignment, ZoneType, ZONE_BOUNDARIES
 )
-from huddle.simulation.v2.ai.qb_brain import qb_brain
+from huddle.simulation.v2.ai.qb_brain import (
+    qb_brain, enable_trace, get_trace, _get_state as get_qb_state
+)
+from huddle.simulation.v2.core.trace import get_trace_system
 from huddle.simulation.v2.ai.receiver_brain import receiver_brain
 from huddle.simulation.v2.ai.ballcarrier_brain import ballcarrier_brain
 from huddle.simulation.v2.ai.db_brain import db_brain
@@ -52,6 +56,470 @@ from huddle.simulation.v2.ai.dl_brain import dl_brain
 
 
 router = APIRouter(prefix="/v2-sim", tags=["v2-simulation"])
+
+
+# =============================================================================
+# Blocking Test Scenarios
+# =============================================================================
+# These scenarios are designed to test and visualize specific blocking behaviors
+# They range from simple 1v1 interactions to full line play
+
+BLOCKING_SCENARIOS = {
+    "1_1_fire_off": {
+        "name": "1.1 OL Fire Off",
+        "tier": 1,
+        "description": "Single OL fires off at snap - tests initial movement",
+        "expected": "LG moves from y=-0.5 to y=0 in first 0.2s",
+        "is_run_play": True,  # Force run blocking mode
+        "offense": [
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5},
+        ],
+        "defense": [],
+    },
+    "1_2_dl_hold_gap": {
+        "name": "1.2 DL Hold Gap",
+        "tier": 1,
+        "description": "DL holds gap position on run play",
+        "expected": "DT holds x=1.5, moves toward LOS",
+        "is_run_play": True,  # Force run defense mode
+        "offense": [
+            {"name": "RB", "position": "RB", "x": 0, "y": -4},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": 1.5, "y": 0.5},
+        ],
+    },
+    "1_3_basic_engagement": {
+        "name": "1.3 Basic Engagement",
+        "tier": 1,
+        "description": "1 OL head-up on 1 DL - basic blocking",
+        "expected": "LG and DT meet near y=0, minimal movement",
+        "is_run_play": True,  # Force run blocking mode
+        "offense": [
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": -1.5, "y": 0.5},
+        ],
+    },
+    "1_4_ol_wins": {
+        "name": "1.4 OL Wins Engagement",
+        "tier": 1,
+        "description": "Strong OL (90 block) vs weak DL (60)",
+        "expected": "OL gains leverage, pushes DL back",
+        "is_run_play": True,  # Force run blocking mode
+        "offense": [
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 90, "strength": 90},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": -1.5, "y": 0.5, "strength": 60, "pass_rush": 60},
+        ],
+    },
+    "1_5_dl_wins": {
+        "name": "1.5 DL Wins Engagement",
+        "tier": 1,
+        "description": "Weak OL (60) vs strong DL (90)",
+        "expected": "DL gains negative leverage, shed progress increases",
+        "is_run_play": True,  # Force run blocking mode
+        "offense": [
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 60, "strength": 60},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": -1.5, "y": 0.5, "strength": 90, "pass_rush": 90},
+        ],
+    },
+    "2_1_zone_step": {
+        "name": "2.1 Zone Step",
+        "tier": 2,
+        "description": "OL with zone_step assignment engages DL in gap",
+        "expected": "LG zone steps playside, engages DT",
+        "offense": [
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5},
+            {"name": "RB", "position": "RB", "x": 0, "y": -4},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": -1.0, "y": 0.5},
+        ],
+        "run_concept": "inside_zone_right",
+    },
+    "3_1_combo_block": {
+        "name": "3.1 Combo Block",
+        "tier": 3,
+        "description": "LG + C combo on DT, one should climb to LB",
+        "expected": "Both engage DT, one climbs to LB after 0.8s",
+        "offense": [
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5},
+            {"name": "RB", "position": "RB", "x": 0, "y": -4},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": -0.75, "y": 0.5},
+            {"name": "MLB", "position": "MLB", "x": 0, "y": 4.0},
+        ],
+        "run_concept": "inside_zone_right",
+    },
+    "3_3_gap_integrity": {
+        "name": "3.3 Gap Integrity",
+        "tier": 3,
+        "description": "2 OL vs 2 DL head-up - each blocks their man",
+        "expected": "LG blocks LDT, RG blocks RDT, gaps maintained",
+        "is_run_play": True,  # Force run blocking mode
+        "offense": [
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5},
+            {"name": "RB", "position": "RB", "x": 0, "y": -4},
+        ],
+        "defense": [
+            {"name": "LDT", "position": "DT", "x": -1.5, "y": 0.5},
+            {"name": "RDT", "position": "DT", "x": 1.5, "y": 0.5},
+        ],
+    },
+    "4_1_head_up_defense": {
+        "name": "4.1 Full Line Head-Up",
+        "tier": 4,
+        "description": "5 OL vs 4 DL head-up - clean 1-on-1 matchups with zone blocking",
+        "expected": "Each OL blocks their man, C uncovered climbs to 2nd level",
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -3.5},
+            {"name": "RB", "position": "RB", "x": -0.5, "y": -4.5},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.0, "y": 0.5},
+            {"name": "LDT", "position": "DT", "x": -1.5, "y": 0.5},
+            {"name": "RDT", "position": "DT", "x": 1.5, "y": 0.5},
+            {"name": "RDE", "position": "DE", "x": 3.0, "y": 0.5},
+        ],
+        "run_concept": "inside_zone_right",
+    },
+    "4_2_inside_zone_right": {
+        "name": "4.2 Inside Zone Right",
+        "tier": 4,
+        "description": "Full inside zone play with blocking assignments",
+        "expected": "Zone step playside, cutoff backside, combo on shaded DL",
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -3.5},
+            {"name": "RB", "position": "RB", "x": -0.5, "y": -4.5},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.75, "y": 0.5},  # 5-tech
+            {"name": "LDT", "position": "DT", "x": -2.25, "y": 0.5},  # 3-tech
+            {"name": "RDT", "position": "DT", "x": 0.75, "y": 0.5},   # 1-tech
+            {"name": "RDE", "position": "DE", "x": 3.75, "y": 0.5},   # 5-tech
+            {"name": "MLB", "position": "MLB", "x": 0, "y": 4.5},
+        ],
+        "run_concept": "inside_zone_right",
+    },
+    # ==========================================================================
+    # Pass Protection Scenarios
+    # ==========================================================================
+    "5_1_pass_protection": {
+        "name": "5.1 Pass Protection",
+        "tier": 5,
+        "description": "5 OL in pass pro vs 4 DL with elite edge rushers",
+        "expected": "OL sets, DL rushes. RDE (92 pass_rush) vs RT (75) is key matchup",
+        "is_run_play": False,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -1},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 82, "strength": 80},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 78, "strength": 78},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 76, "strength": 76},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 78, "strength": 78},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 75, "strength": 74},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -4.0, "y": 0.5, "pass_rush": 88, "strength": 78, "speed": 82},
+            {"name": "LDT", "position": "DT", "x": -1.0, "y": 0.5, "pass_rush": 80, "strength": 85},
+            {"name": "RDT", "position": "DT", "x": 1.0, "y": 0.5, "pass_rush": 78, "strength": 83},
+            {"name": "RDE", "position": "DE", "x": 4.0, "y": 0.5, "pass_rush": 92, "strength": 80, "speed": 85},
+        ],
+    },
+    "5_2_double_team": {
+        "name": "5.2 Double Team",
+        "tier": 5,
+        "description": "2 OL double-team elite NT (95 strength) - neither wins 1v1",
+        "expected": "LG + C both engage NT, combined leverage should neutralize",
+        "is_run_play": True,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -1},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 78, "strength": 78},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 76, "strength": 76},
+            {"name": "RB", "position": "RB", "x": -0.5, "y": -2.5},
+        ],
+        "defense": [
+            {"name": "NT", "position": "NT", "x": -0.5, "y": 0.5, "pass_rush": 92, "strength": 95},
+        ],
+    },
+    "5_3_dl_shed_pursuit": {
+        "name": "5.3 DL Shed & Pursuit",
+        "tier": 5,
+        "description": "Strong DT (85) vs average OL (72) - DT sheds then pursues RB",
+        "expected": "DT wins leverage, sheds block ~1.5s, then chases RB running away",
+        "is_run_play": True,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -1},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 72, "strength": 72},
+            {"name": "RB", "position": "RB", "x": -1.0, "y": -2.5, "speed": 85},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 82, "strength": 85, "speed": 78},
+        ],
+    },
+    "5_4_speed_mismatch": {
+        "name": "5.4 Speed Mismatch",
+        "tier": 5,
+        "description": "Speed rusher DE (92 speed) vs slow RT (70 speed)",
+        "expected": "DE should win around the edge with speed, forcing pressure",
+        "is_run_play": False,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -1},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 82, "strength": 84, "speed": 70},
+        ],
+        "defense": [
+            {"name": "DE", "position": "DE", "x": 4.5, "y": 0.5, "pass_rush": 88, "strength": 75, "speed": 92, "acceleration": 90},
+        ],
+    },
+    "5_5_full_line_with_mlb": {
+        "name": "5.5 Full Line + MLB",
+        "tier": 5,
+        "description": "5 OL vs 4 DL + MLB - complete run play with second level",
+        "expected": "OL engages DL, RB finds gap, MLB pursues and makes tackle",
+        "is_run_play": True,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -1},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 78, "strength": 78},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 80, "strength": 80},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 76, "strength": 76},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 82, "strength": 82},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 77, "strength": 77},
+            {"name": "RB", "position": "RB", "x": 1.0, "y": -2.5, "speed": 88},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -4.0, "y": 0.5, "pass_rush": 82, "strength": 80},
+            {"name": "LDT", "position": "DT", "x": -1.0, "y": 0.5, "pass_rush": 80, "strength": 85},
+            {"name": "RDT", "position": "DT", "x": 1.0, "y": 0.5, "pass_rush": 78, "strength": 83},
+            {"name": "RDE", "position": "DE", "x": 4.0, "y": 0.5, "pass_rush": 84, "strength": 78},
+            {"name": "MLB", "position": "MLB", "x": 0, "y": 5.0, "speed": 84, "tackling": 85, "play_recognition": 80},
+        ],
+    },
+    "5_6_run_basic": {
+        "name": "5.6 Basic Run (OL Wins)",
+        "tier": 5,
+        "description": "1 OL (80) vs 1 DL (75) + RB - OL should win and create lane",
+        "expected": "RG wins matchup, RB gains 10+ yards",
+        "is_run_play": True,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -1},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 80, "strength": 80},
+            {"name": "RB", "position": "RB", "x": 0, "y": -2.5, "speed": 88},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 75, "strength": 75},
+        ],
+    },
+    "5_7_run_dl_wins": {
+        "name": "5.7 DL Wins Run (TFL)",
+        "tier": 5,
+        "description": "Weak OL (60) vs strong DL (90) - DL should penetrate for TFL",
+        "expected": "DT dominates, penetrates backfield, RB stuffed behind LOS",
+        "is_run_play": True,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -1},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 60, "strength": 60},
+            {"name": "RB", "position": "RB", "x": 0, "y": -2.5, "speed": 88},
+        ],
+        "defense": [
+            {"name": "DT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 90, "strength": 90},
+        ],
+    },
+    # ==========================================================================
+    # Tier 6: Block Direction & Slide Protection Scenarios
+    # ==========================================================================
+    "6_1_slide_left": {
+        "name": "6.1 Slide Left Protection",
+        "tier": 6,
+        "description": "Full OL slides left in pass protection - coordinated push direction",
+        "expected": "LT/LG/C push DL left, RG/RT block straight. DL on left side pushed laterally.",
+        "is_run_play": False,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -5},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 82, "strength": 80},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 80, "strength": 78},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 78, "strength": 78},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 80, "strength": 78},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 78, "strength": 76},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.75, "y": 0.5, "pass_rush": 80, "strength": 78},
+            {"name": "LDT", "position": "DT", "x": -1.5, "y": 0.5, "pass_rush": 78, "strength": 82},
+            {"name": "RDT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 78, "strength": 82},
+            {"name": "RDE", "position": "DE", "x": 3.75, "y": 0.5, "pass_rush": 85, "strength": 78},
+        ],
+    },
+    "6_2_slide_right": {
+        "name": "6.2 Slide Right Protection",
+        "tier": 6,
+        "description": "Full OL slides right in pass protection - coordinated push direction",
+        "expected": "RG/RT/C push DL right, LT/LG block straight. DL on right side pushed laterally.",
+        "is_run_play": False,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -5},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 78, "strength": 76},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 80, "strength": 78},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 78, "strength": 78},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 80, "strength": 78},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 82, "strength": 80},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.75, "y": 0.5, "pass_rush": 85, "strength": 78},
+            {"name": "LDT", "position": "DT", "x": -1.5, "y": 0.5, "pass_rush": 78, "strength": 82},
+            {"name": "RDT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 78, "strength": 82},
+            {"name": "RDE", "position": "DE", "x": 3.75, "y": 0.5, "pass_rush": 80, "strength": 78},
+        ],
+    },
+    "6_3_zone_wash_right": {
+        "name": "6.3 Zone Wash Right",
+        "tier": 6,
+        "description": "Inside zone right - OL winning pushes DL laterally right + back",
+        "expected": "OL push DL right toward sideline. Creates cutback lane on left.",
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -3.5},
+            {"name": "RB", "position": "RB", "x": -0.5, "y": -4.5, "speed": 88},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 82, "strength": 82},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 84, "strength": 84},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 80, "strength": 80},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 84, "strength": 84},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 80, "strength": 80},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.75, "y": 0.5, "pass_rush": 75, "strength": 75},
+            {"name": "LDT", "position": "DT", "x": -1.5, "y": 0.5, "pass_rush": 74, "strength": 78},
+            {"name": "RDT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 74, "strength": 78},
+            {"name": "RDE", "position": "DE", "x": 3.75, "y": 0.5, "pass_rush": 75, "strength": 75},
+        ],
+        "run_concept": "inside_zone_right",
+    },
+    "6_4_zone_wash_left": {
+        "name": "6.4 Zone Wash Left",
+        "tier": 6,
+        "description": "Inside zone left - OL winning pushes DL laterally left + back",
+        "expected": "OL push DL left toward sideline. Creates cutback lane on right.",
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -3.5},
+            {"name": "RB", "position": "RB", "x": 0.5, "y": -4.5, "speed": 88},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 80, "strength": 80},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 84, "strength": 84},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 80, "strength": 80},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 84, "strength": 84},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 82, "strength": 82},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.75, "y": 0.5, "pass_rush": 75, "strength": 75},
+            {"name": "LDT", "position": "DT", "x": -1.5, "y": 0.5, "pass_rush": 74, "strength": 78},
+            {"name": "RDT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 74, "strength": 78},
+            {"name": "RDE", "position": "DE", "x": 3.75, "y": 0.5, "pass_rush": 75, "strength": 75},
+        ],
+        "run_concept": "inside_zone_left",
+    },
+    "6_5_power_down_blocks": {
+        "name": "6.5 Power Right (Down Blocks)",
+        "tier": 6,
+        "description": "Power right - backside OL down-block pushes DL AWAY from play",
+        "expected": "LT/LG down-block pushes DL left (away from right). Creates seal for puller.",
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -3.5},
+            {"name": "RB", "position": "RB", "x": -1.0, "y": -4.5, "speed": 86},
+            {"name": "FB", "position": "FB", "x": 0.5, "y": -3.0, "speed": 78, "block_power": 82},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 80, "strength": 80},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 82, "strength": 82},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 78, "strength": 78},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 82, "strength": 82},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 80, "strength": 80},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.75, "y": 0.5, "pass_rush": 78, "strength": 78},
+            {"name": "LDT", "position": "DT", "x": -1.5, "y": 0.5, "pass_rush": 76, "strength": 80},
+            {"name": "RDT", "position": "DT", "x": 1.5, "y": 0.5, "pass_rush": 76, "strength": 80},
+            {"name": "RDE", "position": "DE", "x": 3.75, "y": 0.5, "pass_rush": 78, "strength": 78},
+            {"name": "MLB", "position": "MLB", "x": 0, "y": 4.5, "tackling": 82},
+        ],
+        "run_concept": "power_right",
+    },
+    "6_6_slide_vs_blitz": {
+        "name": "6.6 Slide Left vs Blitz Right",
+        "tier": 6,
+        "description": "Slide left with blitz coming from right - tests man-side protection",
+        "expected": "Slide side (left) handles normal rush, RG/RT pick up blitzing LB",
+        "is_run_play": False,
+        "offense": [
+            {"name": "QB", "position": "QB", "x": 0, "y": -5},
+            {"name": "LT", "position": "LT", "x": -3.0, "y": -0.5, "block_power": 80, "strength": 78},
+            {"name": "LG", "position": "LG", "x": -1.5, "y": -0.5, "block_power": 78, "strength": 76},
+            {"name": "C", "position": "C", "x": 0, "y": -0.5, "block_power": 76, "strength": 76},
+            {"name": "RG", "position": "RG", "x": 1.5, "y": -0.5, "block_power": 80, "strength": 80},
+            {"name": "RT", "position": "RT", "x": 3.0, "y": -0.5, "block_power": 82, "strength": 80},
+        ],
+        "defense": [
+            {"name": "LDE", "position": "DE", "x": -3.75, "y": 0.5, "pass_rush": 78, "strength": 76},
+            {"name": "LDT", "position": "DT", "x": -1.0, "y": 0.5, "pass_rush": 76, "strength": 80},
+            {"name": "RDT", "position": "DT", "x": 1.0, "y": 0.5, "pass_rush": 76, "strength": 80},
+            {"name": "RDE", "position": "DE", "x": 3.75, "y": 0.5, "pass_rush": 82, "strength": 78},
+            {"name": "ROLB", "position": "OLB", "x": 4.5, "y": 2.0, "pass_rush": 75, "speed": 85},
+        ],
+    },
+}
+
+
+# =============================================================================
+# DL Technique Alignments
+# =============================================================================
+# Techniques define where DL align relative to OL
+# Based on standard 1.5 yard OL spacing with C at x=0
+
+# Technique positions (x-offset from center, positive = right side)
+# These match real NFL alignment techniques
+DL_TECHNIQUES = {
+    # Head-up alignments
+    "0": 0.0,        # Head up on center
+    "2": 1.5,        # Head up on guard
+    "4": 3.0,        # Head up on tackle
+    "6": 4.5,        # Head up on tight end
+
+    # Shade/gap alignments (between positions)
+    "1": 0.75,       # Shade on center (A gap)
+    "2i": 1.25,      # Inside shade on guard
+    "3": 2.25,       # Outside shade on guard (B gap)
+    "4i": 2.75,      # Inside shade on tackle
+    "5": 3.75,       # Outside shade on tackle (C gap)
+    "6i": 4.25,      # Inside shade on TE
+    "7": 5.0,        # Outside shade on TE (D gap)
+    "9": 5.5,        # Wide 9, outside everything
+}
+
+
+def get_technique_x(technique: str, side: str = "left") -> float:
+    """Get x-position for a DL technique.
+
+    Args:
+        technique: Technique number ("0", "1", "2i", "3", "5", etc.)
+        side: "left" or "right" - which side of the line
+
+    Returns:
+        x-coordinate for alignment
+    """
+    base_x = DL_TECHNIQUES.get(technique, 2.25)  # Default to 3-tech
+    return -base_x if side == "left" else base_x
 
 
 # =============================================================================
@@ -107,6 +575,9 @@ class SimulationConfig(BaseModel):
     max_time: float = 8.0
     throw_timing: Optional[float] = None  # Auto-throw after X seconds
     throw_target: Optional[str] = None    # Who to throw to
+    # Run play config (set when creating run plays)
+    is_run_play: bool = False
+    run_concept: Optional[str] = None
 
 
 class SessionInfo(BaseModel):
@@ -165,6 +636,13 @@ class V2SessionManager:
 
     def create_session(self, config: SimulationConfig) -> V2SimSession:
         """Create a new simulation session with full orchestrator."""
+        # Check if this is a run play - delegate to specialized creator
+        if config.is_run_play and config.run_concept:
+            from huddle.simulation.v2.plays.run_concepts import get_run_concept
+            run_concept = get_run_concept(config.run_concept)
+            if run_concept:
+                return _create_run_session(config, run_concept)
+
         session_id = uuid4()
 
         # Create orchestrator
@@ -225,6 +703,7 @@ class V2SessionManager:
             max_duration=config.max_time,
             throw_timing=config.throw_timing,
             throw_target=config.throw_target,
+            is_run_play=config.is_run_play,  # Pass through for OL/DL brains
         )
 
         # Setup the play
@@ -341,7 +820,11 @@ def player_to_dict(
     # Determine player_type for frontend
     if player.position == Position.QB:
         data["player_type"] = "qb"
-    elif player.position in (Position.WR, Position.TE, Position.RB):
+    elif player.position == Position.RB:
+        data["player_type"] = "rb"
+    elif player.position == Position.FB:
+        data["player_type"] = "fb"
+    elif player.position in (Position.WR, Position.TE):
         data["player_type"] = "receiver"
     elif player.position in (Position.LT, Position.LG, Position.C, Position.RG, Position.RT):
         data["player_type"] = "ol"
@@ -425,6 +908,40 @@ def player_to_dict(
             data["current_move"] = last_action
             # Note: move_success would need additional tracking from MoveResolver
             # For now, we just show the move being attempted
+
+    # Run play specific fields
+    if orchestrator._run_concept:
+        run_concept = orchestrator._run_concept
+        pos_name = player.position.value.upper() if player.position else ""
+
+        # OL blocking assignment fields
+        if data["player_type"] == "ol":
+            ol_assign = run_concept.get_ol_assignment(pos_name)
+            if ol_assign:
+                data["blocking_assignment"] = ol_assign.assignment.value
+                data["is_pulling"] = ol_assign.assignment.value in ("pull_lead", "pull_wrap")
+                # Pull target is roughly the aiming point area
+                if data["is_pulling"]:
+                    pull_dir = ol_assign.pull_direction or run_concept.play_side
+                    # Calculate approximate pull target
+                    pull_x = 6 if pull_dir == "right" else -6
+                    data["pull_target_x"] = pull_x
+                    data["pull_target_y"] = 2  # Just past LOS
+
+        # RB/ballcarrier fields
+        if player.position in (Position.RB, Position.FB):
+            rb_assign = run_concept.get_backfield_assignment(pos_name)
+            if rb_assign:
+                data["target_gap"] = rb_assign.aiming_point.value if rb_assign.aiming_point else None
+                data["designed_gap"] = run_concept.aiming_point.value if run_concept.aiming_point else None
+                # Read point is first waypoint
+                if rb_assign.path:
+                    data["read_point_x"] = rb_assign.path[0].x
+                    data["read_point_y"] = rb_assign.path[0].y
+                    # Vision target is next waypoint in path
+                    if len(rb_assign.path) > 1:
+                        data["vision_target_x"] = rb_assign.path[1].x
+                        data["vision_target_y"] = rb_assign.path[1].y
 
     return data
 
@@ -521,6 +1038,13 @@ def session_state_to_dict(session: V2SimSession) -> dict:
         if route_assignment:
             waypoints[player.id] = waypoints_to_dict(orchestrator, player.id)
 
+    # Run play state
+    is_run_play = orchestrator.config.is_run_play if orchestrator.config else False
+    run_concept_name = orchestrator.config.run_concept if orchestrator.config else None
+    designed_gap = None
+    if orchestrator._run_concept:
+        designed_gap = orchestrator._run_concept.aiming_point.value
+
     return {
         "session_id": str(session.session_id),
         "tick": orchestrator.clock.tick_count,
@@ -544,12 +1068,443 @@ def session_state_to_dict(session: V2SimSession) -> dict:
             "tick_rate_ms": session.config.tick_rate_ms,
             "max_time": session.config.max_time,
         },
+        # Run play state
+        "is_run_play": is_run_play,
+        "run_concept": run_concept_name,
+        "designed_gap": designed_gap,
     }
+
+
+# =============================================================================
+# Drive Management - Multi-Play Scenarios
+# =============================================================================
+
+class DriveStatus(str, Enum):
+    """Status of a drive."""
+    ACTIVE = "active"
+    TOUCHDOWN = "touchdown"
+    TURNOVER = "turnover"
+    TURNOVER_ON_DOWNS = "turnover_on_downs"
+    FIELD_GOAL = "field_goal"
+    SAFETY = "safety"
+
+
+class PlayResultInfo(BaseModel):
+    """Result of a single play."""
+    yards_gained: int
+    play_type: str  # "pass", "run", "sack", "incomplete"
+    description: str
+    is_first_down: bool = False
+    is_touchdown: bool = False
+    is_turnover: bool = False
+
+
+class DriveState(BaseModel):
+    """Current state of a drive."""
+    drive_id: str
+    down: int  # 1-4
+    distance: int  # yards to first down
+    ball_on: int  # yard line (1-99, own 1 to opp 1)
+    status: DriveStatus
+    plays: List[PlayResultInfo] = []
+    total_yards: int = 0
+
+    # For display
+    down_and_distance: str = ""  # "2nd & 7"
+    field_position: str = ""  # "OWN 35" or "OPP 45"
+
+
+class StartDriveRequest(BaseModel):
+    """Request to start a new drive."""
+    starting_yard_line: int = 25  # Own 25 by default
+
+
+class RunPlayRequest(BaseModel):
+    """Request to run a play."""
+    drive_id: str
+    play_type: str  # "pass" or "run"
+    play_name: Optional[str] = None  # Specific play/concept name
+    # Pass play options
+    concept: Optional[str] = None
+    routes: Optional[Dict[str, str]] = None
+    # Run play options
+    run_concept: Optional[str] = None
+
+
+@dataclass
+class Drive:
+    """Internal drive state."""
+    drive_id: str
+    down: int = 1
+    distance: int = 10
+    ball_on: int = 25  # Yard line from own goal (1-99)
+    status: DriveStatus = DriveStatus.ACTIVE
+    plays: List[PlayResultInfo] = field(default_factory=list)
+    total_yards: int = 0
+
+    def get_down_and_distance(self) -> str:
+        """Get formatted down and distance string."""
+        down_names = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"}
+        if self.status == DriveStatus.TURNOVER_ON_DOWNS:
+            return "Turnover on Downs"
+        if self.down > 4:
+            return "Turnover on Downs"
+        if self.distance >= 10 and self.ball_on + self.distance >= 100:
+            return f"{down_names[self.down]} & Goal"
+        return f"{down_names[self.down]} & {self.distance}"
+
+    def get_field_position(self) -> str:
+        """Get formatted field position string."""
+        if self.ball_on <= 50:
+            return f"OWN {self.ball_on}"
+        else:
+            return f"OPP {100 - self.ball_on}"
+
+    def to_state(self) -> DriveState:
+        """Convert to API response model."""
+        return DriveState(
+            drive_id=self.drive_id,
+            down=self.down,
+            distance=self.distance,
+            ball_on=self.ball_on,
+            status=self.status,
+            plays=self.plays,
+            total_yards=self.total_yards,
+            down_and_distance=self.get_down_and_distance(),
+            field_position=self.get_field_position(),
+        )
+
+
+class DriveManager:
+    """Manages active drives."""
+
+    def __init__(self):
+        self._drives: Dict[str, Drive] = {}
+
+    def start_drive(self, starting_yard_line: int = 25) -> Drive:
+        """Start a new drive."""
+        drive_id = str(uuid4())[:8]
+        drive = Drive(
+            drive_id=drive_id,
+            down=1,
+            distance=10,
+            ball_on=starting_yard_line,
+        )
+        self._drives[drive_id] = drive
+        return drive
+
+    def get_drive(self, drive_id: str) -> Optional[Drive]:
+        """Get a drive by ID."""
+        return self._drives.get(drive_id)
+
+    def update_after_play(self, drive: Drive, yards_gained: int, is_turnover: bool = False) -> None:
+        """Update drive state after a play."""
+        if is_turnover:
+            drive.status = DriveStatus.TURNOVER
+            return
+
+        # Update field position
+        drive.ball_on += yards_gained
+        drive.total_yards += yards_gained
+
+        # Check for touchdown
+        if drive.ball_on >= 100:
+            drive.ball_on = 100
+            drive.status = DriveStatus.TOUCHDOWN
+            return
+
+        # Check for safety (pushed back into own end zone)
+        if drive.ball_on <= 0:
+            drive.ball_on = 1
+            drive.status = DriveStatus.SAFETY
+            return
+
+        # Update down and distance
+        drive.distance -= yards_gained
+
+        if drive.distance <= 0:
+            # First down!
+            drive.down = 1
+            drive.distance = min(10, 100 - drive.ball_on)  # Goal to go if inside 10
+        else:
+            drive.down += 1
+            if drive.down > 4:
+                drive.status = DriveStatus.TURNOVER_ON_DOWNS
+
+    def select_defense(self, drive: Drive) -> Dict[str, Any]:
+        """Auto-select defensive play based on situation."""
+        # Simple situational defense selection
+        if drive.distance <= 3:
+            # Short yardage - expect run
+            return {
+                "coverage": "cover_1",
+                "front": "goal_line",
+                "description": "Cover 1 Goal Line - expecting run"
+            }
+        elif drive.distance >= 7:
+            # Passing situation
+            if drive.down >= 3:
+                # 3rd/4th and long - aggressive
+                return {
+                    "coverage": "cover_3",
+                    "front": "nickel",
+                    "description": "Cover 3 Nickel - pass rush"
+                }
+            else:
+                return {
+                    "coverage": "cover_2",
+                    "front": "4-3",
+                    "description": "Cover 2 Zone - balanced"
+                }
+        else:
+            # Medium distance - balanced
+            return {
+                "coverage": "cover_3",
+                "front": "4-3",
+                "description": "Cover 3 Base - balanced"
+            }
+
+
+# Global drive manager
+drive_manager = DriveManager()
 
 
 # =============================================================================
 # REST Endpoints
 # =============================================================================
+
+@router.post("/drive/start", response_model=DriveState)
+async def start_drive(request: StartDriveRequest) -> DriveState:
+    """Start a new drive."""
+    drive = drive_manager.start_drive(request.starting_yard_line)
+    return drive.to_state()
+
+
+@router.get("/drive/{drive_id}", response_model=DriveState)
+async def get_drive(drive_id: str) -> DriveState:
+    """Get current drive state."""
+    drive = drive_manager.get_drive(drive_id)
+    if not drive:
+        raise HTTPException(404, "Drive not found")
+    return drive.to_state()
+
+
+@router.post("/drive/play")
+async def run_drive_play(request: RunPlayRequest) -> Dict[str, Any]:
+    """Run a play within a drive and return results."""
+    drive = drive_manager.get_drive(request.drive_id)
+    if not drive:
+        raise HTTPException(404, "Drive not found")
+
+    if drive.status != DriveStatus.ACTIVE:
+        raise HTTPException(400, f"Drive is not active: {drive.status}")
+
+    # Get auto-selected defense
+    defense_call = drive_manager.select_defense(drive)
+
+    # Create session config based on play type
+    if request.play_type == "run":
+        concept_name = request.run_concept or "inside_zone_right"
+        # Use the blocking scenario infrastructure to set up a run play
+        config = SimulationConfig(
+            offense=[],  # Will be populated by create_run_play_session
+            defense=[],
+            is_run_play=True,
+            run_concept=concept_name,
+        )
+        session = await create_run_play_session(concept_name, defense_call["coverage"])
+    else:
+        # Pass play
+        concept_name = request.concept or "mesh"
+        config = SimulationConfig(
+            offense=[],
+            defense=[],
+            is_run_play=False,
+        )
+        session = await create_pass_play_session(concept_name, defense_call["coverage"])
+
+    # Run the play to completion
+    result = await run_play_to_completion(session)
+
+    # Calculate yards gained
+    yards_gained = result.get("yards_gained", 0)
+    is_turnover = result.get("is_turnover", False)
+    is_touchdown = result.get("is_touchdown", False)
+
+    # Record play result
+    play_result = PlayResultInfo(
+        yards_gained=yards_gained,
+        play_type=request.play_type,
+        description=result.get("description", f"Gain of {yards_gained} yards"),
+        is_first_down=False,  # Will be set after update
+        is_touchdown=is_touchdown,
+        is_turnover=is_turnover,
+    )
+
+    # Update drive state
+    old_down = drive.down
+    drive_manager.update_after_play(drive, yards_gained, is_turnover)
+
+    # Check if first down was achieved
+    if drive.down == 1 and old_down != 1 and drive.status == DriveStatus.ACTIVE:
+        play_result.is_first_down = True
+
+    drive.plays.append(play_result)
+
+    return {
+        "play_result": play_result.model_dump(),
+        "drive_state": drive.to_state().model_dump(),
+        "defense_called": defense_call,
+        "session_id": str(session.session_id),  # For replay/visualization
+    }
+
+
+async def create_run_play_session(concept_name: str, coverage: str) -> V2SimSession:
+    """Create a session for a run play."""
+    # Get run concept
+    run_concept = get_run_concept(concept_name)
+    if not run_concept:
+        run_concept = get_run_concept("inside_zone_right")
+
+    # Standard offensive personnel
+    offense_configs = [
+        PlayerConfig(name="QB", position="QB", x=0, y=-3.5),
+        PlayerConfig(name="RB", position="RB", x=-0.5, y=-4.5, speed=88, elusiveness=82),
+        PlayerConfig(name="LT", position="LT", x=-3.0, y=-0.5, block_power=80, strength=82),
+        PlayerConfig(name="LG", position="LG", x=-1.5, y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="C", position="C", x=0, y=-0.5, block_power=76, strength=78),
+        PlayerConfig(name="RG", position="RG", x=1.5, y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="RT", position="RT", x=3.0, y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="WR1", position="WR", x=-15, y=0),
+        PlayerConfig(name="WR2", position="WR", x=15, y=0),
+        PlayerConfig(name="TE", position="TE", x=4.5, y=-0.5, block_power=72),
+    ]
+
+    # Standard 4-3 defense
+    defense_configs = [
+        PlayerConfig(name="LDE", position="DE", x=-3.5, y=0.5, pass_rush=78, strength=78),
+        PlayerConfig(name="LDT", position="DT", x=-1.0, y=0.5, pass_rush=76, strength=82),
+        PlayerConfig(name="RDT", position="DT", x=1.0, y=0.5, pass_rush=76, strength=82),
+        PlayerConfig(name="RDE", position="DE", x=3.5, y=0.5, pass_rush=80, strength=78),
+        PlayerConfig(name="WLB", position="OLB", x=-5, y=3.5, tackling=78, speed=82),
+        PlayerConfig(name="MLB", position="MLB", x=0, y=4.0, tackling=82, play_recognition=80),
+        PlayerConfig(name="SLB", position="OLB", x=5, y=3.5, tackling=78, speed=82),
+        PlayerConfig(name="LCB", position="CB", x=-15, y=5, man_coverage=78, speed=88),
+        PlayerConfig(name="RCB", position="CB", x=15, y=5, man_coverage=78, speed=88),
+        PlayerConfig(name="FS", position="FS", x=0, y=15, zone_coverage=80, speed=86),
+        PlayerConfig(name="SS", position="SS", x=5, y=10, tackling=80, speed=84),
+    ]
+
+    config = SimulationConfig(
+        offense=offense_configs,
+        defense=defense_configs,
+        is_run_play=True,
+        run_concept=concept_name,
+        max_time=10.0,
+    )
+
+    return session_manager.create_session(config)
+
+
+async def create_pass_play_session(concept_name: str, coverage: str) -> V2SimSession:
+    """Create a session for a pass play."""
+    # Standard passing personnel (11 personnel)
+    offense_configs = [
+        PlayerConfig(name="QB", position="QB", x=0, y=-5, throw_power=88, throw_accuracy=85),
+        PlayerConfig(name="RB", position="RB", x=1.5, y=-4, speed=85),
+        PlayerConfig(name="LT", position="LT", x=-3.0, y=-0.5, block_power=80, strength=82),
+        PlayerConfig(name="LG", position="LG", x=-1.5, y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="C", position="C", x=0, y=-0.5, block_power=76, strength=78),
+        PlayerConfig(name="RG", position="RG", x=1.5, y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="RT", position="RT", x=3.0, y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="X", position="WR", x=-15, y=0, route_running=88, speed=90),
+        PlayerConfig(name="Z", position="WR", x=12, y=0, route_running=85, speed=88),
+        PlayerConfig(name="Slot", position="WR", x=5, y=-0.5, route_running=82, speed=86),
+        PlayerConfig(name="TE", position="TE", x=4.5, y=-0.5, route_running=72, catching=78),
+    ]
+
+    # Standard defense
+    defense_configs = [
+        PlayerConfig(name="LDE", position="DE", x=-3.5, y=0.5, pass_rush=82, strength=78),
+        PlayerConfig(name="LDT", position="DT", x=-1.0, y=0.5, pass_rush=78, strength=82),
+        PlayerConfig(name="RDT", position="DT", x=1.0, y=0.5, pass_rush=78, strength=82),
+        PlayerConfig(name="RDE", position="DE", x=3.5, y=0.5, pass_rush=84, strength=78),
+        PlayerConfig(name="WLB", position="OLB", x=-5, y=3.5, zone_coverage=75, speed=82),
+        PlayerConfig(name="MLB", position="MLB", x=0, y=4.0, zone_coverage=72, play_recognition=80),
+        PlayerConfig(name="SLB", position="OLB", x=5, y=3.5, zone_coverage=75, speed=82),
+        PlayerConfig(name="LCB", position="CB", x=-15, y=5, man_coverage=82, speed=90),
+        PlayerConfig(name="RCB", position="CB", x=12, y=5, man_coverage=80, speed=88),
+        PlayerConfig(name="FS", position="FS", x=0, y=18, zone_coverage=82, speed=88),
+        PlayerConfig(name="SS", position="SS", x=8, y=12, zone_coverage=78, speed=86),
+    ]
+
+    config = SimulationConfig(
+        offense=offense_configs,
+        defense=defense_configs,
+        is_run_play=False,
+        max_time=10.0,
+    )
+
+    return session_manager.create_session(config)
+
+
+async def run_play_to_completion(session: V2SimSession) -> Dict[str, Any]:
+    """Run a play session to completion and return results."""
+    orch = session.orchestrator
+
+    # Run pre-snap and snap
+    orch._do_pre_snap_reads()
+    orch._do_snap()
+
+    # Run until play ends
+    start_ball_y = orch.ball.pos.y if orch.ball else 0
+    max_ticks = 200  # 10 seconds max
+
+    for _ in range(max_ticks):
+        dt = orch.clock.tick()
+        orch._update_tick(dt)
+
+        if orch.phase == PlayPhase.POST_PLAY:
+            break
+
+    # Calculate result
+    end_ball_y = 0
+    if orch.ball and orch.ball.carrier_id:
+        carrier = orch._get_player(orch.ball.carrier_id)
+        if carrier:
+            end_ball_y = carrier.pos.y
+
+    # Yards gained (positive = toward defense end zone)
+    yards_gained = int(end_ball_y - start_ball_y)
+
+    # Determine outcome
+    outcome = orch._result_outcome or "unknown"
+    is_turnover = outcome in ("interception", "fumble_lost")
+    is_touchdown = yards_gained >= 100 - 25  # Simplified: if crossed goal line from own 25
+
+    description = ""
+    if outcome == "complete":
+        description = f"Complete pass for {yards_gained} yards"
+    elif outcome == "incomplete":
+        description = "Incomplete pass"
+        yards_gained = 0
+    elif outcome == "interception":
+        description = "INTERCEPTED!"
+    elif outcome == "tackle":
+        description = f"Run for {yards_gained} yards"
+    elif outcome == "sack":
+        description = f"SACKED for loss of {abs(yards_gained)} yards"
+    else:
+        description = f"Play result: {outcome}, {yards_gained} yards"
+
+    return {
+        "yards_gained": yards_gained,
+        "outcome": outcome,
+        "description": description,
+        "is_turnover": is_turnover,
+        "is_touchdown": is_touchdown,
+    }
+
 
 @router.post("/sessions", response_model=SessionInfo)
 async def create_session(config: SimulationConfig) -> SessionInfo:
@@ -670,12 +1625,314 @@ async def list_matchups() -> List[dict]:
     ]
 
 
+@router.get("/run-concepts")
+async def list_run_concepts_endpoint() -> List[dict]:
+    """List available run concepts."""
+    return [
+        {
+            "name": name,
+            "display_name": concept.name,
+            "description": concept.description,
+            "scheme": concept.scheme.value,
+            "play_side": concept.play_side,
+            "aiming_point": concept.aiming_point.value,
+            "mesh_depth": concept.mesh_depth,
+            "handoff_timing": concept.handoff_timing,
+        }
+        for name, concept in RUN_CONCEPT_LIBRARY.items()
+    ]
+
+
+@router.get("/blocking-scenarios")
+async def list_blocking_scenarios() -> List[dict]:
+    """List available blocking test scenarios.
+
+    These scenarios are designed to test and visualize specific blocking behaviors,
+    from simple 1v1 interactions to full line play.
+    """
+    return [
+        {
+            "id": scenario_id,
+            "name": scenario["name"],
+            "tier": scenario["tier"],
+            "description": scenario["description"],
+            "expected": scenario["expected"],
+            "offense_count": len(scenario["offense"]),
+            "defense_count": len(scenario["defense"]),
+            "run_concept": scenario.get("run_concept"),
+        }
+        for scenario_id, scenario in BLOCKING_SCENARIOS.items()
+    ]
+
+
+class BlockingScenarioRequest(BaseModel):
+    """Request to create a blocking scenario session."""
+    scenario_id: str
+    tick_rate_ms: int = 50
+    max_time: float = 3.0
+
+
+@router.post("/blocking-scenario", response_model=SessionInfo)
+async def create_blocking_scenario_session(request: BlockingScenarioRequest) -> SessionInfo:
+    """Create a simulation session from a blocking test scenario.
+
+    This is designed for testing and visualizing specific blocking behaviors.
+    """
+    scenario = BLOCKING_SCENARIOS.get(request.scenario_id)
+    if not scenario:
+        available = list(BLOCKING_SCENARIOS.keys())
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid scenario_id: '{request.scenario_id}'. Available: {available}"
+        )
+
+    # Build offense players
+    offense = []
+    for p in scenario["offense"]:
+        player_config = PlayerConfig(
+            name=p["name"],
+            position=p["position"],
+            alignment_x=p["x"],
+            alignment_y=p.get("y", 0),
+            block_power=p.get("block_power", 75),
+            block_finesse=p.get("block_finesse", 75),
+            strength=p.get("strength", 75),
+            speed=p.get("speed", 75),
+            acceleration=p.get("acceleration", 75),
+        )
+        offense.append(player_config)
+
+    # Build defense players
+    defense = []
+    for p in scenario["defense"]:
+        player_config = PlayerConfig(
+            name=p["name"],
+            position=p["position"],
+            alignment_x=p["x"],
+            alignment_y=p.get("y", 0.5),
+            pass_rush=p.get("pass_rush", 75),
+            strength=p.get("strength", 75),
+            tackling=p.get("tackling", 75),
+            play_recognition=p.get("play_recognition", 75),
+        )
+        defense.append(player_config)
+
+    # Determine if this is a run play (explicit flag or has run_concept)
+    run_concept = scenario.get("run_concept")
+    is_run_play = scenario.get("is_run_play", run_concept is not None)
+
+    config = SimulationConfig(
+        offense=offense,
+        defense=defense,
+        tick_rate_ms=request.tick_rate_ms,
+        max_time=request.max_time,
+        is_run_play=is_run_play,
+        run_concept=run_concept,
+    )
+
+    # Create session
+    if is_run_play and run_concept:
+        run_concept_obj = get_run_concept(run_concept)
+        if run_concept_obj:
+            session = _create_run_session(config, run_concept_obj)
+        else:
+            session = session_manager.create_session(config)
+    else:
+        session = session_manager.create_session(config)
+
+    return SessionInfo(
+        session_id=str(session.session_id),
+        tick_rate_ms=config.tick_rate_ms,
+        max_time=config.max_time,
+    )
+
+
 class MatchupRequest(BaseModel):
     """Request to create a matchup session."""
     concept: str
     scheme: str
     tick_rate_ms: int = 50
     max_time: float = 6.0
+    is_run_play: bool = False
+
+
+async def _create_run_matchup_session(request: MatchupRequest) -> SessionInfo:
+    """Create a run play simulation session.
+
+    Sets up a run play with OL, RB (and FB if needed), vs defense.
+    """
+    # get_run_concept handles partial names like "inside_zone" -> "inside_zone_right"
+    run_concept = get_run_concept(request.concept)
+
+    if not run_concept:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid run concept: '{request.concept}'. Available: {list_run_concepts()}"
+        )
+
+    # Use the concept's name which is the resolved full name
+    concept_name = run_concept.name.lower().replace(" ", "_")
+
+    # Build offense: QB, OL, RB (and FB for power/counter)
+    offense = [
+        PlayerConfig(
+            name="QB",
+            position="QB",
+            alignment_x=0,
+            alignment_y=-3.5,  # Closer for run play handoff
+        ),
+        # Standard OL - realistic spacing (~1.5 yards apart)
+        PlayerConfig(name="LT", position="LT", alignment_x=-3.0, alignment_y=-0.5, block_power=80, block_finesse=75),
+        PlayerConfig(name="LG", position="LG", alignment_x=-1.5, alignment_y=-0.5, block_power=82, block_finesse=72),
+        PlayerConfig(name="C", position="C", alignment_x=0, alignment_y=-0.5, block_power=78, block_finesse=78, awareness=85),
+        PlayerConfig(name="RG", position="RG", alignment_x=1.5, alignment_y=-0.5, block_power=82, block_finesse=72),
+        PlayerConfig(name="RT", position="RT", alignment_x=3.0, alignment_y=-0.5, block_power=78, block_finesse=77),
+        # RB - offset behind guard
+        PlayerConfig(
+            name="RB",
+            position="RB",
+            alignment_x=-0.5,
+            alignment_y=-4.5,
+            speed=90,
+            acceleration=88,
+            agility=88,
+            elusiveness=85,
+            vision=82,
+        ),
+    ]
+
+    # Add FB for power/counter schemes
+    if run_concept.scheme.value in ("power", "counter"):
+        offense.append(PlayerConfig(
+            name="FB",
+            position="FB",
+            alignment_x=0.5,
+            alignment_y=-3.0,
+            speed=78,
+            acceleration=80,
+            strength=85,
+            block_power=82,
+        ))
+
+    # Build defense based on scheme
+    scheme_lower = request.scheme.lower().replace(" ", "_")
+    is_34_front = scheme_lower in ("cover_1", "cover_0", "3_4")
+
+    if is_34_front:
+        # 3-4 front: 2 DE (5-tech) + 1 NT (0-tech) + 4 LBs
+        # DEs align on outside shoulder of tackles, NT head-up on center
+        defense = [
+            PlayerConfig(name="LDE", position="DE", alignment_x=get_technique_x("5", "left"), alignment_y=0.5, pass_rush=82, strength=80),
+            PlayerConfig(name="NT", position="NT", alignment_x=get_technique_x("0"), alignment_y=0.5, pass_rush=75, strength=88),
+            PlayerConfig(name="RDE", position="DE", alignment_x=get_technique_x("5", "right"), alignment_y=0.5, pass_rush=82, strength=80),
+            # LBs - stacked behind gaps
+            PlayerConfig(name="LOLB", position="OLB", alignment_x=-4.0, alignment_y=3.5, tackling=82, play_recognition=80),
+            PlayerConfig(name="LILB", position="ILB", alignment_x=-1.0, alignment_y=3.5, tackling=85, play_recognition=82),
+            PlayerConfig(name="RILB", position="ILB", alignment_x=1.0, alignment_y=3.5, tackling=85, play_recognition=82),
+            PlayerConfig(name="ROLB", position="OLB", alignment_x=4.0, alignment_y=3.5, tackling=82, play_recognition=80),
+        ]
+    else:
+        # 4-3 Under front (common vs run):
+        # LDE: 5-tech (outside LT), LDT: 3-tech (outside LG), RDT: 1-tech (shade C), RDE: 5-tech (outside RT)
+        # This creates a strong side (left) and weak side (right)
+        defense = [
+            PlayerConfig(name="LDE", position="DE", alignment_x=get_technique_x("5", "left"), alignment_y=0.5, pass_rush=84, strength=78),
+            PlayerConfig(name="LDT", position="DT", alignment_x=get_technique_x("3", "left"), alignment_y=0.5, pass_rush=76, strength=85),
+            PlayerConfig(name="RDT", position="DT", alignment_x=get_technique_x("1", "right"), alignment_y=0.5, pass_rush=76, strength=85),
+            PlayerConfig(name="RDE", position="DE", alignment_x=get_technique_x("5", "right"), alignment_y=0.5, pass_rush=84, strength=78),
+            # LBs - off the ball, reading gaps
+            PlayerConfig(name="WLB", position="OLB", alignment_x=-3.0, alignment_y=4.0, tackling=82, play_recognition=80),
+            PlayerConfig(name="MLB", position="MLB", alignment_x=0, alignment_y=4.5, tackling=85, play_recognition=85),
+            PlayerConfig(name="SLB", position="OLB", alignment_x=3.0, alignment_y=4.0, tackling=82, play_recognition=80),
+        ]
+
+    config = SimulationConfig(
+        offense=offense,
+        defense=defense,
+        tick_rate_ms=request.tick_rate_ms,
+        max_time=request.max_time,
+        is_run_play=True,
+        run_concept=concept_name,
+    )
+
+    # Create session with run play config
+    session = _create_run_session(config, run_concept)
+    return SessionInfo(
+        session_id=str(session.session_id),
+        tick_rate_ms=config.tick_rate_ms,
+        max_time=config.max_time,
+    )
+
+
+def _create_run_session(config: SimulationConfig, run_concept) -> V2SimSession:
+    """Create a session configured for run play.
+
+    The config must have is_run_play=True and run_concept set.
+    """
+    session_id = uuid4()
+    concept_name = config.run_concept
+
+    # Create orchestrator
+    orchestrator = Orchestrator()
+
+    # Build offensive players
+    offense_players = []
+    rb_id = None
+
+    for pc in config.offense:
+        player = session_manager._create_player(pc, Team.OFFENSE)
+        offense_players.append(player)
+
+        if pc.position.upper() in ("RB", "HB"):
+            rb_id = player.id
+
+        # Register brain
+        brain = session_manager._get_brain_for_position(player.position, Team.OFFENSE)
+        if brain:
+            orchestrator.register_brain(player.id, brain)
+
+    # Build defensive players
+    defense_players = []
+
+    for pc in config.defense:
+        player = session_manager._create_player(pc, Team.DEFENSE)
+        defense_players.append(player)
+
+        # Register brain
+        brain = session_manager._get_brain_for_position(player.position, Team.DEFENSE)
+        if brain:
+            orchestrator.register_brain(player.id, brain)
+
+    # Register ballcarrier brain
+    orchestrator.register_brain("ballcarrier", ballcarrier_brain)
+
+    # Create run play config
+    # Use SHOTGUN dropback (2 yards) so QB stays close to RB for handoff
+    play_config = PlayConfig(
+        routes={},  # No routes for run plays
+        man_assignments={},
+        zone_assignments={},
+        max_duration=config.max_time,
+        dropback_type=DropbackType.SHOTGUN,  # Minimal dropback for handoff
+        is_run_play=True,
+        run_concept=concept_name,
+        handoff_timing=run_concept.handoff_timing,
+        ball_carrier_id=rb_id,
+    )
+
+    # Setup the play
+    orchestrator.setup_play(offense_players, defense_players, play_config)
+
+    session = V2SimSession(
+        session_id=session_id,
+        config=config,
+        orchestrator=orchestrator,
+        offense_players=offense_players,
+        defense_players=defense_players,
+    )
+
+    session_manager.sessions[session_id] = session
+    return session
 
 
 @router.post("/matchup", response_model=SessionInfo)
@@ -684,7 +1941,24 @@ async def create_matchup_session(request: MatchupRequest) -> SessionInfo:
 
     This is a convenience endpoint that converts concept/scheme names
     into a full SimulationConfig with all players and creates a session.
+
+    For run plays (is_run_play=True), the concept should be a run concept name
+    like "inside_zone", "outside_zone", "power", "counter", etc.
+
+    Auto-detects run plays: if concept matches a run concept name, it's treated as a run.
     """
+    # Auto-detect run plays from concept name
+    # get_run_concept now handles partial names like "inside_zone" -> "inside_zone_right"
+    run_concept_check = get_run_concept(request.concept)
+    is_run = request.is_run_play or (run_concept_check is not None)
+
+    print(f"[MATCHUP] concept={request.concept}, is_run_play={request.is_run_play}, "
+          f"run_concept_found={run_concept_check is not None}, final_is_run={is_run}")
+
+    # Handle run plays
+    if is_run:
+        return await _create_run_matchup_session(request)
+
     matchup = create_matchup(request.concept, request.scheme)
     if not matchup:
         raise HTTPException(
@@ -701,12 +1975,12 @@ async def create_matchup_session(request: MatchupRequest) -> SessionInfo:
             alignment_x=0,
             alignment_y=-5,
         ),
-        # Add standard OL
-        PlayerConfig(name="LT", position="LT", alignment_x=-6, alignment_y=-1, block_power=80, block_finesse=75),
-        PlayerConfig(name="LG", position="LG", alignment_x=-3, alignment_y=-1, block_power=82, block_finesse=72),
-        PlayerConfig(name="C", position="C", alignment_x=0, alignment_y=-1, block_power=78, block_finesse=78, awareness=85),
-        PlayerConfig(name="RG", position="RG", alignment_x=3, alignment_y=-1, block_power=82, block_finesse=72),
-        PlayerConfig(name="RT", position="RT", alignment_x=6, alignment_y=-1, block_power=78, block_finesse=77),
+        # Standard OL - realistic 1.5 yard spacing, slight setback for pass protection
+        PlayerConfig(name="LT", position="LT", alignment_x=-3.0, alignment_y=-0.5, block_power=80, block_finesse=75),
+        PlayerConfig(name="LG", position="LG", alignment_x=-1.5, alignment_y=-0.5, block_power=82, block_finesse=72),
+        PlayerConfig(name="C", position="C", alignment_x=0, alignment_y=-0.5, block_power=78, block_finesse=78, awareness=85),
+        PlayerConfig(name="RG", position="RG", alignment_x=1.5, alignment_y=-0.5, block_power=82, block_finesse=72),
+        PlayerConfig(name="RT", position="RT", alignment_x=3.0, alignment_y=-0.5, block_power=78, block_finesse=77),
     ]
 
     # Map receiver positions (X, Y, Z, H, F, slot) to actual positions
@@ -751,19 +2025,19 @@ async def create_matchup_session(request: MatchupRequest) -> SessionInfo:
     is_34_front = scheme_lower in ("cover_1", "cover_0", "3_4")  # 3-4 fronts
 
     if is_34_front:
-        # 3-4 front: 2 DE + 1 NT
+        # 3-4 front: 2 DE (5-tech) + 1 NT (0-tech)
         defense = [
-            PlayerConfig(name="LDE", position="DE", alignment_x=-5, alignment_y=1, pass_rush=82, strength=80),
-            PlayerConfig(name="NT", position="NT", alignment_x=0, alignment_y=1, pass_rush=75, strength=88),
-            PlayerConfig(name="RDE", position="DE", alignment_x=5, alignment_y=1, pass_rush=82, strength=80),
+            PlayerConfig(name="LDE", position="DE", alignment_x=get_technique_x("5", "left"), alignment_y=0.5, pass_rush=82, strength=80),
+            PlayerConfig(name="NT", position="NT", alignment_x=get_technique_x("0"), alignment_y=0.5, pass_rush=75, strength=88),
+            PlayerConfig(name="RDE", position="DE", alignment_x=get_technique_x("5", "right"), alignment_y=0.5, pass_rush=82, strength=80),
         ]
     else:
-        # 4-3 front: 2 DE + 2 DT
+        # 4-3 front: DEs at 5-tech (outside shoulder of tackle), DTs at 3-tech (B gap)
         defense = [
-            PlayerConfig(name="LDE", position="DE", alignment_x=-6, alignment_y=1, pass_rush=84, strength=78),
-            PlayerConfig(name="LDT", position="DT", alignment_x=-2, alignment_y=1, pass_rush=76, strength=85),
-            PlayerConfig(name="RDT", position="DT", alignment_x=2, alignment_y=1, pass_rush=76, strength=85),
-            PlayerConfig(name="RDE", position="DE", alignment_x=6, alignment_y=1, pass_rush=84, strength=78),
+            PlayerConfig(name="LDE", position="DE", alignment_x=get_technique_x("5", "left"), alignment_y=0.5, pass_rush=84, strength=78),
+            PlayerConfig(name="LDT", position="DT", alignment_x=get_technique_x("3", "left"), alignment_y=0.5, pass_rush=76, strength=85),
+            PlayerConfig(name="RDT", position="DT", alignment_x=get_technique_x("3", "right"), alignment_y=0.5, pass_rush=76, strength=85),
+            PlayerConfig(name="RDE", position="DE", alignment_x=get_technique_x("5", "right"), alignment_y=0.5, pass_rush=84, strength=78),
         ]
 
     # Add coverage defenders from scheme
@@ -877,7 +2151,11 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
             events = orchestrator.event_bus.history
             for event in reversed(events):
                 if event.type == EventType.CATCH:
-                    session.play_outcome = PlayOutcome.COMPLETE
+                    # Don't set COMPLETE yet - RAC phase should continue
+                    # Outcome will be set when play truly ends (tackle/TD/OOB)
+                    # Just track the ball carrier for pursuit visualization
+                    session.ball_carrier_id = event.player_id
+                    # Keep IN_PROGRESS to let RAC continue
                     break
                 elif event.type == EventType.INCOMPLETE:
                     session.play_outcome = PlayOutcome.INCOMPLETE
@@ -909,18 +2187,38 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
 
     async def run_simulation():
         """Run simulation loop."""
+        orchestrator = session.orchestrator
+
+        # Debug: print run play config
+        orch_config = orchestrator.config
+        print(f"[START] orchestrator.config.is_run_play={orch_config.is_run_play if orch_config else 'None'}, "
+              f"run_concept={orch_config.run_concept if orch_config else 'None'}, "
+              f"_run_concept={orchestrator._run_concept is not None}")
+
+        # If play is already over (POST_PLAY), don't run - require reset
+        if orchestrator.phase == PlayPhase.POST_PLAY:
+            session.is_complete = True
+            return
+
         session.is_running = True
         session.is_paused = False
         session.is_complete = False
-        session.play_outcome = PlayOutcome.IN_PROGRESS
+        # Only reset outcome if we're starting fresh (pre-snap)
+        # Don't reset if resuming mid-play (e.g., AFTER_CATCH for RAC)
+        if orchestrator.phase == PlayPhase.PRE_SNAP:
+            session.play_outcome = PlayOutcome.IN_PROGRESS
 
-        orchestrator = session.orchestrator
+        # Enable trace systems for debugging/analysis
+        enable_trace(True)
+        get_trace_system().enable(True)
 
-        # Execute pre-snap reads
-        orchestrator._do_pre_snap_reads()
-
-        # Snap
-        orchestrator._do_snap()
+        # Only do pre-snap/snap if we haven't already
+        # This allows resuming mid-play (e.g., continuing RAC after catch)
+        if orchestrator.phase == PlayPhase.PRE_SNAP:
+            # Execute pre-snap reads
+            orchestrator._do_pre_snap_reads()
+            # Snap
+            orchestrator._do_snap()
 
         while session.is_running and not session.is_complete:
             if session.is_paused:
@@ -936,6 +2234,32 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
                 for p in session.offense_players + session.defense_players
             ]
 
+            # Get QB state for analysis panel
+            qb_state_data = None
+            qb_id = None
+            for p in session.offense_players:
+                if p.position == Position.QB:
+                    qb_id = p.id
+                    break
+            if qb_id:
+                try:
+                    qb_state = get_qb_state(qb_id)
+                    qb_state_data = {
+                        "pressure_level": qb_state.pressure_level.value,
+                        "current_read": qb_state.current_read,
+                        "time_in_pocket": qb_state.time_in_pocket,
+                        "dropback_complete": qb_state.dropback_complete,
+                    }
+                except Exception:
+                    pass
+
+            # Run play state
+            is_run_play = orchestrator.config.is_run_play if orchestrator.config else False
+            run_concept_name = orchestrator.config.run_concept if orchestrator.config else None
+            designed_gap = None
+            if orchestrator._run_concept:
+                designed_gap = orchestrator._run_concept.aiming_point.value
+
             tick_data = {
                 "type": "tick",
                 "payload": {
@@ -946,6 +2270,20 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
                     "ball": ball_to_dict(orchestrator.ball, orchestrator.clock.current_time),
                     "play_outcome": session.play_outcome.value,
                     "ball_carrier_id": session.ball_carrier_id,
+                    "qb_state": qb_state_data,
+                    "qb_trace": get_trace(),
+                    # Centralized player traces for SimAnalyzer
+                    "player_traces": get_trace_system().to_dict_list(
+                        get_trace_system().get_new_entries()
+                    ),
+                    # Include running state so frontend can show correct controls
+                    "is_running": session.is_running,
+                    "is_paused": session.is_paused,
+                    "is_complete": session.is_complete,
+                    # Run play state
+                    "is_run_play": is_run_play,
+                    "run_concept": run_concept_name,
+                    "designed_gap": designed_gap,
                 },
             }
 
@@ -985,6 +2323,8 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
     def reset_session():
         """Reset session to initial state."""
         # Re-create the session from config
+        print(f"[RESET] config.is_run_play={session.config.is_run_play}, "
+              f"config.run_concept={session.config.run_concept}")
         new_session = session_manager.create_session(session.config)
 
         # Update in-place

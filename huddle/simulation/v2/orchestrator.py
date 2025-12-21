@@ -36,7 +36,10 @@ from .systems.passing import PassingSystem, ThrowResult, CatchResolution
 from .resolution.tackle import TackleResolver, TackleOutcome
 from .resolution.move import MoveResolver, MoveOutcome
 from .resolution.blocking import BlockResolver, BlockOutcome, BlockType, find_blocking_matchups
+from .plays.run_concepts import get_run_concept, RunConcept
 from .game_state import PlayHistory, GameSituation
+from .core.variance import VarianceConfig, SimulationMode, set_config as set_variance_config
+from .core.trace import get_trace_system, TraceCategory
 
 
 # =============================================================================
@@ -54,6 +57,50 @@ class PlayPhase(str, Enum):
     RUN_ACTIVE = "run_active"    # Ballcarrier has ball, running (handoff/scramble)
     RESOLUTION = "resolution"    # Play resolving (tackle, catch, etc.)
     POST_PLAY = "post_play"      # Play complete, compiling results
+
+
+class DropbackType(str, Enum):
+    """QB dropback type determining depth and timing.
+
+    Dropback depth affects:
+    - How far QB retreats before setting
+    - How long routes have to develop
+    - When QB can begin throwing
+
+    Real-world mapping:
+        QUICK (3-step): ~5 yards, quick game (slants, hitches, screens)
+        STANDARD (5-step): ~7 yards, intermediate routes (outs, digs, curls)
+        DEEP (7-step): ~9 yards, deep routes (posts, corners, go routes)
+        SHOTGUN: Already set back, minimal dropback (~2 yards shuffle)
+    """
+    QUICK = "quick"         # 3-step drop, ~5 yards
+    STANDARD = "standard"   # 5-step drop, ~7 yards
+    DEEP = "deep"           # 7-step drop, ~9 yards
+    SHOTGUN = "shotgun"     # Already in gun, minimal drop
+
+    def get_depth(self) -> float:
+        """Get dropback depth in yards behind LOS."""
+        depths = {
+            DropbackType.QUICK: 5.0,
+            DropbackType.STANDARD: 7.0,
+            DropbackType.DEEP: 9.0,
+            DropbackType.SHOTGUN: 2.0,
+        }
+        return depths.get(self, 7.0)
+
+    def get_set_time(self) -> float:
+        """Get minimum time (seconds) QB needs to plant feet after reaching depth.
+
+        This is the "planting" phase where QB transitions from moving backward
+        to being ready to throw. Even in shotgun, there's a hitch/gather.
+        """
+        set_times = {
+            DropbackType.QUICK: 0.15,      # Quick plant
+            DropbackType.STANDARD: 0.25,   # Normal set
+            DropbackType.DEEP: 0.30,       # Longer gather
+            DropbackType.SHOTGUN: 0.10,    # Just a hitch
+        }
+        return set_times.get(self, 0.25)
 
 
 # =============================================================================
@@ -82,6 +129,7 @@ class PlayerView:
 
     # Route info (for receivers)
     read_order: int = 0  # QB read progression (1 = first read, 2 = second, etc.)
+    break_point: Optional[Vec2] = None  # Where receiver will cut on route
 
     @classmethod
     def from_player(cls, player: Player, observer_pos: Optional[Vec2] = None) -> PlayerView:
@@ -190,9 +238,40 @@ class WorldState:
     distance: float = 10.0
     los_y: float = 0.0  # Line of scrimmage Y position
 
+    # QB timing state (for QB brain decision-making)
+    dropback_depth: float = 7.0  # Target depth for QB dropback (yards behind LOS)
+    dropback_target_pos: Optional[Vec2] = None  # Exact position QB is dropping to
+    qb_is_set: bool = False  # True when QB has completed dropback AND planted feet
+    qb_set_time: float = 0.0  # Time when QB became set (for timing reads)
+
+    # Pre-snap adjustments (set by QB brain pre-snap, used by receivers)
+    hot_routes: Dict[str, str] = field(default_factory=dict)  # player_id -> new_route_name
+
+    # Run play info (for OL brains)
+    is_run_play: bool = False
+    run_play_side: str = ""  # "left", "right", or "balanced"
+    run_blocking_assignment: Optional[str] = None  # "zone_step", "combo", "pull_lead", etc.
+    run_gap_target: Optional[str] = None  # "a_left", "b_right", etc.
+    combo_partner_position: Optional[str] = None  # Position to combo with (e.g., "C", "LG")
+
+    # Protection info (for OL coordination)
+    slide_direction: str = ""  # "left", "right", or "" - from protection call
+    mike_id: Optional[str] = None  # Identified MIKE linebacker
+
+    # Run play info (for RB brains)
+    run_path: List[Vec2] = field(default_factory=list)  # Waypoints for RB path
+    run_aiming_point: Optional[str] = None  # Target gap (e.g., "a_right", "b_left")
+    run_mesh_depth: float = 4.0  # Yards behind LOS for handoff
+
     # Game-level state (persists across plays)
     play_history: Optional[PlayHistory] = None
     game_situation: Optional[GameSituation] = None
+
+    # DL shed immunity - True if this player just shed a block and is free to sprint
+    has_shed_immunity: bool = False
+
+    # OL beaten state - True if this OL just had their block shed and is recovering
+    is_beaten: bool = False
 
     # Convenience methods
     def get_teammate(self, player_id: str) -> Optional[PlayerView]:
@@ -269,6 +348,9 @@ class BrainDecision:
     hot_routes: Optional[Dict[str, str]] = None  # player_id -> new_route_name
     protection_call: Optional[str] = None  # MIKE identification, slide direction
 
+    # Facing control (for QB scanning)
+    facing_direction: Optional[Vec2] = None  # Direction to face (overrides velocity-based facing)
+
     @classmethod
     def hold(cls, reasoning: str = "holding position") -> BrainDecision:
         """Create a decision to hold current position."""
@@ -302,12 +384,18 @@ class PlayConfig:
     max_duration: float = 10.0  # Max play duration in seconds
 
     # QB settings
+    dropback_type: DropbackType = DropbackType.STANDARD  # 3/5/7 step or shotgun
     throw_timing: Optional[float] = None  # When to throw (if scripted)
     throw_target: Optional[str] = None  # Who to throw to (if scripted)
 
     # Flags
     is_run_play: bool = False
     run_direction: str = ""  # e.g., "outside_left", "inside_right"
+
+    # Run play settings
+    run_concept: Optional[str] = None  # Name of run concept from run_concepts.py
+    handoff_timing: float = 0.6  # Seconds after snap to hand off
+    ball_carrier_id: Optional[str] = None  # Who gets the handoff (RB id)
 
 
 @dataclass
@@ -375,11 +463,19 @@ class Orchestrator:
         result = orch.run()
     """
 
-    def __init__(self, event_bus: Optional[EventBus] = None):
+    def __init__(
+        self,
+        event_bus: Optional[EventBus] = None,
+        variance_config: Optional[VarianceConfig] = None,
+    ):
         # Core components
         self.clock = Clock()
         self.event_bus = event_bus or EventBus()
         self.field = Field()
+
+        # Variance configuration (affects human factors like recognition, execution, decisions)
+        self.variance_config = variance_config or VarianceConfig()
+        set_variance_config(self.variance_config)
 
         # Players
         self.offense: List[Player] = []
@@ -423,8 +519,38 @@ class Orchestrator:
         # Tackle immunity after successful moves (player_id -> immune_until_time)
         self._tackle_immunity: Dict[str, float] = {}
 
+        # Shed immunity after DL sheds a block (dl_id -> immune_until_time)
+        # Prevents immediate re-engagement after shedding
+        self._shed_immunity: Dict[str, float] = {}
+
+        # OL beaten state after their block is shed (ol_id -> beaten_until_time)
+        # Beaten OL cannot initiate new blocks and move at reduced speed
+        self._ol_beaten: Dict[str, float] = {}
+
+        # QB dropback tracking
+        self._dropback_depth: float = 7.0  # Yards behind LOS
+        self._dropback_target: Optional[Vec2] = None  # Target position
+        self._qb_reached_depth: bool = False  # Has QB reached dropback depth?
+        self._qb_set_start_time: Optional[float] = None  # When QB started planting
+        self._qb_is_set: bool = False  # Is QB fully set and ready to throw?
+        self._qb_set_time: float = 0.0  # When QB became fully set
+        self._required_set_time: float = 0.25  # How long QB needs to plant
+
+        # Run play tracking
+        self._handoff_complete: bool = False  # Has handoff occurred?
+        self._run_concept: Optional[RunConcept] = None  # Loaded run concept
+
+        # Pre-snap adjustments
+        self._hot_routes: Dict[str, str] = {}  # player_id -> new_route_name
+
+        # Protection call from Center/QB (slide direction for OL coordination)
+        self._protection_call: str = ""  # "slide_left", "slide_right", ""
+
         # Subscribe to key events
         self._setup_event_handlers()
+
+        # Trace system for AI decision debugging
+        self._trace_system = get_trace_system()
 
     def _setup_event_handlers(self) -> None:
         """Subscribe to events we need to track."""
@@ -515,13 +641,15 @@ class Orchestrator:
                 self.ball.pos = p.pos
                 break
 
-        # Setup routes
+        # Setup routes with read order based on dict order
         from .plays.routes import RouteType, get_route
-        for receiver_id, route_name in config.routes.items():
+        for read_order, (receiver_id, route_name) in enumerate(config.routes.items(), start=1):
             player = self._get_player(receiver_id)
             if player:
                 route_type = RouteType(route_name.lower())
                 route = get_route(route_type)
+                # Set read order on player (1st in dict = 1st read)
+                player.read_order = read_order
                 # Determine side
                 is_left = player.pos.x < 0
                 self.route_runner.assign_route(player, route, player.pos, is_left)
@@ -550,6 +678,31 @@ class Orchestrator:
         self._result_outcome = None
         self._down_position = None
         self.max_ticks = int(config.max_duration * 20)  # 20 ticks/sec
+
+        # Setup QB dropback from config
+        self._dropback_depth = config.dropback_type.get_depth()
+        self._required_set_time = config.dropback_type.get_set_time()
+        self._qb_reached_depth = False
+        self._qb_set_start_time = None
+        self._qb_is_set = False
+        self._qb_set_time = 0.0
+
+        # Reset run play state
+        self._handoff_complete = False
+        self._run_concept = None
+
+        # Load run concept if this is a run play
+        if config.is_run_play and config.run_concept:
+            self._run_concept = get_run_concept(config.run_concept)
+
+        # Calculate dropback target position (QB x-position, depth behind LOS)
+        for p in offense:
+            if p.position == Position.QB:
+                self._dropback_target = Vec2(p.pos.x, los_y - self._dropback_depth)
+                break
+
+        # Clear pre-snap adjustments from previous play
+        self._hot_routes.clear()
 
     def register_brain(self, player_id: str, brain_func: BrainFunc) -> None:
         """Register an AI brain for a player.
@@ -585,10 +738,11 @@ class Orchestrator:
         for p in my_team:
             if p.id != player.id:
                 view = PlayerView.from_player(p, my_pos)
-                # Add read_order from route assignments (for QB to know read progression)
+                # Add read_order and break_point from route assignments (for QB brain)
                 route_assign = self.route_runner.get_assignment(p.id)
                 if route_assign:
                     view.read_order = route_assign.read_order
+                    view.break_point = route_assign.get_break_point()
                 teammates.append(view)
 
         opponents = [
@@ -635,6 +789,50 @@ class Orchestrator:
             else:
                 assignment = f"zone:{cov_assignment.zone_type.value}"
 
+        # Run play info (for OL)
+        is_run_play = self.config.is_run_play if self.config else False
+        run_play_side = ""
+        run_blocking_assignment = None
+        run_gap_target = None
+        combo_partner_position = None
+
+        # RB-specific run play info
+        run_path: List[Vec2] = []
+        run_aiming_point: Optional[str] = None
+        run_mesh_depth: float = 4.0
+
+        if is_run_play and self._run_concept:
+            run_play_side = self._run_concept.play_side
+            run_mesh_depth = self._run_concept.mesh_depth
+
+            # Get OL assignment based on position
+            pos_name = player.position.value.upper() if player.position else ""
+            ol_assign = self._run_concept.get_ol_assignment(pos_name)
+            if ol_assign:
+                run_blocking_assignment = ol_assign.assignment.value
+                run_gap_target = ol_assign.target_gap.value if ol_assign.target_gap else None
+                combo_partner_position = ol_assign.combo_partner
+                # Update assignment string for OL
+                assignment = f"run:{ol_assign.assignment.value}"
+
+            # Get RB assignment (path and aiming point)
+            if player.position in (Position.RB, Position.FB):
+                rb_assign = self._run_concept.get_backfield_assignment(
+                    player.position.value.upper()
+                )
+                if rb_assign:
+                    # Convert relative waypoints to absolute positions
+                    # Path is relative to snap position, need to add LOS offset
+                    run_path = [Vec2(wp.x, self.los_y + wp.y) for wp in rb_assign.path]
+                    run_aiming_point = rb_assign.aiming_point.value if rb_assign.aiming_point else None
+                    assignment = f"run:{rb_assign.role}"
+
+        # Check if this player has shed immunity (just broke free from a block)
+        has_shed_immunity = self._shed_immunity.get(player.id, 0) > self.clock.current_time
+
+        # Check if this OL is beaten (just had their block shed, recovering)
+        is_beaten = self._ol_beaten.get(player.id, 0) > self.clock.current_time
+
         return WorldState(
             me=player,
             teammates=teammates,
@@ -655,9 +853,32 @@ class Orchestrator:
             route_phase=route_phase,
             at_route_break=at_route_break,
             route_settles=route_settles,
+            # QB timing state
+            dropback_depth=self._dropback_depth,
+            dropback_target_pos=self._dropback_target,
+            qb_is_set=self._qb_is_set,
+            qb_set_time=self._qb_set_time,
+            # Pre-snap adjustments
+            hot_routes=self._hot_routes,
+            # Run play info (OL)
+            is_run_play=is_run_play,
+            run_play_side=run_play_side,
+            run_blocking_assignment=run_blocking_assignment,
+            run_gap_target=run_gap_target,
+            combo_partner_position=combo_partner_position,
+            # Protection info (for OL coordination)
+            slide_direction=self._get_slide_direction(),
+            # Run play info (RB)
+            run_path=run_path,
+            run_aiming_point=run_aiming_point,
+            run_mesh_depth=run_mesh_depth,
             # Game-level state
             play_history=self.play_history,
             game_situation=self.game_situation,
+            # DL shed immunity
+            has_shed_immunity=has_shed_immunity,
+            # OL beaten state
+            is_beaten=is_beaten,
         )
 
     # =========================================================================
@@ -740,6 +961,8 @@ class Orchestrator:
                 if player and player.team == Team.OFFENSE:
                     # Update route assignment
                     self._apply_hot_route(player, new_route_name)
+                    # Store for WorldState access
+                    self._hot_routes[player_id] = new_route_name
 
                     self.event_bus.emit_simple(
                         EventType.HOT_ROUTE,
@@ -774,6 +997,76 @@ class Orchestrator:
         # This will be available via WorldState or a shared state
         self._protection_call = call
 
+    def _get_slide_direction(self) -> str:
+        """Extract slide direction from protection call.
+
+        Returns:
+            "left", "right", or "" (no slide)
+        """
+        if not self._protection_call:
+            return ""
+        if "left" in self._protection_call.lower():
+            return "left"
+        if "right" in self._protection_call.lower():
+            return "right"
+        return ""
+
+    def _get_block_direction_for_ol(self, ol: Player, block_type: BlockType) -> str:
+        """Calculate the block direction for an OL player.
+
+        Block direction determines which way the OL pushes the DL when winning.
+        This creates the "wash" effect that opens lanes for runs and protects
+        the pocket for passes.
+
+        Args:
+            ol: The offensive lineman
+            block_type: RUN_BLOCK or PASS_PRO
+
+        Returns:
+            "left", "right", or "straight"
+        """
+        if block_type == BlockType.RUN_BLOCK:
+            # Run blocking: direction from run play side and assignment
+            if self._run_concept:
+                play_side = self._run_concept.play_side
+                pos_name = ol.position.value.upper() if ol.position else ""
+                ol_assign = self._run_concept.get_ol_assignment(pos_name)
+
+                if ol_assign:
+                    assignment = ol_assign.assignment.value
+                    # Zone step, reach, combo = push toward play side
+                    if assignment in ("zone_step", "reach", "combo"):
+                        return play_side
+                    # Down block = push away from play side
+                    elif assignment == "down":
+                        return "left" if play_side == "right" else "right"
+                    # Base, cutoff = push straight back
+                    else:
+                        return "straight"
+
+                # Default: use play side
+                return play_side
+        else:
+            # Pass protection: direction from slide call
+            slide = self._get_slide_direction()
+            if not slide:
+                return "straight"
+
+            # Determine which side of the line this OL is on
+            ol_pos = ol.position
+            left_side = ol_pos in (Position.LT, Position.LG)
+            right_side = ol_pos in (Position.RT, Position.RG)
+            # Center goes with slide direction
+
+            if slide == "left":
+                # Slide left: left side OL push left, right side push straight
+                return "left" if left_side or ol_pos == Position.C else "straight"
+            elif slide == "right":
+                # Slide right: right side OL push right, left side push straight
+                return "right" if right_side or ol_pos == Position.C else "straight"
+
+        return "straight"
+
     def _do_snap(self) -> None:
         """Execute the snap."""
         self.phase = PlayPhase.SNAP
@@ -795,12 +1088,75 @@ class Orchestrator:
         # Advance to development
         self.phase = PlayPhase.DEVELOPMENT
 
+    def _update_qb_dropback_state(self, dt: float) -> None:
+        """Update QB dropback tracking.
+
+        Tracks the QB through the dropback phases:
+        1. DROPBACK - QB moving backward to target depth
+        2. PLANTING - QB has reached depth, planting feet
+        3. SET - QB fully planted and ready to throw
+
+        The QB brain uses this state to know when it can throw.
+        """
+        # Find QB
+        qb = None
+        for p in self.offense:
+            if p.position == Position.QB:
+                qb = p
+                break
+
+        if not qb or not self._dropback_target:
+            return
+
+        # Check if QB has reached dropback depth
+        if not self._qb_reached_depth:
+            distance_to_target = qb.pos.distance_to(self._dropback_target)
+            if distance_to_target < 0.5:  # Within 0.5 yards of target
+                self._qb_reached_depth = True
+                self._qb_set_start_time = self.clock.current_time
+                # Don't emit event yet - QB is planting, not fully set
+            return
+
+        # QB has reached depth - check if planting phase complete
+        if not self._qb_is_set and self._qb_set_start_time is not None:
+            time_planting = self.clock.current_time - self._qb_set_start_time
+            if time_planting >= self._required_set_time:
+                self._qb_is_set = True
+                self._qb_set_time = self.clock.current_time
+                self.event_bus.emit_simple(
+                    EventType.DROPBACK_COMPLETE,
+                    self.clock.tick_count,
+                    self.clock.current_time,
+                    player_id=qb.id,
+                    dropback_depth=self._dropback_depth,
+                    set_time=self._required_set_time,
+                    description=f"QB set at {self._dropback_depth:.0f}yd depth, ready to throw",
+                )
+
     def _update_tick(self, dt: float, verbose: bool = False) -> None:
         """Update one simulation tick."""
 
+        # Set tick for trace system (so all brain traces have correct timestamp)
+        self._trace_system.set_tick(self.clock.tick_count, self.clock.current_time)
+
+        # Update QB dropback state first (so WorldState has fresh data)
+        if self.phase == PlayPhase.DEVELOPMENT:
+            self._update_qb_dropback_state(dt)
+
+        # Resolve OL/DL blocking engagements FIRST (before player movement)
+        # This ensures OL/DL don't pass through each other based on brain decisions
+        # Include BALL_IN_AIR - linemen don't instantly disengage when pass is thrown
+        if self.phase in (PlayPhase.DEVELOPMENT, PlayPhase.RUN_ACTIVE, PlayPhase.BALL_IN_AIR):
+            self._resolve_blocks(dt)
+
         # Update all players
         for player in self.offense + self.defense:
-            self._update_player(player, dt)
+            # For engaged OL/DL: run brain for action selection, but don't apply movement
+            # (blocking resolution controls their positions)
+            if getattr(player, 'is_engaged', False):
+                self._update_player_brain_only(player, dt)
+            else:
+                self._update_player(player, dt)
 
         # Update ball position if in flight
         if self.ball.is_in_flight:
@@ -810,14 +1166,13 @@ class Orchestrator:
             if self.ball.has_arrived(self.clock.current_time):
                 self._resolve_pass()
 
-        # Resolve OL/DL blocking engagements
-        # Include BALL_IN_AIR - linemen don't instantly disengage when pass is thrown
-        if self.phase in (PlayPhase.DEVELOPMENT, PlayPhase.RUN_ACTIVE, PlayPhase.BALL_IN_AIR):
-            self._resolve_blocks(dt)
+        # Enforce collision separation for ALL OL/DL pairs (prevents clipping)
+        self._enforce_lineman_collisions()
 
         # Check for tackle opportunities when there's a ballcarrier
         if self.ball.state == BallState.HELD and self.ball.carrier_id:
             self._check_tackles()
+            self._check_out_of_bounds()
 
         # Handle scripted throw timing (for testing)
         if (self.config and self.config.throw_timing and
@@ -828,8 +1183,32 @@ class Orchestrator:
             if self.config.throw_target:
                 self._do_scripted_throw(self.config.throw_target)
 
+        # Handle run play handoff timing
+        if (self.config and self.config.is_run_play and
+            self.phase == PlayPhase.DEVELOPMENT and
+            not self._handoff_complete and
+            self.snap_time is not None and
+            self.clock.current_time - self.snap_time >= self.config.handoff_timing):
+
+            self._do_handoff()
+
         if verbose:
             self._print_tick_state()
+
+    def _update_player_brain_only(self, player: Player, dt: float) -> None:
+        """Run brain for action selection only - don't apply movement.
+
+        Used for engaged OL/DL whose positions are controlled by blocking resolution,
+        but who still need their brain called to determine their action (bull_rush, anchor, etc.)
+        """
+        brain = self._get_brain_for_player(player)
+        if brain:
+            world_state = self._build_world_state(player, dt)
+            decision = brain(world_state)
+            # Store the action for blocking resolution to use
+            player._last_action = decision.action or decision.intent
+            player._last_intent = decision.intent
+            # Don't apply movement - blocking resolution handles position
 
     def _update_player(self, player: Player, dt: float) -> None:
         """Update a single player for one tick."""
@@ -978,7 +1357,8 @@ class Orchestrator:
     MOVE_TYPE_SPEED = {
         "sprint": 1.0,
         "run": 0.85,
-        "backpedal": 0.55,
+        "dropback": 0.80,    # QB drop - faster than defensive backpedal
+        "backpedal": 0.55,   # Defensive backpedal - slower, maintaining leverage
         "strafe": 0.65,
         "coast": 0.5,
     }
@@ -995,6 +1375,13 @@ class Orchestrator:
     ) -> None:
         """Apply an AI brain's decision to a player."""
         player.set_decision(decision.intent, decision.reasoning)
+
+        # Apply facing direction (for QB scanning)
+        # Only set explicit_facing = True when direction IS provided
+        # Don't reset to False - explicit facing persists until actively changed
+        if decision.facing_direction:
+            player.facing = decision.facing_direction
+            player._explicit_facing = True
 
         # Store action for block resolution to use
         player._last_action = decision.action
@@ -1014,6 +1401,12 @@ class Orchestrator:
         if decision.move_target:
             # Apply movement type speed modifier
             speed_mod = self.MOVE_TYPE_SPEED.get(decision.move_type, 0.85)
+
+            # Apply beaten state penalty for OL who just had their block shed
+            beaten_until = self._ol_beaten.get(player.id, 0)
+            if self.clock.current_time < beaten_until:
+                speed_mod *= 0.5  # 50% speed while recovering
+
             modified_profile = MovementProfile(
                 max_speed=profile.max_speed * speed_mod,
                 acceleration=profile.acceleration * speed_mod,
@@ -1132,7 +1525,8 @@ class Orchestrator:
         player.pos = result.new_pos
         player.velocity = result.new_vel
         player.current_speed = result.speed_after
-        if result.new_vel.length() > 0.1:
+        # Only update facing from velocity if not explicitly set by brain
+        if result.new_vel.length() > 0.1 and not player._explicit_facing:
             player.facing = result.new_vel.normalized()
 
     # =========================================================================
@@ -1179,6 +1573,67 @@ class Orchestrator:
             # Clear the config so we don't throw again
             if self.config:
                 self.config.throw_timing = None
+
+    def _do_handoff(self) -> None:
+        """Execute a handoff from QB to ball carrier.
+
+        Transfers the ball from QB to the designated ball carrier (usually RB)
+        and transitions to RUN_ACTIVE phase.
+        """
+        if self._handoff_complete:
+            return
+
+        # Find QB
+        qb = None
+        for p in self.offense:
+            if p.position == Position.QB and p.has_ball:
+                qb = p
+                break
+
+        if not qb:
+            return
+
+        # Find ball carrier - use config or find RB
+        carrier = None
+        if self.config and self.config.ball_carrier_id:
+            carrier = self._get_player(self.config.ball_carrier_id)
+        else:
+            # Default: find RB or FB
+            for p in self.offense:
+                if p.position in (Position.RB, Position.FB):
+                    carrier = p
+                    break
+
+        if not carrier:
+            return
+
+        # Check distance - must be close for handoff
+        distance = qb.pos.distance_to(carrier.pos)
+        if distance > 3.0:  # Must be within 3 yards
+            return
+
+        # Execute handoff
+        qb.has_ball = False
+        carrier.has_ball = True
+        self.ball.carrier_id = carrier.id
+        self._handoff_complete = True
+
+        # Transition to run active phase
+        self.phase = PlayPhase.RUN_ACTIVE
+
+        # Emit event
+        self.event_bus.emit_simple(
+            EventType.HANDOFF,
+            self.clock.tick_count,
+            self.clock.current_time,
+            player_id=carrier.id,
+            description=f"Handoff to {carrier.name}",
+            data={
+                "from_id": qb.id,
+                "to_id": carrier.id,
+                "position": {"x": carrier.pos.x, "y": carrier.pos.y},
+            },
+        )
 
     def _resolve_pass(self) -> None:
         """Resolve a pass that has arrived.
@@ -1227,12 +1682,45 @@ class Orchestrator:
     # Block Resolution
     # =========================================================================
 
+    def _find_burst_target(self) -> Optional[Vec2]:
+        """Find target position for DL burst after shedding block.
+
+        Returns ballcarrier position if ball is held, otherwise QB position.
+        """
+        # Find ballcarrier
+        for p in self.offense:
+            if p.has_ball:
+                return p.pos
+
+        # Fallback to QB
+        for p in self.offense:
+            if p.position == Position.QB:
+                return p.pos
+
+        return None
+
     def _resolve_blocks(self, dt: float) -> None:
         """Resolve all OL/DL blocking engagements."""
         # Find blocking matchups
         matchups = find_blocking_matchups(self.offense, self.defense)
 
         for ol, dl in matchups:
+            # Skip if DL has shed immunity (just broke free, needs time to escape)
+            immune_until = self._shed_immunity.get(dl.id, 0)
+            if self.clock.current_time < immune_until:
+                # DL is free, let them run via brain movement
+                dl.is_engaged = False
+                ol.is_engaged = False
+                continue
+
+            # Skip if OL is beaten (just had their block shed, recovering)
+            beaten_until = self._ol_beaten.get(ol.id, 0)
+            if self.clock.current_time < beaten_until:
+                # OL is recovering, cannot initiate new blocks
+                ol.is_engaged = False
+                dl.is_engaged = False
+                continue
+
             # Skip if not in range
             if not self.block_resolver.is_engaged(ol, dl):
                 continue
@@ -1247,6 +1735,9 @@ class Orchestrator:
             else:
                 block_type = BlockType.PASS_PRO
 
+            # Calculate block direction based on play type and OL assignment
+            block_direction = self._get_block_direction_for_ol(ol, block_type)
+
             # Resolve the block
             result = self.block_resolver.resolve(
                 ol, dl,
@@ -1254,6 +1745,7 @@ class Orchestrator:
                 block_type, dt,
                 tick=self.clock.tick_count,
                 time=self.clock.current_time,
+                block_direction=block_direction,
             )
 
             # Apply movement from block resolution
@@ -1265,9 +1757,56 @@ class Orchestrator:
             if result.outcome == BlockOutcome.DL_SHED:
                 dl.is_engaged = False
                 ol.is_engaged = False
+                # Grant shed immunity - DL gets 0.4s to escape before re-engagement
+                self._shed_immunity[dl.id] = self.clock.current_time + 0.4
+                # OL is beaten - cannot initiate new blocks and moves slower
+                self._ol_beaten[ol.id] = self.clock.current_time + 0.4
+
+                # Apply instant burst to DL (1.5 yards toward ballcarrier/QB)
+                burst_target = self._find_burst_target()
+                if burst_target:
+                    burst_dir = (burst_target - dl.pos).normalized()
+                    dl.pos = dl.pos + burst_dir * 1.5
             elif result.outcome != BlockOutcome.DISENGAGED:
                 dl.is_engaged = True
                 ol.is_engaged = True
+
+    def _enforce_lineman_collisions(self) -> None:
+        """Enforce minimum separation between ALL OL/DL pairs.
+
+        This prevents players from clipping through each other, even when
+        they're not in an official blocking engagement yet.
+        """
+        MIN_SEPARATION = 0.8  # Yards - body collision radius
+
+        OL_POSITIONS = {Position.LT, Position.LG, Position.C, Position.RG, Position.RT}
+        DL_POSITIONS = {Position.DE, Position.DT, Position.NT}
+
+        # Get all OL and DL
+        ol_players = [p for p in self.offense if p.position in OL_POSITIONS]
+        dl_players = [p for p in self.defense if p.position in DL_POSITIONS]
+
+        # Check each OL against each DL
+        for ol in ol_players:
+            for dl in dl_players:
+                dist = ol.pos.distance_to(dl.pos)
+
+                if dist >= MIN_SEPARATION:
+                    continue
+
+                # Too close - push apart
+                if dist < 0.01:
+                    # Exactly overlapping - push apart along Y
+                    separation_dir = Vec2(0, 1)
+                    dist = 0.01
+                else:
+                    separation_dir = (dl.pos - ol.pos).normalized()
+
+                overlap = MIN_SEPARATION - dist
+                half_push = overlap / 2.0
+
+                ol.pos = ol.pos - separation_dir * half_push
+                dl.pos = dl.pos + separation_dir * half_push
 
     # =========================================================================
     # Tackle Resolution
@@ -1296,7 +1835,61 @@ class Orchestrator:
         else:
             tacklers = self.offense
 
-        # Find tackle attempts
+        # === Emergency shed check for engaged DL near ballcarrier ===
+        # When RB runs past an engaged DL, the DL must:
+        # 1. Successfully shed the block (based on shed_progress)
+        # 2. Then successfully make the tackle
+        # If either fails, RB continues unimpeded
+        #
+        # Only applies to "adjacent" engagements - where the blocking matchup
+        # is actually in the ballcarrier's path. A DE on the far side of the
+        # formation shouldn't be shedding to tackle an RB in the opposite gap.
+        EMERGENCY_SHED_RANGE = 2.5  # yards - distance at which DL can try to shed and tackle
+
+        for defender in tacklers:
+            if not defender.is_engaged:
+                continue
+
+            distance = ballcarrier.pos.distance_to(defender.pos)
+            if distance > EMERGENCY_SHED_RANGE:
+                continue
+
+            # Check that the OL they're engaged with is also near the ballcarrier
+            # This ensures the blocking matchup is actually in the RB's path
+            engagement = self.block_resolver.get_engagement_for_player(defender.id)
+            if not engagement:
+                continue
+
+            ol = self._get_player(engagement.ol_id)
+            if not ol:
+                continue
+
+            ol_distance = ballcarrier.pos.distance_to(ol.pos)
+            if ol_distance > EMERGENCY_SHED_RANGE:
+                # The OL is far from ballcarrier - this matchup isn't in the RB's path
+                continue
+
+            # Engaged defender is close to ballcarrier AND blocking matchup is relevant
+            success, prob = self.block_resolver.attempt_emergency_shed(defender.id)
+
+            if success:
+                # DL breaks free! Mark as disengaged so they can tackle
+                defender.is_engaged = False
+                self.block_resolver.remove_engagement(defender.id)
+
+                # Emit event for visualization
+                self.event_bus.emit_simple(
+                    EventType.BLOCK_SHED,
+                    self.clock.tick_count,
+                    self.clock.current_time,
+                    player_id=defender.id,
+                    description=f"{defender.name} sheds block to pursue ballcarrier",
+                    emergency_shed=True,
+                    probability=prob,
+                )
+            # If failed, defender stays engaged and can't tackle this tick
+
+        # Find tackle attempts (now includes any DL who just shed)
         attempts = self.tackle_resolver.find_tackle_attempts(ballcarrier, tacklers)
 
         if not attempts:
@@ -1355,6 +1948,33 @@ class Orchestrator:
 
         # MISSED doesn't change anything
 
+    def _check_out_of_bounds(self) -> None:
+        """Check if ballcarrier has gone out of bounds."""
+        ballcarrier = self._get_player(self.ball.carrier_id) if self.ball.carrier_id else None
+        if not ballcarrier:
+            return
+
+        # Field boundaries: 53.3 yards wide, centered at x=0
+        field_half_width = 26.65
+
+        # Check if out of bounds
+        if abs(ballcarrier.pos.x) > field_half_width:
+            # Out of bounds!
+            self._down_position = ballcarrier.pos
+            self._result_outcome = "out_of_bounds"
+            self.phase = PlayPhase.POST_PLAY
+
+            # Emit event
+            self.event_bus.emit(Event(
+                type=EventType.OUT_OF_BOUNDS,
+                tick=self.clock.tick_count,
+                player_id=ballcarrier.id,
+                data={
+                    "position": {"x": ballcarrier.pos.x, "y": ballcarrier.pos.y},
+                    "sideline": "left" if ballcarrier.pos.x < 0 else "right",
+                }
+            ))
+
     # =========================================================================
     # End Conditions
     # =========================================================================
@@ -1365,9 +1985,10 @@ class Orchestrator:
         if self.phase == PlayPhase.POST_PLAY:
             return True
 
-        # Timeout
+        # Timeout - only set outcome if not already resolved
         if self.clock.tick_count >= self.max_ticks:
-            self._result_outcome = "timeout"
+            if self._result_outcome is None:
+                self._result_outcome = "timeout"
             return True
 
         return False
