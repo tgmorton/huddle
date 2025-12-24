@@ -68,6 +68,46 @@ export interface PlayerSummary {
   experience: number;
   jersey_number: number;
   team_abbr: string | null;
+  // Contract fields for roster display
+  salary: number | null;
+  contract_year_remaining: number | null;
+}
+
+// Personality types
+export type ArchetypeType =
+  | 'TEAM_FIRST'
+  | 'FIERCE_COMPETITOR'
+  | 'QUIET_PROFESSIONAL'
+  | 'MENTOR'
+  | 'MONEY_MOTIVATED'
+  | 'DIVA'
+  | 'HOT_HEAD'
+  | 'FREE_SPIRIT'
+  | 'FILM_JUNKIE'
+  | 'EMOTIONAL_LEADER'
+  | 'STEADY_VETERAN'
+  | 'RISING_STAR';
+
+export type PersonalityTrait =
+  | 'DRIVEN' | 'COMPETITIVE' | 'AMBITIOUS'  // Motivation
+  | 'LOYAL' | 'TEAM_PLAYER' | 'TRUSTING' | 'COOPERATIVE'  // Interpersonal
+  | 'PATIENT' | 'AGGRESSIVE' | 'IMPULSIVE' | 'LEVEL_HEADED' | 'SENSITIVE'  // Temperament
+  | 'STRUCTURED' | 'FLEXIBLE' | 'PERFECTIONIST'  // Work Style
+  | 'CONSERVATIVE' | 'RECKLESS' | 'CALCULATING'  // Risk
+  | 'EXPRESSIVE' | 'RESERVED' | 'DRAMATIC'  // Social
+  | 'MATERIALISTIC' | 'VALUES_TRADITION' | 'THRIFTY';  // Values
+
+export interface PersonalityProfile {
+  archetype: ArchetypeType;
+  traits: Record<PersonalityTrait, number>;  // 0.0 - 1.0
+}
+
+export interface PlayerApproval {
+  player_id: string;
+  approval: number;  // 0-100
+  trend: number;  // Recent direction
+  grievances: string[];  // Last 5 negative events
+  last_updated: string | null;
 }
 
 export interface PlayerDetail extends PlayerSummary {
@@ -81,6 +121,11 @@ export interface PlayerDetail extends PlayerSummary {
   is_rookie: boolean;
   is_veteran: boolean;
   attributes: Record<string, number>;
+  // Management fields (may be null if not tracked)
+  personality?: PersonalityProfile | null;
+  approval?: PlayerApproval | null;
+  contract_years?: number | null;
+  signing_bonus?: number | null;
 }
 
 // === Standings Types ===
@@ -427,6 +472,52 @@ export const DIVISIONS = [
   'AFC East', 'AFC North', 'AFC South', 'AFC West',
   'NFC East', 'NFC North', 'NFC South', 'NFC West',
 ] as const;
+
+// === Salary Cap Types ===
+
+export interface CapProjection {
+  year: number;
+  committed: number;
+  projected_cap: number;
+  cap_space: number;
+}
+
+export interface TeamCapSummary {
+  team_abbr: string;
+  season: number;
+  salary_cap: number;           // League cap for this year
+  cap_committed: number;        // Total salary committed
+  cap_space: number;            // Remaining space
+  dead_money: number;           // Cap hits from cuts/trades
+  projections: CapProjection[]; // 6-year projection
+}
+
+export interface ContractYear {
+  year: number;
+  base_salary: number;
+  signing_bonus: number;
+  cap_hit: number;
+}
+
+export interface PlayerCapData {
+  player_id: string;
+  full_name: string;
+  position: string;
+  overall: number;
+  age: number;
+  cap_hit: number;              // This year's cap hit
+  years_remaining: number;
+  dead_money: number;           // If cut today
+  cut_savings: number;          // cap_hit - dead_money
+  contract_years: ContractYear[];
+}
+
+export interface TeamCapPlayers {
+  team_abbr: string;
+  top_earners: PlayerCapData[];
+  expiring: PlayerCapData[];
+  cuttable: PlayerCapData[];
+}
 
 // === Helper Functions ===
 

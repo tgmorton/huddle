@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Konva.js Football Sim Demo</title>
+  <script src="https://unpkg.com/konva@9/konva.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Berkeley Mono', 'SF Mono', monospace;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 20px;
+      background: #111;
+      border-bottom: 1px solid #333;
+    }
+    h1 { font-size: 18px; color: #f59e0b; margin-bottom: 8px; }
+    .subtitle { color: #888; font-size: 13px; }
+    .container {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+    }
+    #canvas-container {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 300px;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 16px;
+    }
+    .panel { margin-bottom: 20px; }
+    .panel-title {
+      font-size: 12px;
+      color: #f59e0b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #333;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+    .info-label { color: #888; }
+    .info-value { color: #e5e5e5; }
+    .features {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #888;
+    }
+    .features li { margin-bottom: 4px; }
+    .features code {
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #f59e0b;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      background: #222;
+      border: 1px solid #444;
+      color: #e5e5e5;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    button:hover { background: #333; border-color: #f59e0b; }
+    button.active { background: #f59e0b; color: #000; }
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.9);
+      border: 1px solid #f59e0b;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 100;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>KONVA.JS DEMO</h1>
+    <div class="subtitle">Canvas-based 2D graphics with built-in event handling</div>
+  </div>
+
+  <div class="container">
+    <div id="canvas-container"></div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-title">Selected Player</div>
+        <div id="player-info">
+          <div class="info-row">
+            <span class="info-label">Name</span>
+            <span class="info-value" id="info-name">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Position</span>
+            <span class="info-value" id="info-pos">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Speed</span>
+            <span class="info-value" id="info-speed">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Assignment</span>
+            <span class="info-value" id="info-assign">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Konva.js Features</div>
+        <ul class="features">
+          <li><code>click</code> events on shapes</li>
+          <li><code>mouseover/out</code> for tooltips</li>
+          <li><code>dragstart/end</code> for dragging</li>
+          <li>Built-in <code>Tween</code> animations</li>
+          <li>Layer-based rendering</li>
+          <li>Shape caching for performance</li>
+          <li>Hit detection with pixel precision</li>
+          <li>Group transforms</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Controls</div>
+        <div class="controls">
+          <button id="btn-play" class="active">Play</button>
+          <button id="btn-pause">Pause</button>
+        </div>
+        <div class="controls">
+          <button id="btn-routes">Toggle Routes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    // Field dimensions (in yards, scaled to pixels)
+    const FIELD_WIDTH = 53.33;
+    const FIELD_HEIGHT = 40;
+    const SCALE = 15; // pixels per yard
+
+    // Colors
+    const COLORS = {
+      field: '#1a472a',
+      lines: '#ffffff',
+      offense: '#f59e0b',
+      offenseLight: '#fbbf24',
+      defense: '#ef4444',
+      defenseLight: '#f87171',
+      route: '#60a5fa',
+      ball: '#92400e',
+    };
+
+    // Create stage
+    const container = document.getElementById('canvas-container');
+    const stage = new Konva.Stage({
+      container: 'canvas-container',
+      width: container.offsetWidth,
+      height: container.offsetHeight,
+    });
+
+    // Create layers
+    const fieldLayer = new Konva.Layer();
+    const routeLayer = new Konva.Layer();
+    const playerLayer = new Konva.Layer();
+    stage.add(fieldLayer);
+    stage.add(routeLayer);
+    stage.add(playerLayer);
+
+    // Center offset
+    const centerX = stage.width() / 2;
+    const centerY = stage.height() / 2;
+
+    // Convert yard coords to screen
+    function yardToScreen(x, y) {
+      return {
+        x: centerX + x * SCALE,
+        y: centerY - y * SCALE, // Flip Y
+      };
+    }
+
+    // Draw field
+    function drawField() {
+      // Green background
+      const bg = new Konva.Rect({
+        x: 0, y: 0,
+        width: stage.width(),
+        height: stage.height(),
+        fill: COLORS.field,
+      });
+      fieldLayer.add(bg);
+
+      // Yard lines
+      for (let y = -15; y <= 20; y += 5) {
+        const start = yardToScreen(-26, y);
+        const end = yardToScreen(26, y);
+        const line = new Konva.Line({
+          points: [start.x, start.y, end.x, end.y],
+          stroke: COLORS.lines,
+          strokeWidth: y === 0 ? 3 : 1,
+          opacity: y === 0 ? 0.8 : 0.3,
+        });
+        fieldLayer.add(line);
+
+        // Yard number
+        if (y !== 0 && y % 10 === 0) {
+          const pos = yardToScreen(-24, y);
+          const text = new Konva.Text({
+            x: pos.x - 20,
+            y: pos.y - 8,
+            text: Math.abs(y).toString(),
+            fontSize: 14,
+            fill: COLORS.lines,
+            opacity: 0.4,
+          });
+          fieldLayer.add(text);
+        }
+      }
+
+      // Hash marks
+      [-7, 7].forEach(hashX => {
+        for (let y = -15; y <= 20; y += 1) {
+          const pos = yardToScreen(hashX, y);
+          const hash = new Konva.Line({
+            points: [pos.x - 3, pos.y, pos.x + 3, pos.y],
+            stroke: COLORS.lines,
+            strokeWidth: 1,
+            opacity: 0.3,
+          });
+          fieldLayer.add(hash);
+        }
+      });
+
+      fieldLayer.draw();
+    }
+
+    // Player data
+    const players = [
+      // Offense
+      { id: 'qb', name: 'QB', pos: 'QB', x: 0, y: -5, team: 'offense', assignment: 'Dropback', route: null },
+      { id: 'wr1', name: 'Hill', pos: 'WR', x: 20, y: 0, team: 'offense', assignment: 'Go Route', route: [[20, 0], [20, 5], [20, 15], [20, 25]] },
+      { id: 'wr2', name: 'Adams', pos: 'WR', x: -18, y: 0, team: 'offense', assignment: 'Slant', route: [[-18, 0], [-16, 3], [-10, 8]] },
+      { id: 'te', name: 'Kelce', pos: 'TE', x: 8, y: -1, team: 'offense', assignment: 'Seam', route: [[8, -1], [8, 5], [8, 15]] },
+      { id: 'rb', name: 'Henry', pos: 'RB', x: -2, y: -7, team: 'offense', assignment: 'Check Release', route: [[-2, -7], [-5, -5], [-8, 0]] },
+      // Defense
+      { id: 'cb1', name: 'Gardner', pos: 'CB', x: 22, y: 7, team: 'defense', assignment: 'Man - WR1' },
+      { id: 'cb2', name: 'Alexander', pos: 'CB', x: -20, y: 7, team: 'defense', assignment: 'Man - WR2' },
+      { id: 'ss', name: 'Byard', pos: 'SS', x: 0, y: 15, team: 'defense', assignment: 'Deep Half' },
+      { id: 'fs', name: 'Minkah', pos: 'FS', x: 8, y: 18, team: 'defense', assignment: 'Deep Half' },
+      { id: 'mlb', name: 'Warner', pos: 'MLB', x: 0, y: 5, team: 'defense', assignment: 'Hook Zone' },
+    ];
+
+    // Store shape references
+    const playerShapes = {};
+    let selectedPlayer = null;
+    let showRoutes = true;
+    let isPlaying = true;
+    let animationTime = 0;
+
+    // Draw routes
+    function drawRoutes() {
+      routeLayer.destroyChildren();
+
+      if (!showRoutes) {
+        routeLayer.draw();
+        return;
+      }
+
+      players.forEach(p => {
+        if (!p.route) return;
+
+        const points = [];
+        p.route.forEach(([x, y]) => {
+          const screen = yardToScreen(x, y);
+          points.push(screen.x, screen.y);
+        });
+
+        const line = new Konva.Line({
+          points,
+          stroke: COLORS.route,
+          strokeWidth: 2,
+          opacity: 0.6,
+          lineCap: 'round',
+          lineJoin: 'round',
+          dash: [8, 4],
+        });
+        routeLayer.add(line);
+
+        // Arrow at end
+        if (p.route.length >= 2) {
+          const last = p.route[p.route.length - 1];
+          const prev = p.route[p.route.length - 2];
+          const endPos = yardToScreen(last[0], last[1]);
+          const angle = Math.atan2(prev[1] - last[1], last[0] - prev[0]);
+
+          const arrow = new Konva.Arrow({
+            x: endPos.x,
+            y: endPos.y,
+            points: [0, 0, -12, 0],
+            rotation: angle * 180 / Math.PI,
+            pointerLength: 8,
+            pointerWidth: 8,
+            fill: COLORS.route,
+            stroke: COLORS.route,
+            strokeWidth: 2,
+            opacity: 0.6,
+          });
+          routeLayer.add(arrow);
+        }
+      });
+
+      routeLayer.draw();
+    }
+
+    // Create player shapes
+    function createPlayers() {
+      const tooltip = document.getElementById('tooltip');
+
+      players.forEach(p => {
+        const pos = yardToScreen(p.x, p.y);
+        const isOffense = p.team === 'offense';
+
+        // Player group (for easier transforms)
+        const group = new Konva.Group({
+          x: pos.x,
+          y: pos.y,
+          draggable: true, // Konva makes dragging trivial!
+        });
+
+        // Player circle
+        const circle = new Konva.Circle({
+          radius: 12,
+          fill: isOffense ? COLORS.offense : COLORS.defense,
+          stroke: isOffense ? COLORS.offenseLight : COLORS.defenseLight,
+          strokeWidth: 2,
+        });
+
+        // Direction indicator
+        const direction = new Konva.Wedge({
+          radius: 16,
+          angle: 60,
+          rotation: -120,
+          fill: isOffense ? COLORS.offenseLight : COLORS.defenseLight,
+          opacity: 0.5,
+        });
+
+        // Name label
+        const label = new Konva.Text({
+          text: p.name,
+          fontSize: 10,
+          fill: '#fff',
+          align: 'center',
+        });
+        label.offsetX(label.width() / 2);
+        label.y(16);
+
+        group.add(direction, circle, label);
+        playerLayer.add(group);
+
+        // Store reference
+        playerShapes[p.id] = { group, circle, direction, data: p };
+
+        // === KONVA EVENT HANDLING ===
+
+        // Click to select
+        group.on('click tap', () => {
+          selectPlayer(p.id);
+        });
+
+        // Hover for tooltip
+        group.on('mouseenter', () => {
+          tooltip.style.display = 'block';
+          tooltip.innerHTML = `<strong>${p.name}</strong><br>${p.pos} - ${p.assignment}`;
+          circle.stroke('#fff');
+          circle.strokeWidth(3);
+          playerLayer.draw();
+          document.body.style.cursor = 'pointer';
+        });
+
+        group.on('mousemove', (e) => {
+          tooltip.style.left = e.evt.pageX + 15 + 'px';
+          tooltip.style.top = e.evt.pageY + 15 + 'px';
+        });
+
+        group.on('mouseleave', () => {
+          tooltip.style.display = 'none';
+          circle.stroke(isOffense ? COLORS.offenseLight : COLORS.defenseLight);
+          circle.strokeWidth(2);
+          playerLayer.draw();
+          document.body.style.cursor = 'default';
+        });
+
+        // Drag events
+        group.on('dragstart', () => {
+          group.moveToTop();
+          circle.fill(isOffense ? COLORS.offenseLight : COLORS.defenseLight);
+        });
+
+        group.on('dragend', () => {
+          circle.fill(isOffense ? COLORS.offense : COLORS.defense);
+          // Update player position from drag
+          const newX = (group.x() - centerX) / SCALE;
+          const newY = -(group.y() - centerY) / SCALE;
+          p.x = newX;
+          p.y = newY;
+          drawRoutes(); // Redraw routes from new position
+        });
+      });
+
+      playerLayer.draw();
+    }
+
+    // Select player
+    function selectPlayer(id) {
+      selectedPlayer = id;
+      const p = playerShapes[id].data;
+
+      document.getElementById('info-name').textContent = p.name;
+      document.getElementById('info-pos').textContent = p.pos;
+      document.getElementById('info-speed').textContent = Math.random() > 0.5 ? '4.3s 40yd' : '4.5s 40yd';
+      document.getElementById('info-assign').textContent = p.assignment;
+
+      // Highlight selected
+      Object.values(playerShapes).forEach(({ circle, data }) => {
+        const isOffense = data.team === 'offense';
+        if (data.id === id) {
+          circle.stroke('#fff');
+          circle.strokeWidth(4);
+        } else {
+          circle.stroke(isOffense ? COLORS.offenseLight : COLORS.defenseLight);
+          circle.strokeWidth(2);
+        }
+      });
+      playerLayer.draw();
+    }
+
+    // Animation loop - Konva Tween demo
+    function animate() {
+      if (!isPlaying) {
+        requestAnimationFrame(animate);
+        return;
+      }
+
+      animationTime += 0.016;
+
+      // Animate players along routes
+      players.forEach(p => {
+        if (!p.route || p.route.length < 2) return;
+
+        const shape = playerShapes[p.id];
+        const progress = (Math.sin(animationTime * 0.5) + 1) / 2; // 0-1 oscillating
+
+        // Interpolate along route
+        const routeLen = p.route.length - 1;
+        const idx = Math.floor(progress * routeLen);
+        const t = (progress * routeLen) - idx;
+
+        const p1 = p.route[Math.min(idx, routeLen)];
+        const p2 = p.route[Math.min(idx + 1, routeLen)];
+
+        const interpX = p1[0] + (p2[0] - p1[0]) * t;
+        const interpY = p1[1] + (p2[1] - p1[1]) * t;
+
+        const screen = yardToScreen(interpX, interpY);
+        shape.group.x(screen.x);
+        shape.group.y(screen.y);
+
+        // Rotate direction indicator
+        if (p2[0] !== p1[0] || p2[1] !== p1[1]) {
+          const angle = Math.atan2(p1[1] - p2[1], p2[0] - p1[0]) * 180 / Math.PI;
+          shape.direction.rotation(angle - 30);
+        }
+      });
+
+      playerLayer.draw();
+      requestAnimationFrame(animate);
+    }
+
+    // Button handlers
+    document.getElementById('btn-play').addEventListener('click', () => {
+      isPlaying = true;
+      document.getElementById('btn-play').classList.add('active');
+      document.getElementById('btn-pause').classList.remove('active');
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', () => {
+      isPlaying = false;
+      document.getElementById('btn-pause').classList.add('active');
+      document.getElementById('btn-play').classList.remove('active');
+    });
+
+    document.getElementById('btn-routes').addEventListener('click', () => {
+      showRoutes = !showRoutes;
+      drawRoutes();
+    });
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      stage.width(container.offsetWidth);
+      stage.height(container.offsetHeight);
+      // Would need to recalculate positions...
+    });
+
+    // Initialize
+    drawField();
+    drawRoutes();
+    createPlayers();
+    animate();
+  </script>
+</body>
+</html>

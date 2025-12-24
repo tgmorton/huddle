@@ -61,11 +61,12 @@ export function useManagementWebSocket({
           case 'calendar_update':
             if (message.payload) {
               updateCalendar(message.payload as unknown as CalendarState);
-              // Also update events if included in the payload
-              const payload = message.payload as { events?: ManagementEvent[] };
-              if (payload.events) {
-                setEvents(payload.events);
-              }
+              // Note: We intentionally don't update events here to avoid race conditions
+              // with REST API calls (e.g., advance-day). Events are synced via:
+              // - state_sync (full state on connect)
+              // - event_added (new events)
+              // - event_updated (event changes)
+              // - REST API responses (advance-day, etc.)
             }
             break;
 

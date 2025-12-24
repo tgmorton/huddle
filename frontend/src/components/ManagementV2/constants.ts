@@ -24,6 +24,8 @@ export const TYPE_SIZE: Record<ItemType, PaneSize> = {
   decision: 'medium',
   scout: 'large',
   player: 'medium',
+  prospect: 'medium',
+  news: 'medium',
 };
 
 // Type config with text-based indicators
@@ -35,6 +37,8 @@ export const TYPE_CONFIG: Record<ItemType, { abbr: string; label: string }> = {
   decision: { abbr: 'DEC', label: 'Decision' },
   scout: { abbr: 'SCT', label: 'Scouting' },
   player: { abbr: 'PLR', label: 'Player' },
+  prospect: { abbr: 'PROS', label: 'Prospect' },
+  news: { abbr: 'NEWS', label: 'News' },
 };
 
 // Navigation groups for app switcher
@@ -68,10 +72,11 @@ export const NAV_GROUPS = [
 
 // Panel widths for different views
 export const PANEL_WIDTHS: Record<string, number> = {
-  personnel: 400,
-  transactions: 400,
+  personnel: 420,
+  transactions: 420,
   finances: 420,
-  draft: 440,
+  draft: 420,
   season: 360,
   team: 380,
+  week: 320,
 };

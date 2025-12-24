@@ -8,10 +8,23 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { Archive, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAgentMailStore } from '../../../stores/agentMailStore';
 import './OversightDashboard.css';
 
 const API_BASE = 'http://localhost:8000/api/v1/agentmail';
+
+// Filter state type
+interface FilterState {
+  status: string[];      // ['open', 'in_progress']
+  types: string[];       // ['bug', 'task']
+  severity: string[];    // ['BLOCKING']
+  agents: string[];      // ['qa_agent']
+  showArchived: boolean;
+}
+
+// Grouping mode
+type GroupBy = 'thread' | 'agent' | 'status' | 'time';
 
 // Drag and drop state
 interface DragState {
@@ -117,6 +130,34 @@ interface Thread {
   type: string;
 }
 
+interface ThreadGroup {
+  key: string;
+  label: string;
+  count: number;
+  threads: Thread[];
+}
+
+// Determine primary agent for a thread (who currently has the ball - latest message recipient)
+function getPrimaryAgent(thread: Thread): string {
+  const latestTo = thread.latestMessage?.to_agent;
+  if (latestTo && latestTo !== 'coordinator') return latestTo;
+  return thread.participants.find(p => p !== 'coordinator') || 'unknown';
+}
+
+// Determine time bucket for a date
+function getTimeBucket(dateStr: string): { key: string; label: string; order: number } {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 86400000);
+  const weekAgo = new Date(today.getTime() - 7 * 86400000);
+
+  if (date >= today) return { key: 'today', label: 'Today', order: 0 };
+  if (date >= yesterday) return { key: 'yesterday', label: 'Yesterday', order: 1 };
+  if (date >= weekAgo) return { key: 'thisWeek', label: 'This Week', order: 2 };
+  return { key: 'older', label: 'Older', order: 3 };
+}
+
 interface OversightDashboardProps {
   isConnected: boolean;
   onRequestSync: () => void;
@@ -156,6 +197,40 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
 
   // Focus mode - hides parent headers
   const [focusMode, setFocusMode] = useState(false);
+
+  // Filters and grouping
+  const [filters, setFilters] = useState<FilterState>(() => {
+    const saved = localStorage.getItem('agentmail-filters');
+    return saved ? JSON.parse(saved) : { status: [], types: [], severity: [], agents: [], showArchived: false };
+  });
+  const [groupBy, setGroupBy] = useState<GroupBy>(() => {
+    return (localStorage.getItem('agentmail-groupby') as GroupBy) || 'thread';
+  });
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  // Persist filters to localStorage
+  useEffect(() => {
+    localStorage.setItem('agentmail-filters', JSON.stringify(filters));
+  }, [filters]);
+
+  useEffect(() => {
+    localStorage.setItem('agentmail-groupby', groupBy);
+  }, [groupBy]);
+
+  // Toggle filter helper
+  const toggleFilter = (category: keyof Omit<FilterState, 'showArchived'>, value: string) => {
+    setFilters(prev => {
+      const arr = prev[category];
+      if (arr.includes(value)) {
+        return { ...prev, [category]: arr.filter(v => v !== value) };
+      }
+      return { ...prev, [category]: [...arr, value] };
+    });
+  };
+
+  const clearFilters = () => {
+    setFilters({ status: [], types: [], severity: [], agents: [], showArchived: false });
+  };
 
   // Toggle focus mode body class
   useEffect(() => {
@@ -210,9 +285,10 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
         }
       });
 
-      // Check statuses
-      const hasOpen = msgs.some(m => m.status === 'open');
-      const hasInProgress = msgs.some(m => m.status === 'in_progress');
+      // Check status based on latest message (current state of the thread)
+      const latestStatus = latestMessage.status || 'open';
+      const hasOpen = latestStatus === 'open';
+      const hasInProgress = latestStatus === 'in_progress';
 
       threadList.push({
         id: threadId,
@@ -235,10 +311,177 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
     return threadList;
   }, [messages]);
 
+  // Filter threads based on current filters
+  const filteredThreads = useMemo(() => {
+    return threads.filter(thread => {
+      // Archive filter - check if any message in thread is archived
+      const hasArchivedMessage = thread.messages.some(m => m.archived);
+      if (hasArchivedMessage && !filters.showArchived) return false;
+
+      // Status filter
+      if (filters.status.length > 0) {
+        const threadStatus = thread.hasOpen ? 'open' : thread.hasInProgress ? 'in_progress' : 'resolved';
+        if (!filters.status.includes(threadStatus)) return false;
+      }
+
+      // Type filter
+      if (filters.types.length > 0) {
+        if (!filters.types.includes(thread.type)) return false;
+      }
+
+      // Severity filter
+      if (filters.severity.length > 0) {
+        if (!thread.worstSeverity || !filters.severity.includes(thread.worstSeverity.toUpperCase())) return false;
+      }
+
+      // Agent filter
+      if (filters.agents.length > 0) {
+        if (!thread.participants.some(p => filters.agents.includes(p))) return false;
+      }
+
+      return true;
+    });
+  }, [threads, filters]);
+
+  // Group threads based on groupBy mode
+  const groupedThreads = useMemo((): ThreadGroup[] => {
+    // Helper to get thread status
+    const getStatus = (thread: Thread): string => {
+      if (thread.hasOpen) return 'open';
+      if (thread.hasInProgress) return 'in_progress';
+      return 'resolved';
+    };
+
+    if (groupBy === 'thread') {
+      // Single group with all threads (no header)
+      return [{
+        key: 'all',
+        label: '',
+        count: filteredThreads.length,
+        threads: filteredThreads,
+      }];
+    }
+
+    if (groupBy === 'agent') {
+      const groups = new Map<string, Thread[]>();
+      filteredThreads.forEach(thread => {
+        const agent = getPrimaryAgent(thread);
+        if (!groups.has(agent)) groups.set(agent, []);
+        groups.get(agent)!.push(thread);
+      });
+
+      return Array.from(groups.entries())
+        .map(([agent, threads]) => ({
+          key: agent,
+          label: agent.replace('_agent', '').replace(/_/g, ' '),
+          count: threads.length,
+          threads,
+        }))
+        .sort((a, b) => b.count - a.count); // Most active first
+    }
+
+    if (groupBy === 'status') {
+      const statusOrder = ['open', 'in_progress', 'resolved'];
+      const statusLabels: Record<string, string> = {
+        open: 'Open',
+        in_progress: 'In Progress',
+        resolved: 'Resolved',
+      };
+
+      const groups = new Map<string, Thread[]>();
+      statusOrder.forEach(s => groups.set(s, []));
+
+      filteredThreads.forEach(thread => {
+        const status = getStatus(thread);
+        groups.get(status)?.push(thread);
+      });
+
+      return statusOrder
+        .map(status => ({
+          key: status,
+          label: statusLabels[status],
+          count: groups.get(status)?.length || 0,
+          threads: groups.get(status) || [],
+        }))
+        .filter(g => g.count > 0); // Hide empty sections
+    }
+
+    if (groupBy === 'time') {
+      const groups = new Map<string, { threads: Thread[]; label: string; order: number }>();
+
+      filteredThreads.forEach(thread => {
+        const bucket = getTimeBucket(thread.latestDate);
+        if (!groups.has(bucket.key)) {
+          groups.set(bucket.key, { threads: [], label: bucket.label, order: bucket.order });
+        }
+        groups.get(bucket.key)!.threads.push(thread);
+      });
+
+      return Array.from(groups.entries())
+        .sort((a, b) => a[1].order - b[1].order)
+        .map(([key, { threads, label }]) => ({
+          key,
+          label,
+          count: threads.length,
+          threads,
+        }));
+    }
+
+    return [];
+  }, [filteredThreads, groupBy]);
+
   // Selected thread
   const selectedThread = useMemo(() => {
     return threads.find(t => t.id === selectedThreadId) ?? null;
   }, [threads, selectedThreadId]);
+
+  // Archive a message
+  const archiveMessage = async (messageId: string, archived: boolean = true) => {
+    try {
+      const response = await fetch(`${API_BASE}/messages/archive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: messageId, archived }),
+      });
+      if (response.ok) {
+        // Optimistically update store
+        useAgentMailStore.getState().archiveMessage(messageId, archived);
+      }
+    } catch (error) {
+      console.error('Failed to archive message:', error);
+    }
+  };
+
+  // Archive all messages in a thread
+  const archiveThread = async (thread: Thread) => {
+    for (const msg of thread.messages) {
+      await archiveMessage(msg.id, true);
+    }
+    setMergeStatus({ message: `Archived thread "${thread.subject}"`, type: 'success' });
+    setTimeout(() => setMergeStatus(null), 3000);
+    onRequestSync();
+  };
+
+  // Update message status
+  const updateMessageStatus = async (messageId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/messages/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: messageId, status: newStatus }),
+      });
+      if (response.ok) {
+        // Optimistically update store
+        useAgentMailStore.getState().updateMessageStatus(messageId, newStatus as any);
+        setMergeStatus({ message: `Status updated to "${newStatus}"`, type: 'success' });
+        setTimeout(() => setMergeStatus(null), 2000);
+      }
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      setMergeStatus({ message: 'Failed to update status', type: 'error' });
+      setTimeout(() => setMergeStatus(null), 3000);
+    }
+  };
 
   // Load message content when expanded
   const loadMessageContent = async (messageId: string) => {
@@ -447,6 +690,9 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
 
   // Auto-expand latest message when thread selected and scroll to bottom
   useEffect(() => {
+    // Clear cached content when switching threads
+    setMessageContents({});
+
     if (selectedThread && selectedThread.messages.length > 0) {
       const lastMsg = selectedThread.messages[selectedThread.messages.length - 1];
       setExpandedMessageId(lastMsg.id);
@@ -496,13 +742,9 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
   const openThreads = threads.filter(t => t.hasOpen).length;
   const inProgressThreads = threads.filter(t => t.hasInProgress).length;
 
-  // Get thread status (worst status in thread)
+  // Get thread status (based on latest message)
   const getThreadStatus = (thread: Thread) => {
-    if (thread.hasOpen) return 'open';
-    if (thread.hasInProgress) return 'in_progress';
-    const statuses = thread.messages.map(m => m.status);
-    if (statuses.includes('resolved')) return 'resolved';
-    return 'closed';
+    return thread.latestMessage?.status || 'open';
   };
 
   return (
@@ -536,6 +778,83 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
         </div>
       </header>
 
+      {/* Filter & Grouping Bar */}
+      <div className="filter-bar">
+        <div className="filter-section">
+          <span className="filter-label">Filter:</span>
+          <button
+            className={`filter-chip ${filters.status.length === 0 && filters.types.length === 0 && filters.severity.length === 0 ? 'active' : ''}`}
+            onClick={clearFilters}
+          >
+            All
+          </button>
+          <button
+            className={`filter-chip ${filters.status.includes('open') ? 'active' : ''}`}
+            onClick={() => toggleFilter('status', 'open')}
+          >
+            Open <span className="filter-count">{threads.filter(t => t.hasOpen).length}</span>
+          </button>
+          <button
+            className={`filter-chip ${filters.status.includes('in_progress') ? 'active' : ''}`}
+            onClick={() => toggleFilter('status', 'in_progress')}
+          >
+            In Progress <span className="filter-count">{threads.filter(t => t.hasInProgress && !t.hasOpen).length}</span>
+          </button>
+          <button
+            className={`filter-chip ${filters.status.includes('resolved') ? 'active' : ''}`}
+            onClick={() => toggleFilter('status', 'resolved')}
+          >
+            Resolved <span className="filter-count">{threads.filter(t => !t.hasOpen && !t.hasInProgress).length}</span>
+          </button>
+          <button
+            className={`filter-chip ${filters.severity.includes('BLOCKING') ? 'active' : ''}`}
+            onClick={() => toggleFilter('severity', 'BLOCKING')}
+          >
+            Blocking <span className="filter-count">{threads.filter(t => t.worstSeverity === 'BLOCKING').length}</span>
+          </button>
+          <span className="filter-divider">|</span>
+          <button
+            className={`filter-chip ${filters.types.includes('bug') ? 'active' : ''}`}
+            onClick={() => toggleFilter('types', 'bug')}
+          >
+            Bug
+          </button>
+          <button
+            className={`filter-chip ${filters.types.includes('task') ? 'active' : ''}`}
+            onClick={() => toggleFilter('types', 'task')}
+          >
+            Task
+          </button>
+          <button
+            className={`filter-chip ${filters.types.includes('question') ? 'active' : ''}`}
+            onClick={() => toggleFilter('types', 'question')}
+          >
+            Question
+          </button>
+          <span className="filter-divider">|</span>
+          <label className="filter-checkbox">
+            <input
+              type="checkbox"
+              checked={filters.showArchived}
+              onChange={(e) => setFilters(prev => ({ ...prev, showArchived: e.target.checked }))}
+            />
+            Archived <span className="filter-count">{data?.stats?.archived_count ?? 0}</span>
+          </label>
+        </div>
+        <div className="grouping-section">
+          <span className="filter-label">Group:</span>
+          {(['thread', 'agent', 'status', 'time'] as GroupBy[]).map(mode => (
+            <button
+              key={mode}
+              className={`filter-chip ${groupBy === mode ? 'active' : ''}`}
+              onClick={() => setGroupBy(mode)}
+            >
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Main Layout */}
       <div className={`oversight-main ${isResizing ? 'resizing' : ''}`} ref={mainRef}>
         {/* Thread List */}
@@ -547,73 +866,111 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
             </div>
           )}
 
-          {threads.length === 0 ? (
-            <div className="empty-state">No messages</div>
+          {filteredThreads.length === 0 ? (
+            <div className="empty-state">{threads.length === 0 ? 'No messages' : 'No matches for current filters'}</div>
           ) : (
-            threads.map(thread => (
-              <div
-                key={thread.id}
-                className={`message-row ${getThreadStatus(thread)} ${selectedThreadId === thread.id ? 'selected' : ''} ${dragState.draggedThreadId === thread.id ? 'dragging' : ''} ${dragState.dragOverThreadId === thread.id ? 'drag-over' : ''}`}
-                onClick={() => setSelectedThreadId(thread.id)}
-                onDragOver={(e) => handleDragOver(e, thread.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, thread.id)}
-              >
-                <div
-                  className="drag-handle"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, thread.id)}
-                  onDragEnd={handleDragEnd}
-                  title="Drag to merge into another thread"
-                >
-                  <span className="grip-line" />
-                  <span className="grip-line" />
-                  <span className="grip-line" />
-                </div>
-                <div className="message-status-col">
-                  <span className={`status-dot ${getThreadStatus(thread)}`} title={getThreadStatus(thread)} />
-                </div>
-                <div className="message-agents-col">
-                  {thread.participants.slice(0, 3).map((agent, i) => (
-                    <span
-                      key={agent}
-                      className="agent-badge"
-                      style={{
-                        background: getAgentColor(agent),
-                        marginLeft: i > 0 ? '-4px' : 0,
-                        zIndex: 3 - i,
-                      }}
-                      title={agent}
+            groupedThreads.map(group => (
+              <div key={group.key} className="thread-group">
+                {/* Section header - only show for non-thread grouping */}
+                {groupBy !== 'thread' && group.label && (
+                  <div
+                    className={`thread-group-header ${groupBy === 'status' ? `status-${group.key}` : ''} ${collapsedGroups.has(group.key) ? 'collapsed' : ''}`}
+                    onClick={() => {
+                      setCollapsedGroups(prev => {
+                        const next = new Set(prev);
+                        if (next.has(group.key)) {
+                          next.delete(group.key);
+                        } else {
+                          next.add(group.key);
+                        }
+                        return next;
+                      });
+                    }}
+                  >
+                    <span className="thread-group-chevron">
+                      {collapsedGroups.has(group.key) ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                    </span>
+                    <span className="thread-group-label">{group.label}</span>
+                    <span className="thread-group-count">{group.count}</span>
+                  </div>
+                )}
+                {/* Thread rows within group - hide if collapsed */}
+                {!collapsedGroups.has(group.key) && group.threads.map(thread => (
+                  <div
+                    key={thread.id}
+                    className={`message-row ${getThreadStatus(thread)} ${selectedThreadId === thread.id ? 'selected' : ''} ${dragState.draggedThreadId === thread.id ? 'dragging' : ''} ${dragState.dragOverThreadId === thread.id ? 'drag-over' : ''}`}
+                    onClick={() => setSelectedThreadId(thread.id)}
+                    onDragOver={(e) => handleDragOver(e, thread.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, thread.id)}
+                  >
+                    <div
+                      className="drag-handle"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, thread.id)}
+                      onDragEnd={handleDragEnd}
+                      title="Drag to merge into another thread"
                     >
-                      {getAgentAbbrev(agent)}
-                    </span>
-                  ))}
-                  {thread.participants.length > 3 && (
-                    <span className="agent-badge more">+{thread.participants.length - 3}</span>
-                  )}
-                </div>
-                <div className="message-content-col">
-                  <span className="message-subject">{thread.subject}</span>
-                  <span className="message-preview">
-                    {thread.latestMessage.from_agent.replace('_agent', '')}: {thread.latestMessage.preview || thread.latestMessage.subject}
-                  </span>
-                </div>
-                <div className="message-meta-col">
-                  {thread.messages.length > 1 && (
-                    <span className="thread-msg-count" title={`${thread.messages.length} messages`}>
-                      {thread.messages.length}
-                    </span>
-                  )}
-                  {thread.worstSeverity && (
-                    <span className={`severity-badge ${thread.worstSeverity.toLowerCase()}`}>
-                      {thread.worstSeverity}
-                    </span>
-                  )}
-                  <span className={`latest-status ${thread.latestMessage.status || 'open'}`}>
-                    {thread.latestMessage.status || 'open'}
-                  </span>
-                  <span className="message-time">{formatTime(thread.latestDate)}</span>
-                </div>
+                      <span className="grip-line" />
+                      <span className="grip-line" />
+                      <span className="grip-line" />
+                    </div>
+                    <div className="message-status-col">
+                      <span className={`status-dot ${getThreadStatus(thread)}`} title={getThreadStatus(thread)} />
+                    </div>
+                    <div className="message-agents-col">
+                      {thread.participants.slice(0, 3).map((agent, i) => (
+                        <span
+                          key={agent}
+                          className="agent-badge"
+                          style={{
+                            background: getAgentColor(agent),
+                            marginLeft: i > 0 ? '-4px' : 0,
+                            zIndex: 3 - i,
+                          }}
+                          title={agent}
+                        >
+                          {getAgentAbbrev(agent)}
+                        </span>
+                      ))}
+                      {thread.participants.length > 3 && (
+                        <span className="agent-badge more">+{thread.participants.length - 3}</span>
+                      )}
+                    </div>
+                    <div className="message-content-col">
+                      <span className="message-subject">{thread.subject}</span>
+                      <span className="message-preview">
+                        {thread.latestMessage.from_agent.replace('_agent', '')}: {thread.latestMessage.preview || thread.latestMessage.subject}
+                      </span>
+                    </div>
+                    <div className="message-meta-col">
+                      {thread.messages.length > 1 && (
+                        <span className="thread-msg-count" title={`${thread.messages.length} messages`}>
+                          {thread.messages.length}
+                        </span>
+                      )}
+                      {thread.worstSeverity && (
+                        <span className={`severity-badge ${thread.worstSeverity.toLowerCase()}`}>
+                          {thread.worstSeverity}
+                        </span>
+                      )}
+                      <span className={`latest-status ${thread.latestMessage.status || 'open'}`}>
+                        {thread.latestMessage.status || 'open'}
+                      </span>
+                      <span className="message-time">{formatTime(thread.latestDate)}</span>
+                      <button
+                        className="archive-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          archiveThread(thread);
+                        }}
+                        title="Archive thread"
+                      >
+                        <Archive size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             ))
           )}
@@ -645,6 +1002,13 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
                       {selectedThread.worstSeverity}
                     </span>
                   )}
+                  <button
+                    className="archive-thread-btn"
+                    onClick={() => archiveThread(selectedThread)}
+                    title="Archive entire thread"
+                  >
+                    <Archive size={14} /> Archive Thread
+                  </button>
                 </div>
                 {/* Thread Participants with Acknowledgment Status */}
                 <div className="thread-participants-grid">
@@ -875,6 +1239,27 @@ export function OversightDashboard({ isConnected, onRequestSync }: OversightDash
                             onClick={(e) => { e.stopPropagation(); startReply(msg, true); }}
                           >
                             <span className="action-icon">↩↩</span> Reply All
+                          </button>
+                          <span className="action-divider" />
+                          <div className="status-buttons">
+                            {(['open', 'in_progress', 'resolved'] as const).map(status => (
+                              <button
+                                key={status}
+                                className={`status-btn ${status} ${(msg.status || 'open') === status ? 'active' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); updateMessageStatus(msg.id, status); }}
+                                title={`Mark as ${status.replace('_', ' ')}`}
+                              >
+                                {status === 'open' ? '○' : status === 'in_progress' ? '◐' : '●'}
+                              </button>
+                            ))}
+                          </div>
+                          <span className="action-divider" />
+                          <button
+                            className="email-action-btn archive"
+                            onClick={(e) => { e.stopPropagation(); archiveMessage(msg.id, !msg.archived); }}
+                            title={msg.archived ? 'Unarchive' : 'Archive'}
+                          >
+                            <Archive size={14} /> {msg.archived ? 'Unarchive' : 'Archive'}
                           </button>
                         </div>
                       </div>

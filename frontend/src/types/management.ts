@@ -31,9 +31,13 @@ export type EventCategory =
   | 'PRACTICE'
   | 'MEETING'
   | 'GAME'
+  | 'TEAM'
+  | 'PLAYER'
   | 'SCOUTING'
   | 'DRAFT'
   | 'STAFF'
+  | 'MEDIA'
+  | 'INJURY'
   | 'DEADLINE'
   | 'SYSTEM';
 
@@ -47,6 +51,8 @@ export type EventStatus =
   | 'EXPIRED'
   | 'DISMISSED'
   | 'AUTO_RESOLVED';
+
+export type DisplayMode = 'PANE' | 'MODAL' | 'TICKER';
 
 export type ClipboardTab =
   | 'EVENTS'
@@ -110,6 +116,7 @@ export interface ManagementEvent {
   scheduled_for: string | null;
   deadline: string | null;
   status: EventStatus;
+  display_mode: DisplayMode;  // How to display: PANE, MODAL, or TICKER
   auto_pause: boolean;
   requires_attention: boolean;
   can_dismiss: boolean;
@@ -122,6 +129,7 @@ export interface ManagementEvent {
 
 export interface EventQueue {
   pending: ManagementEvent[];
+  upcoming: ManagementEvent[];  // Scheduled future events
   urgent_count: number;
   total_count: number;
 }
@@ -164,6 +172,7 @@ export interface TickerFeed {
 
 export interface LeagueState {
   id: string;
+  league_id: string;  // Core league ID for portrait API
   player_team_id: string | null;
   calendar: CalendarState;
   events: EventQueue;
@@ -259,9 +268,13 @@ export const CATEGORY_ICONS: Record<EventCategory, string> = {
   PRACTICE: 'dumbbell',
   MEETING: 'users',
   GAME: 'football',
+  TEAM: 'users',
+  PLAYER: 'user',
   SCOUTING: 'search',
   DRAFT: 'graduation-cap',
   STAFF: 'briefcase',
+  MEDIA: 'microphone',
+  INJURY: 'heart-off',
   DEADLINE: 'clock',
   SYSTEM: 'info',
 };

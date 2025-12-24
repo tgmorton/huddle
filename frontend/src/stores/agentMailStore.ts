@@ -55,6 +55,9 @@ export interface AgentMailMessage {
   file_references?: FileReference[];
   blocked_by?: string[];
   blocks?: string[];
+  // Archive
+  archived?: boolean;
+  archived_at?: string;
 }
 
 export interface AgentNote {
@@ -73,6 +76,11 @@ export interface DashboardStats {
   total_messages: number;
   bugs: number;
   blocking_bugs: number;
+  archived_count: number;
+  open_count: number;
+  in_progress_count: number;
+  resolved_count: number;
+  closed_count: number;
 }
 
 export interface DashboardData {
@@ -125,6 +133,7 @@ interface AgentMailStore {
   // Actions - Local state updates (for optimistic UI)
   updateMessageStatus: (messageId: string, status: AgentMailMessage['status']) => void;
   updateMessageRouting: (messageId: string, field: 'from' | 'to', value: string) => void;
+  archiveMessage: (messageId: string, archived: boolean) => void;
 
   // Actions - Clear
   clearStore: () => void;
@@ -243,6 +252,26 @@ export const useAgentMailStore = create<AgentMailStore>((set, get) => ({
         messages: data.messages.map((m) =>
           m.id === messageId ? { ...m, [fieldKey]: value } : m
         ),
+      },
+    });
+  },
+
+  archiveMessage: (messageId, archived) => {
+    const { data } = get();
+    if (!data) return;
+
+    set({
+      data: {
+        ...data,
+        messages: data.messages.map((m) =>
+          m.id === messageId
+            ? { ...m, archived, archived_at: archived ? new Date().toISOString() : undefined }
+            : m
+        ),
+        stats: {
+          ...data.stats,
+          archived_count: data.stats.archived_count + (archived ? 1 : -1),
+        },
       },
     });
   },

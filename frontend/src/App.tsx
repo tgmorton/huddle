@@ -14,6 +14,10 @@ import { V2SimScreen } from './components/V2Sim/V2SimScreen'
 import { AgentMailScreen } from './components/AgentMail/AgentMailScreen'
 import { PlayerCardDemo } from './components/PlayerCard'
 import { ManagementV2 } from './components/ManagementV2'
+import { SimAnalyzer } from './components/SimAnalyzer/SimAnalyzer'
+import { Sim3D } from './components/Sim3D'
+import { ArmsPrototype } from './components/ArmsPrototype'
+import SimExplorer from './components/SimExplorer/SimExplorer'
 import './App.css'
 
 // Theme management at app level
@@ -49,8 +53,12 @@ const NAV_ITEMS = [
   { path: '/play-sim', label: 'Play Sim' },
   { path: '/integrated', label: 'Integrated' },
   { path: '/v2-sim', label: 'V2 Sim' },
+  { path: '/sim-analyzer', label: 'Sim Analyzer' },
+  { path: '/sim-3d', label: 'Sim 3D' },
+  { path: '/arms', label: 'Arms Proto' },
   { path: '/manage', label: 'Manage' },
   { path: '/manage-v2', label: 'Manage V2' },
+  { path: '/sim-explorer', label: 'Sim Explorer' },
   { path: '/admin', label: 'Admin' },
   { path: '/agentmail', label: 'AgentMail' },
   { path: '/player-card', label: 'Player Card' },
@@ -102,9 +110,17 @@ function App() {
         <Route path="/play-sim" element={<WithHeader><PlaySimScreen /></WithHeader>} />
         <Route path="/integrated" element={<WithHeader><IntegratedSimScreen /></WithHeader>} />
         <Route path="/v2-sim" element={<WithHeader><V2SimScreen /></WithHeader>} />
+        {/* SimAnalyzer - V2 sim with ManagementV2 design (standalone, no header) */}
+        <Route path="/sim-analyzer" element={<SimAnalyzer />} />
+        {/* Sim3D - Three.js 3D simulation viewer (standalone, no header) */}
+        <Route path="/sim-3d" element={<Sim3D />} />
+        {/* Arms Prototype - 1v1 OL/DL physics simulation (standalone, no header) */}
+        <Route path="/arms" element={<ArmsPrototype />} />
         <Route path="/manage" element={<WithHeader><ManagementScreenWrapper /></WithHeader>} />
         {/* ManagementV2 - Redesign prototype (standalone, no header) */}
         <Route path="/manage-v2" element={<ManagementV2 />} />
+        {/* SimExplorer - Historical simulation explorer (standalone, no header) */}
+        <Route path="/sim-explorer" element={<SimExplorer />} />
         <Route path="/admin" element={<WithHeader><AdminScreen /></WithHeader>} />
         {/* AgentMail has its own sidebar navigation, no header needed */}
         <Route path="/agentmail" element={<AgentMailScreen />} />

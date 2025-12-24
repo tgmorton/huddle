@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { PlaceholderContent } from '../content/PlaceholderContent';
+import { FreeAgentsContent } from '../content/FreeAgentsContent';
 
 type TransactionsTab = 'free-agents' | 'trades' | 'waivers';
 
@@ -16,7 +17,7 @@ export const TransactionsPanel: React.FC = () => {
         <button className={`tabbed-panel__tab ${tab === 'waivers' ? 'tabbed-panel__tab--active' : ''}`} onClick={() => setTab('waivers')}>Waivers</button>
       </div>
       <div className="tabbed-panel__content">
-        {tab === 'free-agents' && <PlaceholderContent title="Free Agents" />}
+        {tab === 'free-agents' && <FreeAgentsContent />}
         {tab === 'trades' && <PlaceholderContent title="Trade Block" />}
         {tab === 'waivers' && <PlaceholderContent title="Waivers" />}
       </div>

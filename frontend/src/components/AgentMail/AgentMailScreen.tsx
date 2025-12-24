@@ -22,6 +22,13 @@ import {
   ClipboardList,
   Settings,
   Sun,
+  Wrench,
+  Mail,
+  Trash2,
+  CheckCircle,
+  Archive,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import './AgentMailScreen.css';
 import { useAgentMailWebSocket } from '../../hooks/useAgentMailWebSocket';
@@ -133,6 +140,11 @@ export function AgentMailScreen() {
     counts: Record<string, number>;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [maintenanceExpanded, setMaintenanceExpanded] = useState(false);
+  const [bulkSelectModal, setBulkSelectModal] = useState<{
+    type: 'resolve' | 'archive';
+    messages: Array<{ id: string; subject: string; selected: boolean }>;
+  } | null>(null);
   const [searchResults, setSearchResults] = useState<Array<{
     type: string;
     id: string;
@@ -492,6 +504,125 @@ export function AgentMailScreen() {
     } catch (err) {
       console.error('Failed to send message:', err);
     }
+  };
+
+  // Maintenance Actions
+  const requestStatusUpdate = (agentName: string) => {
+    const openMessages = data?.messages.filter(m =>
+      m.to_agent === agentName && (m.status === 'open' || m.status === 'in_progress')
+    ) || [];
+
+    const content = `Please provide status updates on your ${openMessages.length} open/in-progress items:\n\n${
+      openMessages.map(m => `- **${m.subject}** (${m.status})`).join('\n')
+    }\n\nFor each item, please update the status or reply with progress.`;
+
+    setComposing({
+      toAgent: agentName,
+      subject: 'Status Update Request',
+      content,
+      type: 'directive',
+    });
+  };
+
+  const requestThreadCleanup = (agentName: string) => {
+    const staleMessages = data?.messages.filter(m => {
+      if (m.to_agent !== agentName && m.from_agent !== agentName) return false;
+      if (m.status === 'closed' || m.archived) return false;
+      // Check if message is older than 3 days
+      const msgDate = new Date(m.date);
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      return msgDate < threeDaysAgo;
+    }) || [];
+
+    const content = `Please review and close any stale threads:\n\n${
+      staleMessages.map(m => `- **${m.subject}** (${m.status}, ${m.date})`).join('\n')
+    }\n\nMark as resolved/closed if complete, or reply with blockers.`;
+
+    setComposing({
+      toAgent: agentName,
+      subject: 'Thread Cleanup Request',
+      content,
+      type: 'directive',
+    });
+  };
+
+  const openBulkResolveModal = (agentName: string) => {
+    const openMessages = data?.messages.filter(m =>
+      m.to_agent === agentName && (m.status === 'open' || m.status === 'in_progress')
+    ) || [];
+
+    setBulkSelectModal({
+      type: 'resolve',
+      messages: openMessages.map(m => ({ id: m.id, subject: m.subject, selected: false })),
+    });
+  };
+
+  const openBulkArchiveModal = (agentName: string) => {
+    const closedMessages = data?.messages.filter(m =>
+      (m.to_agent === agentName || m.from_agent === agentName) &&
+      (m.status === 'closed' || m.status === 'resolved') &&
+      !m.archived
+    ) || [];
+
+    setBulkSelectModal({
+      type: 'archive',
+      messages: closedMessages.map(m => ({ id: m.id, subject: m.subject, selected: true })),
+    });
+  };
+
+  const executeBulkAction = async () => {
+    if (!bulkSelectModal) return;
+
+    const selectedIds = bulkSelectModal.messages
+      .filter(m => m.selected)
+      .map(m => m.id);
+
+    if (selectedIds.length === 0) {
+      setBulkSelectModal(null);
+      return;
+    }
+
+    try {
+      if (bulkSelectModal.type === 'resolve') {
+        const response = await fetch(`${API_BASE}/messages/status/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message_ids: selectedIds, status: 'resolved' }),
+        });
+        if (!response.ok) throw new Error('Failed to update status');
+      } else {
+        const response = await fetch(`${API_BASE}/messages/archive/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message_ids: selectedIds, archived: true }),
+        });
+        if (!response.ok) throw new Error('Failed to archive');
+      }
+      setBulkSelectModal(null);
+      refreshData();
+    } catch (err) {
+      console.error('Bulk action failed:', err);
+    }
+  };
+
+  const toggleBulkSelectAll = () => {
+    if (!bulkSelectModal) return;
+    const allSelected = bulkSelectModal.messages.every(m => m.selected);
+    setBulkSelectModal({
+      ...bulkSelectModal,
+      messages: bulkSelectModal.messages.map(m => ({ ...m, selected: !allSelected })),
+    });
+  };
+
+  const toggleBulkSelectItem = (id: string) => {
+    if (!bulkSelectModal) return;
+    setBulkSelectModal({
+      ...bulkSelectModal,
+      messages: bulkSelectModal.messages.map(m =>
+        m.id === id ? { ...m, selected: !m.selected } : m
+      ),
+    });
   };
 
   const viewStatusFile = async (agentName: string) => {
@@ -1175,6 +1306,54 @@ J/K     Next/Previous agent
                   </div>
                 </div>
 
+                {/* Maintenance Panel */}
+                <div className="am-maintenance-panel">
+                  <button
+                    className="am-maintenance-toggle"
+                    onClick={() => setMaintenanceExpanded(!maintenanceExpanded)}
+                  >
+                    <Wrench size={14} />
+                    <span>Maintenance</span>
+                    {maintenanceExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {maintenanceExpanded && (
+                    <div className="am-maintenance-actions">
+                      <button
+                        className="am-maintenance-btn"
+                        onClick={() => requestStatusUpdate(selectedAgent)}
+                        title="Send a message requesting status updates on open items"
+                      >
+                        <Mail size={14} />
+                        <span>Request Status Update</span>
+                      </button>
+                      <button
+                        className="am-maintenance-btn"
+                        onClick={() => requestThreadCleanup(selectedAgent)}
+                        title="Send a message requesting cleanup of stale threads"
+                      >
+                        <Trash2 size={14} />
+                        <span>Request Thread Cleanup</span>
+                      </button>
+                      <button
+                        className="am-maintenance-btn"
+                        onClick={() => openBulkResolveModal(selectedAgent)}
+                        title="Bulk mark messages as resolved"
+                      >
+                        <CheckCircle size={14} />
+                        <span>Bulk Mark Resolved</span>
+                      </button>
+                      <button
+                        className="am-maintenance-btn"
+                        onClick={() => openBulkArchiveModal(selectedAgent)}
+                        title="Archive all closed messages"
+                      >
+                        <Archive size={14} />
+                        <span>Archive All Closed</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="am-messages-list" key={`${selectedAgent}-${rightTab}-${hideCompleted}`}>
                   {rightTab === 'inbox' && getAgentInbox(selectedAgent).map(renderMessageCard)}
                   {rightTab === 'sent' && getAgentSent(selectedAgent).map(renderMessageCard)}
@@ -1680,6 +1859,67 @@ J/K     Next/Previous agent
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Select Modal */}
+      {bulkSelectModal && (
+        <div className="am-modal-overlay" onClick={() => setBulkSelectModal(null)}>
+          <div className="am-modal am-simple-modal am-bulk-modal" onClick={e => e.stopPropagation()}>
+            <div className="am-modal-header">
+              <h2>{bulkSelectModal.type === 'resolve' ? 'Bulk Mark Resolved' : 'Bulk Archive'}</h2>
+              <button className="am-modal-close" onClick={() => setBulkSelectModal(null)}>×</button>
+            </div>
+            <div className="am-modal-body">
+              {bulkSelectModal.messages.length === 0 ? (
+                <div className="am-empty">
+                  {bulkSelectModal.type === 'resolve'
+                    ? 'No open or in-progress messages to resolve'
+                    : 'No closed messages to archive'}
+                </div>
+              ) : (
+                <>
+                  <div className="am-bulk-header">
+                    <label className="am-bulk-select-all">
+                      <input
+                        type="checkbox"
+                        checked={bulkSelectModal.messages.every(m => m.selected)}
+                        onChange={toggleBulkSelectAll}
+                      />
+                      Select All ({bulkSelectModal.messages.filter(m => m.selected).length}/{bulkSelectModal.messages.length})
+                    </label>
+                  </div>
+                  <div className="am-bulk-list">
+                    {bulkSelectModal.messages.map(msg => (
+                      <label key={msg.id} className="am-bulk-item">
+                        <input
+                          type="checkbox"
+                          checked={msg.selected}
+                          onChange={() => toggleBulkSelectItem(msg.id)}
+                        />
+                        <span className="am-bulk-subject">{msg.subject}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="am-compose-actions">
+                    <button
+                      className="am-btn secondary"
+                      onClick={() => setBulkSelectModal(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="am-btn primary"
+                      onClick={executeBulkAction}
+                      disabled={bulkSelectModal.messages.filter(m => m.selected).length === 0}
+                    >
+                      {bulkSelectModal.type === 'resolve' ? 'Mark Resolved' : 'Archive Selected'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

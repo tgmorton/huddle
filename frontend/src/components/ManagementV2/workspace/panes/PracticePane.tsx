@@ -1,18 +1,28 @@
 // PracticePane.tsx - Practice allocation pane with sliders and intensity controls
 
 import React, { useState } from 'react';
+import { managementApi } from '../../../../api/managementClient';
+import type { PracticeResults } from '../../../../api/managementClient';
+import { useManagementStore, selectFranchiseId } from '../../../../stores/managementStore';
 
 interface PracticePaneProps {
+  eventId?: string;
+  onRunPractice?: (eventId: string, allocation: { playbook: number; development: number; gamePrep: number }) => void;
   onComplete: () => void;
 }
 
-export const PracticePane: React.FC<PracticePaneProps> = ({ onComplete }) => {
+export const PracticePane: React.FC<PracticePaneProps> = ({ eventId, onComplete }) => {
   const [allocation, setAllocation] = useState({
     playbook: 40,
     conditioning: 30,
     gamePrep: 30,
   });
   const [intensity, setIntensity] = useState<'light' | 'normal' | 'intense'>('normal');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<PracticeResults | null>(null);
+
+  const franchiseId = useManagementStore(selectFranchiseId);
+  const bumpJournalVersion = useManagementStore(state => state.bumpJournalVersion);
 
   const total = allocation.playbook + allocation.conditioning + allocation.gamePrep;
   const remaining = 100 - total;
@@ -31,18 +41,7 @@ export const PracticePane: React.FC<PracticePaneProps> = ({ onComplete }) => {
   const riskClass = intensity === 'intense' ? 'ctrl-result__value--danger' : intensity === 'normal' ? 'ctrl-result__value--warning' : 'ctrl-result__value--muted';
 
   return (
-    <div className="pane">
-      <header className="pane__header">
-        <div className="pane__header-left">
-          <span className="pane__type">PRC</span>
-          <div>
-            <h2 className="pane__title">Practice Allocation</h2>
-            <p className="pane__subtitle">Thursday Practice • 120 min</p>
-          </div>
-        </div>
-        <button className="pane__close" onClick={onComplete}>Cancel</button>
-      </header>
-
+    <div className="pane pane--no-header">
       <div className="pane__body">
         {/* Allocation Section */}
         <div className="pane-section">
@@ -129,9 +128,72 @@ export const PracticePane: React.FC<PracticePaneProps> = ({ onComplete }) => {
       </div>
 
       <footer className="pane__footer">
-        <button className="pane__btn pane__btn--secondary" onClick={onComplete}>Skip</button>
-        <button className="pane__btn pane__btn--primary" onClick={onComplete}>Run Practice</button>
+        <button className="pane__btn pane__btn--secondary" onClick={onComplete} disabled={loading}>
+          {results ? 'Close' : 'Skip'}
+        </button>
+        <button
+          className="pane__btn pane__btn--primary"
+          disabled={loading || !franchiseId || !eventId || !!results}
+          onClick={async () => {
+            if (!eventId || !franchiseId) return;
+
+            setLoading(true);
+            try {
+              const practiceResults = await managementApi.runPractice(franchiseId, {
+                event_id: eventId,
+                playbook: allocation.playbook,
+                development: allocation.conditioning,
+                game_prep: allocation.gamePrep,
+                intensity,
+              });
+              setResults(practiceResults);
+              bumpJournalVersion();
+            } catch (err) {
+              console.error('Practice failed:', err);
+              onComplete();
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          {loading ? 'Running...' : 'Run Practice'}
+        </button>
       </footer>
+
+      {/* Results Display */}
+      {results && results.success && (
+        <div className="pane-section pane-section--results">
+          <div className="pane-section__header">Practice Complete</div>
+          <div className="ctrl-result">
+            <span className="ctrl-result__label">Players Practiced</span>
+            <span className="ctrl-result__value">{results.playbook_stats.players_practiced}</span>
+          </div>
+          {results.playbook_stats.tier_advancements > 0 && (
+            <div className="ctrl-result">
+              <span className="ctrl-result__label">Mastery Advancements</span>
+              <span className="ctrl-result__value ctrl-result__value--success">
+                +{results.playbook_stats.tier_advancements}
+              </span>
+            </div>
+          )}
+          {results.development_stats.players_developed > 0 && (
+            <div className="ctrl-result">
+              <span className="ctrl-result__label">Players Developed</span>
+              <span className="ctrl-result__value ctrl-result__value--success">
+                {results.development_stats.players_developed}
+              </span>
+            </div>
+          )}
+          {results.game_prep_stats.opponent && (
+            <div className="ctrl-result">
+              <span className="ctrl-result__label">vs {results.game_prep_stats.opponent}</span>
+              <span className="ctrl-result__value">
+                {Math.round(results.game_prep_stats.prep_level * 100)}% Ready
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

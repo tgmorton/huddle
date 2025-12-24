@@ -2,6 +2,11 @@
 
 import type { GameEvent, WorkspaceItem, NewsItem, Player, PlayerStats } from '../types';
 
+// Helper to get demo event by ID
+export const getDemoEvent = (eventId: string): GameEvent | undefined => {
+  return DEMO_EVENTS.find(e => e.id === eventId);
+};
+
 export const DEMO_EVENTS: GameEvent[] = [
   {
     id: 'evt1',
@@ -57,39 +62,22 @@ export const DEMO_EVENTS: GameEvent[] = [
   },
 ];
 
-export const INITIAL_WORKSPACE_ITEMS: WorkspaceItem[] = [
-  {
-    id: '1',
-    type: 'practice',
-    title: 'Practice Session',
-    subtitle: 'Thursday Practice - 2 hours',
-    detail: 'Allocate time between playbook installation, player development, and game prep for Dallas.',
-    isOpen: false,
-  },
-  {
-    id: '2',
-    type: 'decision',
-    title: 'WR Contract Decision',
-    subtitle: 'J. Smith wants extension',
-    timeLeft: '6h',
-    isOpen: false,
-  },
-  {
-    id: '3',
-    type: 'scout',
-    title: 'Scout Report Ready',
-    subtitle: 'Dallas defense breakdown',
-    isOpen: false,
-  },
-  {
-    id: '4',
-    type: 'deadline',
-    title: 'Roster Cutdown',
-    subtitle: 'Must reach 53 players',
-    timeLeft: '2d',
-    isOpen: false,
-  },
-];
+// Convert demo events to workspace items
+export const INITIAL_WORKSPACE_ITEMS: WorkspaceItem[] = DEMO_EVENTS.map(event => ({
+  id: `demo-${event.id}`,
+  type: event.type === 'contract_demand' ? 'decision' as const :
+        event.type === 'trade_offer' ? 'decision' as const :
+        event.type === 'injury' ? 'deadline' as const :
+        'meeting' as const,
+  title: event.title,
+  subtitle: event.subtitle,
+  detail: event.description,
+  timeLeft: event.severity === 'critical' ? 'Today' : event.severity === 'warning' ? '1d' : undefined,
+  isOpen: false,
+  status: 'active' as const,
+  // Store original event type for pane rendering
+  eventId: event.id,
+}));
 
 export const DEMO_NEWS: NewsItem[] = [
   { id: '1', text: 'Cowboys lose starting QB to injury, out 4-6 weeks', isBreaking: true },

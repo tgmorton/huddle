@@ -35,7 +35,7 @@ interface PlayerState {
   speed: number;
   facing_x?: number;
   facing_y?: number;
-  player_type: 'receiver' | 'defender' | 'qb' | 'ol' | 'dl';
+  player_type: 'receiver' | 'defender' | 'qb' | 'ol' | 'dl' | 'rb' | 'fb';
   has_ball?: boolean;
   // Receiver fields
   route_name?: string;

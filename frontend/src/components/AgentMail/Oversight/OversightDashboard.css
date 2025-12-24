@@ -177,6 +177,117 @@ body.oversight-focus-mode .oversight-dashboard {
   height: 100vh;
 }
 
+/* Filter & Grouping Bar */
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-section,
+.grouping-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border-color: var(--text-muted);
+}
+
+.filter-chip.active {
+  background: rgba(74, 158, 255, 0.15);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.filter-count {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: rgba(156, 163, 175, 0.2);
+  border-radius: 8px;
+  color: var(--text-faint);
+}
+
+.filter-chip.active .filter-count {
+  background: rgba(74, 158, 255, 0.2);
+  color: var(--accent-blue);
+}
+
+.filter-divider {
+  color: var(--border-subtle);
+  margin: 0 4px;
+}
+
+.filter-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.filter-checkbox input {
+  accent-color: var(--accent-blue);
+}
+
+/* Archive Button */
+.archive-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s;
+}
+
+.message-row:hover .archive-btn {
+  opacity: 1;
+}
+
+.archive-btn:hover {
+  background: var(--bg-hover);
+  color: var(--accent-blue);
+}
+
 /* Main Layout */
 .oversight-main {
   display: flex;
@@ -259,12 +370,16 @@ body.oversight-focus-mode .oversight-dashboard {
   margin: -8px 0;
   margin-left: -8px;
   cursor: grab;
-  opacity: 0.3;
+  opacity: 0;
   transition: opacity 0.15s;
 }
 
+.message-row:hover .drag-handle {
+  opacity: 0.3;
+}
+
 .drag-handle:hover {
-  opacity: 0.7;
+  opacity: 0.7 !important;
 }
 
 .drag-handle:active {
@@ -1337,6 +1452,89 @@ body.oversight-focus-mode .oversight-dashboard {
   color: var(--accent-amber);
 }
 
+.email-action-btn.archive:hover {
+  border-color: var(--text-faint);
+  color: var(--text-secondary);
+}
+
+/* Action divider */
+.action-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-subtle);
+  margin: 0 4px;
+}
+
+/* Status buttons */
+.status-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.status-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.status-btn:hover {
+  background: var(--bg-hover);
+}
+
+.status-btn.open:hover,
+.status-btn.open.active {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.status-btn.in_progress:hover,
+.status-btn.in_progress.active {
+  border-color: var(--accent-amber);
+  color: var(--accent-amber);
+}
+
+.status-btn.resolved:hover,
+.status-btn.resolved.active {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.status-btn.active {
+  background: var(--bg-hover);
+}
+
+/* Archive Thread Button */
+.archive-thread-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+
+.archive-thread-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-faint);
+  color: var(--text-secondary);
+}
+
 /* Reply buttons in message body - DEPRECATED, keeping for compatibility */
 .thread-message-actions {
   display: flex;
@@ -1639,4 +1837,94 @@ body.oversight-focus-mode .oversight-dashboard {
 .schedule-hint {
   color: var(--text-faint);
   font-size: 11px;
+}
+
+/* ============================================
+   Thread Group Sections
+   ============================================ */
+
+.thread-group {
+  /* Container for group header + threads */
+}
+
+.thread-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+
+.thread-group-header:hover {
+  background: var(--bg-hover);
+}
+
+.thread-group-header.collapsed {
+  border-bottom-color: var(--border-subtle);
+}
+
+.thread-group-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-faint);
+}
+
+.thread-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.thread-group-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(107, 114, 128, 0.2);
+  border-radius: 10px;
+  color: var(--text-faint);
+}
+
+/* Status-specific colors for group headers */
+.thread-group-header.status-open .thread-group-count {
+  background: rgba(74, 158, 255, 0.2);
+  color: var(--accent-blue);
+}
+
+.thread-group-header.status-in_progress .thread-group-count {
+  background: rgba(255, 183, 77, 0.2);
+  color: var(--accent-amber);
+}
+
+.thread-group-header.status-resolved .thread-group-count {
+  background: rgba(129, 199, 132, 0.2);
+  color: var(--accent-green);
+}
+
+/* Agent group styling - subtle left border with agent color */
+.thread-group-header[data-agent] {
+  border-left: 3px solid var(--agent-color);
+}
+
+/* Sepia mode overrides */
+:root.sepia-mode .thread-group-header {
+  background: #f4f0e4;
+}
+
+:root.sepia-mode .thread-group-label {
+  color: #7a7060;
+}
+
+:root.sepia-mode .thread-group-count {
+  background: rgba(90, 82, 68, 0.15);
+  color: #7a7060;
 }

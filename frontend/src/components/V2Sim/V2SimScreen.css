@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap');
+
 .v2-sim-screen {
   display: flex;
   height: 100vh;
@@ -370,8 +372,6 @@
 /* ========================================
    REDESIGNED CONCEPT PAGE - Broadcast Style
    ======================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap');
 
 /* Mode selector tabs - sleeker */
 .v2-mode-tabs {
@@ -1589,5 +1589,523 @@
   .broadcast-outcome .outcome-label {
     font-size: 32px;
     padding: 12px 30px;
+  }
+}
+
+/* =============================================================================
+   Blocking Scenarios UI
+   ============================================================================= */
+
+.v2-blocking-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+}
+
+.v2-blocking-header {
+  margin-bottom: 8px;
+}
+
+.v2-blocking-header h3 {
+  margin: 0 0 8px 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 22px;
+  color: #ffd700;
+  text-transform: uppercase;
+}
+
+.v2-blocking-header p {
+  margin: 0;
+  color: #888;
+  font-size: 14px;
+}
+
+.v2-blocking-tier {
+  margin-bottom: 16px;
+}
+
+.v2-blocking-tier h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.v2-blocking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.v2-blocking-card {
+  background: #1e1e2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.v2-blocking-card:hover {
+  border-color: #555;
+  background: #252538;
+}
+
+.v2-blocking-card.selected {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 170, 0, 0.05) 100%);
+}
+
+.v2-blocking-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.v2-blocking-card-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+}
+
+.v2-blocking-card-count {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #333;
+  border-radius: 10px;
+  color: #aaa;
+}
+
+.v2-blocking-card-desc {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.v2-blocking-card-expected {
+  font-size: 12px;
+  color: #777;
+  font-style: italic;
+}
+
+.v2-blocking-card-expected .expected-label {
+  color: #6b8;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.v2-blocking-card-concept {
+  margin-top: 8px;
+  font-size: 11px;
+  padding: 4px 8px;
+  background: rgba(100, 180, 255, 0.15);
+  color: #8bf;
+  border-radius: 4px;
+  display: inline-block;
+  text-transform: capitalize;
+}
+
+/* ========================================
+   DRIVE MODE STYLES
+   ======================================== */
+
+/* Drive Setup Panel */
+.v2-drive-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.v2-drive-header h3 {
+  color: #ffd700;
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+}
+
+.v2-drive-header p {
+  color: #888;
+  font-size: 14px;
+}
+
+.v2-drive-config {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #222;
+  border-radius: 8px;
+}
+
+.v2-drive-config label {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.v2-drive-info {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+
+.v2-drive-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.v2-drive-info-item .info-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.v2-drive-info-item .info-value {
+  font-size: 16px;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Drive Scoreboard (during play) */
+.v2-drive-scoreboard {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid #ffd700;
+  padding: 12px 32px;
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  z-index: 100;
+  border-radius: 4px;
+}
+
+.v2-drive-scoreboard .drive-down {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.v2-drive-scoreboard .drive-td {
+  color: #4f4;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.v2-drive-scoreboard .drive-turnover {
+  color: #f44;
+}
+
+.v2-drive-scoreboard .drive-position {
+  font-size: 1.2rem;
+  color: #aaa;
+}
+
+.v2-drive-scoreboard .drive-plays {
+  font-size: 0.9rem;
+  color: #666;
+  padding-left: 16px;
+  border-left: 1px solid #444;
+}
+
+@keyframes pulse {
+  from { opacity: 1; }
+  to { opacity: 0.6; }
+}
+
+/* Drive Result Overlay */
+.v2-drive-result {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #ffd700;
+  padding: 40px 60px;
+  text-align: center;
+  z-index: 200;
+  border-radius: 8px;
+}
+
+.v2-drive-result .result-yards {
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.v2-drive-result .result-outcome {
+  font-size: 1rem;
+  color: #888;
+  margin-bottom: 24px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.v2-drive-result .result-btn {
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #000;
+  font-weight: bold;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.v2-drive-result .result-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+}
+
+.v2-drive-result .result-btn.td {
+  background: linear-gradient(135deg, #4f4, #2a2);
+  color: #fff;
+}
+
+.v2-drive-result .result-btn.turnover {
+  background: linear-gradient(135deg, #f44, #a22);
+  color: #fff;
+}
+
+/* Play Selection Screen (between plays) */
+.v2-drive-playcall-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  padding: 40px 20px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.v2-drive-scoreboard-large {
+  text-align: center;
+  padding: 24px 48px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid #ffd700;
+  border-radius: 8px;
+}
+
+.v2-drive-scoreboard-large .drive-situation {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.v2-drive-scoreboard-large .drive-field-pos {
+  font-size: 1.4rem;
+  color: #ffd700;
+}
+
+.v2-drive-playcall-panel {
+  width: 100%;
+  background: #222;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.v2-drive-playcall-panel h3 {
+  text-align: center;
+  color: #888;
+  font-size: 0.9rem;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+
+.v2-drive-playcall-panel .playcall-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.v2-drive-playcall-panel .playcall-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 8px;
+  background: #333;
+  border: 2px solid #444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.v2-drive-playcall-panel .playcall-btn:hover {
+  background: #3a3a3a;
+  border-color: #555;
+}
+
+.v2-drive-playcall-panel .playcall-btn.selected {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.v2-drive-playcall-panel .playcall-btn .playcall-type {
+  font-size: 10px;
+  color: #666;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.v2-drive-playcall-panel .playcall-btn.run .playcall-type {
+  color: #8bf;
+}
+
+.v2-drive-playcall-panel .playcall-btn.pass .playcall-type {
+  color: #fb8;
+}
+
+.v2-drive-playcall-panel .playcall-btn .playcall-name {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 500;
+  text-align: center;
+}
+
+.v2-drive-playcall-panel .snap-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #000;
+  font-weight: bold;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.v2-drive-playcall-panel .snap-btn:hover {
+  transform: scale(1.01);
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Drive History */
+.v2-drive-history {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.v2-drive-history h4 {
+  font-size: 0.8rem;
+  color: #666;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.v2-drive-history .drive-plays-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.v2-drive-history .drive-play-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #222;
+  border-radius: 4px;
+}
+
+.v2-drive-history .drive-play-item .play-num {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #333;
+  border-radius: 50%;
+  font-size: 11px;
+  color: #888;
+}
+
+.v2-drive-history .drive-play-item .play-name {
+  flex: 1;
+  color: #aaa;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.v2-drive-history .drive-play-item .play-yards {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.v2-drive-history .drive-play-item.gain .play-yards {
+  color: #4f4;
+}
+
+.v2-drive-history .drive-play-item.loss .play-yards {
+  color: #f44;
+}
+
+.v2-drive-history .drive-play-item.neutral .play-yards {
+  color: #888;
+}
+
+.v2-drive-history .drive-total {
+  text-align: right;
+  font-size: 14px;
+  color: #ffd700;
+  font-weight: 600;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+}
+
+.v2-drive-end-btn {
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.v2-drive-end-btn:hover {
+  border-color: #666;
+  color: #aaa;
+}
+
+/* Responsive adjustments for drive mode */
+@media (max-width: 600px) {
+  .v2-drive-playcall-panel .playcall-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .v2-drive-scoreboard-large .drive-situation {
+    font-size: 2rem;
+  }
+
+  .v2-drive-result {
+    padding: 24px 32px;
+  }
+
+  .v2-drive-result .result-yards {
+    font-size: 1.6rem;
   }
 }

@@ -24,7 +24,7 @@ interface PlayerState {
   speed: number;
   facing_x?: number;
   facing_y?: number;
-  player_type: 'receiver' | 'defender' | 'qb' | 'ol' | 'dl';
+  player_type: 'receiver' | 'defender' | 'qb' | 'ol' | 'dl' | 'rb' | 'fb';
   has_ball?: boolean;
   goal_direction?: number;
   // Receiver fields
@@ -199,6 +199,66 @@ interface SchemeOption {
   weaknesses: string[];
 }
 
+interface BlockingScenario {
+  id: string;
+  name: string;
+  tier: number;
+  description: string;
+  expected: string;
+  offense_count: number;
+  defense_count: number;
+  run_concept: string | null;
+}
+
+// Drive mode types
+interface DrivePlayResult {
+  concept: string;
+  yards: number;
+  outcome: PlayOutcome;
+}
+
+interface DriveState {
+  down: number;           // 1-4
+  distance: number;       // yards to first down
+  fieldPosition: number;  // yards from own goal (0-100)
+  plays: DrivePlayResult[];
+}
+
+type DrivePhase = 'setup' | 'selecting' | 'running' | 'result';
+
+// Drive play options
+const DRIVE_PLAYS = [
+  // Pass
+  { concept: 'slants', label: 'Slants', isRun: false },
+  { concept: 'mesh', label: 'Mesh', isRun: false },
+  { concept: 'four_verts', label: '4 Verts', isRun: false },
+  { concept: 'smash', label: 'Smash', isRun: false },
+  // Run
+  { concept: 'inside_zone', label: 'Inside Zone', isRun: true },
+  { concept: 'outside_zone', label: 'Outside Zone', isRun: true },
+  { concept: 'power', label: 'Power', isRun: true },
+  { concept: 'draw', label: 'Draw', isRun: true },
+];
+
+// Helper functions for drive display
+const getOrdinal = (n: number): string => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+};
+
+const formatFieldPosition = (yardLine: number): string => {
+  if (yardLine === 50) return 'MIDFIELD';
+  if (yardLine < 50) return `OWN ${yardLine}`;
+  return `OPP ${100 - yardLine}`;
+};
+
+const formatYards = (yards: number): string => {
+  if (yards === 0) return 'NO GAIN';
+  if (yards > 0) return `GAIN OF ${yards} YARDS`;
+  return `LOSS OF ${Math.abs(yards)} YARDS`;
+};
+
 // Quick preset matchups
 const PRESET_MATCHUPS = [
   { concept: 'four_verts', scheme: 'cover_2', label: '4 Verts vs Cover 2', desc: 'Attack the deep middle seam' },
@@ -229,13 +289,22 @@ export function V2SimScreen() {
   const [zoneOptions, setZoneOptions] = useState<ZoneOption[]>([]);
   const [conceptOptions, setConceptOptions] = useState<ConceptOption[]>([]);
   const [schemeOptions, setSchemeOptions] = useState<SchemeOption[]>([]);
+  const [blockingScenarios, setBlockingScenarios] = useState<BlockingScenario[]>([]);
   const [selectedConcept, setSelectedConcept] = useState<string>('four_verts');
   const [selectedScheme, setSelectedScheme] = useState<string>('cover_2');
+  const [selectedBlockingScenario, setSelectedBlockingScenario] = useState<string>('1_3_basic_engagement');
   const [offense, setOffense] = useState<PlayerConfig[]>(DEFAULT_OFFENSE);
   const [defense, setDefense] = useState<PlayerConfig[]>(DEFAULT_DEFENSE);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [setupMode, setSetupMode] = useState<'matchup' | 'custom'>('matchup');
+  const [setupMode, setSetupMode] = useState<'matchup' | 'custom' | 'blocking' | 'drive'>('matchup');
+
+  // Drive mode state
+  const [driveState, setDriveState] = useState<DriveState | null>(null);
+  const [drivePhase, setDrivePhase] = useState<DrivePhase>('setup');
+  const [startingPosition, setStartingPosition] = useState(25);
+  const [selectedDrivePlay, setSelectedDrivePlay] = useState('slants');
+  const [lastPlayResult, setLastPlayResult] = useState<DrivePlayResult | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -260,6 +329,11 @@ export function V2SimScreen() {
       .then(res => res.json())
       .then(setSchemeOptions)
       .catch(err => console.error('Failed to fetch schemes:', err));
+
+    fetch(`${API_BASE}/blocking-scenarios`)
+      .then(res => res.json())
+      .then(setBlockingScenarios)
+      .catch(err => console.error('Failed to fetch blocking scenarios:', err));
   }, []);
 
   // Helper to connect WebSocket after session is created
@@ -333,6 +407,31 @@ export function V2SimScreen() {
     }
   }, [selectedConcept, selectedScheme, connectWebSocket]);
 
+  // Create blocking scenario session
+  const createBlockingSession = useCallback(async () => {
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/blocking-scenario`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenario_id: selectedBlockingScenario,
+          tick_rate_ms: 50,
+          max_time: 4.0,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create blocking scenario session');
+
+      const session = await res.json();
+      setSessionId(session.session_id);
+      connectWebSocket(session.session_id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  }, [selectedBlockingScenario, connectWebSocket]);
+
   // Create custom session with new offense[]/defense[] format
   const createSession = useCallback(async () => {
     setError(null);
@@ -358,6 +457,121 @@ export function V2SimScreen() {
       setError(err instanceof Error ? err.message : 'Unknown error');
     }
   }, [offense, defense, connectWebSocket]);
+
+  // Drive mode handlers
+  const startDrive = useCallback(() => {
+    setDriveState({
+      down: 1,
+      distance: 10,
+      fieldPosition: startingPosition,
+      plays: [],
+    });
+    setDrivePhase('selecting');
+    setLastPlayResult(null);
+  }, [startingPosition]);
+
+  const snapBall = useCallback(async () => {
+    if (!driveState) return;
+    setDrivePhase('running');
+    setError(null);
+
+    // Pick a random defensive scheme
+    const schemes = ['cover_2', 'cover_3', 'cover_1'];
+    const randomScheme = schemes[Math.floor(Math.random() * schemes.length)];
+
+    try {
+      const res = await fetch(`${API_BASE}/matchup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          concept: selectedDrivePlay,
+          scheme: randomScheme,
+          tick_rate_ms: 50,
+          max_time: 6.0,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create play session');
+
+      const session = await res.json();
+      setSessionId(session.session_id);
+      connectWebSocket(session.session_id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setDrivePhase('selecting');
+    }
+  }, [driveState, selectedDrivePlay, connectWebSocket]);
+
+  const handlePlayComplete = useCallback((outcome: PlayOutcome, yardage: number) => {
+    if (!driveState) return;
+
+    const result: DrivePlayResult = {
+      concept: selectedDrivePlay,
+      yards: yardage,
+      outcome,
+    };
+    setLastPlayResult(result);
+
+    setDriveState(prev => {
+      if (!prev) return null;
+
+      const newFieldPos = Math.min(100, Math.max(0, prev.fieldPosition + yardage));
+      const newDistance = prev.distance - yardage;
+
+      // Check for TD
+      if (newFieldPos >= 100) {
+        return { ...prev, fieldPosition: 100, plays: [...prev.plays, result] };
+      }
+
+      // Check for first down
+      if (newDistance <= 0) {
+        return {
+          ...prev,
+          down: 1,
+          distance: 10,
+          fieldPosition: newFieldPos,
+          plays: [...prev.plays, result],
+        };
+      }
+
+      // Check for turnover on downs
+      if (prev.down >= 4) {
+        return { ...prev, down: 5, fieldPosition: newFieldPos, plays: [...prev.plays, result] };
+      }
+
+      // Next down
+      return {
+        ...prev,
+        down: prev.down + 1,
+        distance: newDistance,
+        fieldPosition: newFieldPos,
+        plays: [...prev.plays, result],
+      };
+    });
+
+    setDrivePhase('result');
+  }, [driveState, selectedDrivePlay]);
+
+  const nextPlay = useCallback(() => {
+    // Close WebSocket and clear session
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    setSessionId(null);
+    setSimState(null);
+    setDrivePhase('selecting');
+  }, []);
+
+  const endDrive = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    setSessionId(null);
+    setSimState(null);
+    setDriveState(null);
+    setDrivePhase('setup');
+    setLastPlayResult(null);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -403,6 +617,30 @@ export function V2SimScreen() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isConnected, simState, selectedPlayerId]);
 
+  // Watch for play completion in drive mode
+  useEffect(() => {
+    if (drivePhase === 'running' && simState?.is_complete && simState?.play_outcome) {
+      // Calculate yardage based on outcome
+      let yards = 0;
+      const outcome = simState.play_outcome;
+
+      if (outcome === 'tackled' && simState.tackle_position) {
+        // Yards gained = tackle position Y (LOS is at y=0)
+        yards = Math.round(simState.tackle_position.y);
+      } else if (outcome === 'complete') {
+        // Find the receiver who caught it (has_ball)
+        const catcher = simState.players.find(p => p.has_ball && p.player_type === 'receiver');
+        if (catcher) {
+          yards = Math.round(catcher.y);
+        }
+      } else if (outcome === 'incomplete' || outcome === 'interception') {
+        yards = 0;
+      }
+
+      handlePlayComplete(outcome, yards);
+    }
+  }, [drivePhase, simState?.is_complete, simState?.play_outcome, simState?.tackle_position, simState?.players, handlePlayComplete]);
+
   const selectedPlayer = simState?.players.find(p => p.id === selectedPlayerId);
   const receivers = simState?.players.filter(p => p.player_type === 'receiver') || [];
   const defenderPlayers = simState?.players.filter(p => p.player_type === 'defender') || [];
@@ -413,7 +651,61 @@ export function V2SimScreen() {
   return (
     <div className="v2-sim-screen">
       <div className="v2-sim-main">
-        {!sessionId ? (
+        {/* Drive Mode - Play Selection Screen (between plays) */}
+        {driveState && drivePhase === 'selecting' && !sessionId ? (
+          <div className="v2-drive-playcall-screen">
+            {/* Scoreboard */}
+            <div className="v2-drive-scoreboard-large">
+              <div className="drive-situation">
+                {driveState.down}{getOrdinal(driveState.down)} & {driveState.distance}
+              </div>
+              <div className="drive-field-pos">{formatFieldPosition(driveState.fieldPosition)}</div>
+            </div>
+
+            {/* Play Selection Grid */}
+            <div className="v2-drive-playcall-panel">
+              <h3>CALL YOUR PLAY</h3>
+              <div className="playcall-grid">
+                {DRIVE_PLAYS.map(play => (
+                  <button
+                    key={play.concept}
+                    className={`playcall-btn ${play.isRun ? 'run' : 'pass'} ${selectedDrivePlay === play.concept ? 'selected' : ''}`}
+                    onClick={() => setSelectedDrivePlay(play.concept)}
+                  >
+                    <span className="playcall-type">{play.isRun ? 'RUN' : 'PASS'}</span>
+                    <span className="playcall-name">{play.label}</span>
+                  </button>
+                ))}
+              </div>
+              <button className="snap-btn" onClick={snapBall}>
+                ⚡ SNAP THE BALL
+              </button>
+            </div>
+
+            {/* Drive History */}
+            {driveState.plays.length > 0 && (
+              <div className="v2-drive-history">
+                <h4>DRIVE SUMMARY</h4>
+                <div className="drive-plays-list">
+                  {driveState.plays.map((play, i) => (
+                    <div key={i} className={`drive-play-item ${play.yards > 0 ? 'gain' : play.yards < 0 ? 'loss' : 'neutral'}`}>
+                      <span className="play-num">{i + 1}</span>
+                      <span className="play-name">{play.concept.replace(/_/g, ' ')}</span>
+                      <span className="play-yards">{play.yards > 0 ? '+' : ''}{play.yards}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="drive-total">
+                  Total: {driveState.plays.reduce((sum, p) => sum + p.yards, 0)} yards
+                </div>
+              </div>
+            )}
+
+            <button className="v2-drive-end-btn" onClick={endDrive}>
+              ✕ End Drive
+            </button>
+          </div>
+        ) : !sessionId ? (
           <div className="v2-sim-setup">
             <h2>V2 Route Simulation with Coverage</h2>
 
@@ -426,10 +718,22 @@ export function V2SimScreen() {
                 Play Matchups
               </button>
               <button
+                className={setupMode === 'blocking' ? 'active' : ''}
+                onClick={() => setSetupMode('blocking')}
+              >
+                Blocking Tests
+              </button>
+              <button
                 className={setupMode === 'custom' ? 'active' : ''}
                 onClick={() => setSetupMode('custom')}
               >
                 Custom Setup
+              </button>
+              <button
+                className={setupMode === 'drive' ? 'active' : ''}
+                onClick={() => setSetupMode('drive')}
+              >
+                Drive Mode
               </button>
             </div>
 
@@ -603,6 +907,97 @@ export function V2SimScreen() {
                   </button>
                 </div>
               </div>
+            ) : setupMode === 'blocking' ? (
+              <div className="v2-blocking-setup">
+                <div className="v2-blocking-header">
+                  <h3>Blocking Behavior Tests</h3>
+                  <p>Visualize specific OL/DL blocking mechanics from simple 1v1 to full line play</p>
+                </div>
+
+                {/* Tier sections */}
+                {[1, 2, 3, 4].map(tier => {
+                  const tierScenarios = blockingScenarios.filter(s => s.tier === tier);
+                  if (tierScenarios.length === 0) return null;
+
+                  const tierNames = {
+                    1: 'Tier 1: Atomic Behaviors (1v1)',
+                    2: 'Tier 2: Assignment Behaviors',
+                    3: 'Tier 3: Multi-Player',
+                    4: 'Tier 4: Full Line Play',
+                  };
+
+                  return (
+                    <div key={tier} className="v2-blocking-tier">
+                      <h4>{tierNames[tier as keyof typeof tierNames]}</h4>
+                      <div className="v2-blocking-grid">
+                        {tierScenarios.map(scenario => (
+                          <div
+                            key={scenario.id}
+                            className={`v2-blocking-card ${selectedBlockingScenario === scenario.id ? 'selected' : ''}`}
+                            onClick={() => setSelectedBlockingScenario(scenario.id)}
+                          >
+                            <div className="v2-blocking-card-header">
+                              <span className="v2-blocking-card-name">{scenario.name}</span>
+                              <span className="v2-blocking-card-count">
+                                {scenario.offense_count}O vs {scenario.defense_count}D
+                              </span>
+                            </div>
+                            <div className="v2-blocking-card-desc">{scenario.description}</div>
+                            <div className="v2-blocking-card-expected">
+                              <span className="expected-label">Expected:</span> {scenario.expected}
+                            </div>
+                            {scenario.run_concept && (
+                              <div className="v2-blocking-card-concept">
+                                Run: {scenario.run_concept.replace(/_/g, ' ')}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <button className="v2-run-matchup-btn" onClick={createBlockingSession}>
+                  ▶ Run Blocking Scenario
+                </button>
+              </div>
+            ) : setupMode === 'drive' ? (
+              <div className="v2-drive-setup">
+                <div className="v2-drive-header">
+                  <h3>Drive Simulator</h3>
+                  <p>Run a full drive with down & distance tracking</p>
+                </div>
+
+                <div className="v2-drive-config">
+                  <label>Start at:</label>
+                  <select
+                    value={startingPosition}
+                    onChange={e => setStartingPosition(Number(e.target.value))}
+                    className="v2-matchup-select"
+                  >
+                    <option value={25}>Own 25</option>
+                    <option value={50}>Midfield</option>
+                    <option value={75}>Opp 25 (Red Zone)</option>
+                    <option value={90}>Opp 10 (Goal Line)</option>
+                  </select>
+                </div>
+
+                <div className="v2-drive-info">
+                  <div className="v2-drive-info-item">
+                    <span className="info-label">Plays Available</span>
+                    <span className="info-value">{DRIVE_PLAYS.length}</span>
+                  </div>
+                  <div className="v2-drive-info-item">
+                    <span className="info-label">Defense</span>
+                    <span className="info-value">Auto (Cover 2/3)</span>
+                  </div>
+                </div>
+
+                <button className="v2-run-matchup-btn" onClick={startDrive}>
+                  ▶ Start Drive
+                </button>
+              </div>
             ) : (
               <>
                 {/* Custom setup UI with unified PlayerConfig */}
@@ -757,11 +1152,28 @@ export function V2SimScreen() {
                 <span className={`ticker-connection ${isConnected ? 'live' : 'offline'}`}>
                   {isConnected ? '● LIVE' : '○ OFFLINE'}
                 </span>
-                <button className="ticker-exit" onClick={() => { wsRef.current?.close(); setSessionId(null); setSimState(null); }}>
-                  ✕ EXIT
+                <button className="ticker-exit" onClick={driveState ? endDrive : () => { wsRef.current?.close(); setSessionId(null); setSimState(null); }}>
+                  ✕ {driveState ? 'END DRIVE' : 'EXIT'}
                 </button>
               </div>
             </div>
+
+            {/* Drive Mode Scoreboard */}
+            {driveState && (
+              <div className="v2-drive-scoreboard">
+                <div className="drive-down">
+                  {driveState.fieldPosition >= 100 ? (
+                    <span className="drive-td">TOUCHDOWN!</span>
+                  ) : driveState.down > 4 ? (
+                    <span className="drive-turnover">TURNOVER ON DOWNS</span>
+                  ) : (
+                    <>{driveState.down}{getOrdinal(driveState.down)} & {driveState.distance}</>
+                  )}
+                </div>
+                <div className="drive-position">{formatFieldPosition(driveState.fieldPosition)}</div>
+                <div className="drive-plays">{driveState.plays.length} plays</div>
+              </div>
+            )}
 
             {/* Main Field Area */}
             <div className="broadcast-field">
@@ -771,8 +1183,8 @@ export function V2SimScreen() {
                 onSelectPlayer={setSelectedPlayerId}
               />
 
-              {/* Play Outcome Overlay */}
-              {simState?.play_outcome && simState.play_outcome !== 'in_progress' && (
+              {/* Play Outcome Overlay - hide in drive mode (we show our own) */}
+              {simState?.play_outcome && simState.play_outcome !== 'in_progress' && !driveState && (
                 <div className={`broadcast-outcome ${simState.play_outcome}`}>
                   <div className="outcome-label">
                     {simState.play_outcome === 'complete' && 'COMPLETE'}
@@ -780,6 +1192,21 @@ export function V2SimScreen() {
                     {simState.play_outcome === 'interception' && 'INTERCEPTED'}
                     {simState.play_outcome === 'tackled' && 'TACKLED'}
                   </div>
+                </div>
+              )}
+
+              {/* Drive Mode - Play Result Overlay */}
+              {driveState && drivePhase === 'result' && lastPlayResult && (
+                <div className="v2-drive-result">
+                  <div className="result-yards">{formatYards(lastPlayResult.yards)}</div>
+                  <div className="result-outcome">{lastPlayResult.outcome.toUpperCase()}</div>
+                  {driveState.fieldPosition >= 100 ? (
+                    <button className="result-btn td" onClick={endDrive}>🎉 NEW DRIVE</button>
+                  ) : driveState.down > 4 ? (
+                    <button className="result-btn turnover" onClick={endDrive}>END DRIVE</button>
+                  ) : (
+                    <button className="result-btn" onClick={nextPlay}>NEXT PLAY →</button>
+                  )}
                 </div>
               )}
 

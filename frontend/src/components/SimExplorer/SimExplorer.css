@@ -1,0 +1,401 @@
+/**
+ * SimExplorer Styles
+ *
+ * Based on ManagementV2 design system:
+ * - Dark theme with amber accents
+ * - Bracketed corner aesthetics
+ * - Berkeley Mono font
+ */
+
+.sim-explorer {
+  --bg-base: #0a0a0a;
+  --bg-elevated: #141414;
+  --bg-surface: #1a1a1a;
+  --border-color: #2a2a2a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #888;
+  --accent: #d4a574;
+  --accent-dim: #a07850;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Berkeley Mono', 'SF Mono', 'Monaco', monospace;
+}
+
+/* Header */
+.sim-explorer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sim-explorer-header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0;
+}
+
+.generate-btn {
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: var(--bg-base);
+  border: none;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.generate-btn:hover:not(:disabled) {
+  background: var(--accent-dim);
+}
+
+.generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.progress-message {
+  color: var(--accent);
+  font-size: 0.875rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: rgba(248, 113, 113, 0.1);
+  border-bottom: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.error-banner button {
+  background: none;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Content Layout */
+.sim-explorer-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sim-sidebar {
+  width: 280px;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-section h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem 0;
+}
+
+.team-list-section {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Lists */
+.sim-list,
+.season-list,
+.team-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sim-list li,
+.season-list li,
+.team-list li {
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.sim-list li:hover,
+.season-list li:hover,
+.team-list li:hover {
+  background: var(--bg-surface);
+}
+
+.sim-list li.selected,
+.season-list li.selected,
+.team-list li.selected {
+  background: var(--accent);
+  color: var(--bg-base);
+}
+
+.sim-list .sim-id {
+  font-weight: 600;
+  display: block;
+}
+
+.sim-list .sim-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.sim-list li.selected .sim-info {
+  color: var(--bg-elevated);
+}
+
+.team-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.team-name {
+  flex: 1;
+}
+
+.team-record {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.team-list li.selected .team-record {
+  color: var(--bg-elevated);
+}
+
+.team-status {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.status-dynasty { background: var(--success); color: var(--bg-base); }
+.status-contending { background: #22c55e; color: var(--bg-base); }
+.status-emerging { background: var(--warning); color: var(--bg-base); }
+.status-rebuilding { background: var(--danger); color: var(--bg-base); }
+.status-unknown { background: var(--text-secondary); color: var(--bg-base); }
+
+/* Main Content */
+.sim-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.empty-main,
+.empty-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* View Tabs */
+.view-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.view-tabs button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-tabs button:hover {
+  border-color: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+.view-tabs button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-base);
+  font-weight: 600;
+}
+
+/* View Content */
+.view-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--accent);
+}
+
+.empty-state {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Overview View */
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Data Tables */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+}
+
+.data-table tr:hover {
+  background: var(--bg-surface);
+}
+
+/* Overall Rating Colors */
+.overall {
+  font-weight: 600;
+}
+
+.ovr-90 { color: #22c55e; }
+.ovr-80 { color: #4ade80; }
+.ovr-70 { color: var(--warning); }
+.ovr-60 { color: #fb923c; }
+.ovr-50, .ovr-40, .ovr-30, .ovr-20, .ovr-10, .ovr-0 { color: var(--danger); }
+
+/* Transaction Types */
+.type-draft { color: #60a5fa; }
+.type-signing { color: var(--success); }
+.type-cut { color: var(--danger); }
+.type-trade { color: #c084fc; }
+
+/* Roster View */
+.roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.roster-header h3 {
+  margin: 0;
+  color: var(--accent);
+}
+
+.cap-info {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.cap-info span {
+  color: var(--text-secondary);
+}
+
+/* View Headers */
+.overview-view h3,
+.standings-view h3,
+.draft-view h3,
+.transactions-view h3 {
+  margin: 0 0 1rem 0;
+  color: var(--accent);
+  font-size: 1rem;
+}

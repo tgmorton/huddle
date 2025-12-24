@@ -35,6 +35,9 @@ interface ManagementStore {
   autoPauseReason: string | null;
   autoPauseEventId: string | null;
 
+  // Journal version - incremented when journal entries are added
+  journalVersion: number;
+
   // Actions - Connection
   setConnected: (connected: boolean) => void;
   setLoading: (loading: boolean) => void;
@@ -49,10 +52,14 @@ interface ManagementStore {
   updateClipboard: (clipboard: ClipboardState) => void;
   addTickerItem: (item: TickerItem) => void;
   addEvent: (event: ManagementEvent) => void;
+  removeEvent: (eventId: string) => void;
 
   // Actions - UI
   showAutoPause: (reason: string, eventId: string | null) => void;
   dismissAutoPause: () => void;
+
+  // Actions - Journal
+  bumpJournalVersion: () => void;
 
   // Actions - Clear
   clearSession: () => void;
@@ -75,6 +82,8 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
   showAutoPauseModal: false,
   autoPauseReason: null,
   autoPauseEventId: null,
+
+  journalVersion: 0,
 
   // Actions - Connection
   setConnected: (connected) => set({ isConnected: connected }),
@@ -119,9 +128,10 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
   },
 
   setEvents: (eventsList) => {
-    const { state } = get();
+    const { state, events: existingEvents } = get();
     const newEvents: EventQueue = {
       pending: eventsList,
+      upcoming: existingEvents?.upcoming || [],  // Preserve upcoming from previous state
       urgent_count: eventsList.filter(e => e.is_urgent).length,
       total_count: eventsList.length,
     };
@@ -191,6 +201,30 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
     }
   },
 
+  removeEvent: (eventId) => {
+    const { events, state } = get();
+    if (events) {
+      const eventToRemove = events.pending.find(e => e.id === eventId);
+      const newPending = events.pending.filter(e => e.id !== eventId);
+      const newEvents: EventQueue = {
+        ...events,
+        pending: newPending,
+        urgent_count: eventToRemove?.is_urgent
+          ? events.urgent_count - 1
+          : events.urgent_count,
+        total_count: Math.max(0, events.total_count - 1),
+      };
+      if (state) {
+        set({
+          events: newEvents,
+          state: { ...state, events: newEvents },
+        });
+      } else {
+        set({ events: newEvents });
+      }
+    }
+  },
+
   // Actions - UI
   showAutoPause: (reason, eventId) => {
     set({
@@ -208,6 +242,11 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
     });
   },
 
+  // Actions - Journal
+  bumpJournalVersion: () => {
+    set((state) => ({ journalVersion: state.journalVersion + 1 }));
+  },
+
   // Actions - Clear
   clearSession: () =>
     set({
@@ -222,6 +261,7 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
       showAutoPauseModal: false,
       autoPauseReason: null,
       autoPauseEventId: null,
+      journalVersion: 0,
     }),
 }));
 
@@ -255,3 +295,12 @@ export const selectTabBadges = (state: ManagementStore) =>
 
 export const selectTickerItems = (state: ManagementStore) =>
   state.ticker?.items ?? EMPTY_TICKER;
+
+export const selectLeagueId = (state: ManagementStore) =>
+  state.state?.league_id ?? null;
+
+export const selectFranchiseId = (state: ManagementStore) =>
+  state.franchiseId;
+
+export const selectJournalVersion = (state: ManagementStore) =>
+  state.journalVersion;

@@ -27,6 +27,8 @@ import type {
   DraftResult,
   DraftPick,
   TeamNeeds,
+  TeamCapSummary,
+  TeamCapPlayers,
 } from '../types/admin';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -64,6 +66,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   return response.json();
 }
 
+// Saved league info
+export interface SavedLeague {
+  id: string;
+  name: string;
+  season: number;
+  created_at: string;
+}
+
 // Admin API
 export const adminApi = {
   // League
@@ -75,6 +85,12 @@ export const adminApi = {
 
   getLeague: (): Promise<LeagueSummary> =>
     request('/admin/league'),
+
+  listLeagues: (): Promise<SavedLeague[]> =>
+    request('/admin/leagues'),
+
+  loadLeague: (leagueId: string): Promise<LeagueSummary> =>
+    request(`/admin/league/load/${leagueId}`, { method: 'POST' }),
 
   // Teams
   listTeams: (conference?: string, division?: string): Promise<TeamSummary[]> => {
@@ -261,6 +277,13 @@ export const adminApi = {
 
   getTeamNeeds: (abbreviation: string): Promise<TeamNeeds> =>
     request(`/admin/draft/team/${abbreviation}/needs`),
+
+  // Salary Cap
+  getTeamCapSummary: (abbreviation: string): Promise<TeamCapSummary> =>
+    request(`/admin/teams/${abbreviation}/cap-summary`),
+
+  getTeamCapPlayers: (abbreviation: string): Promise<TeamCapPlayers> =>
+    request(`/admin/teams/${abbreviation}/cap-players`),
 };
 
 export { ApiError };
