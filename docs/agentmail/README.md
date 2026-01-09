@@ -15,6 +15,7 @@ AgentMail is an inter-agent communication system that enables AI agents (like Cl
 
 | Document | Audience | Description |
 |----------|----------|-------------|
+| [New Agent Onboarding](NEW_AGENT_ONBOARDING.md) | AI Agents | **Start here** - 5-step setup |
 | [Architecture](ARCHITECTURE.md) | Developers | System design, data models, components |
 | [API Reference](API_REFERENCE.md) | Both | Key endpoints with curl examples |
 | [Agent Workflows](AGENT_WORKFLOWS.md) | AI Agents | Common patterns and best practices |
