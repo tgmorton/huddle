@@ -1,0 +1,575 @@
+{
+  "version": "1.0",
+  "description": "Master calibration table mapping player attributes to NFL performance outcomes",
+  "data_sources": [
+    "NFL Combine data (physical)",
+    "NFL PBP 2019-2024 (performance)",
+    "NFL NGS 2019-2024 (advanced metrics)"
+  ],
+  "rating_scale": {
+    "bad": 40,
+    "below_avg": 55,
+    "average": 70,
+    "above_avg": 80,
+    "elite": 95
+  },
+  "attributes": {
+    "speed": {
+      "category": "physical",
+      "source": "NFL Combine 40-yard dash",
+      "formula": "rating = 99 - (forty - 4.22) / (5.60 - 4.22) * 59",
+      "effect_per_10_points": "+0.3 yds/sec top speed",
+      "position_ranges": {
+        "min": 81.0,
+        "avg": 87.0,
+        "max": 92.0,
+        "std": 4.4
+      },
+      "simulation_use": "max_speed = 4.5 + (speed/100)^1.5 * 3.0"
+    },
+    "acceleration": {
+      "category": "physical",
+      "source": "Derived from 40-yard dash",
+      "formula": "rating = speed_rating (highly correlated)",
+      "effect_per_10_points": "+0.2 yds/sec acceleration",
+      "simulation_use": "accel_rate = base * (1 + (acceleration - 50) / 100)"
+    },
+    "agility": {
+      "category": "physical",
+      "source": "NFL Combine 3-cone drill",
+      "formula": "rating = 99 - (cone - 6.28) / (8.82 - 6.28) * 59",
+      "effect_per_10_points": "-0.22s 3-cone",
+      "position_ranges": {
+        "min": 77.0,
+        "avg": 83.0,
+        "max": 89.0,
+        "std": 4.7
+      },
+      "simulation_use": "turn_rate = base * (1 + (agility - 50) / 100)"
+    },
+    "strength": {
+      "category": "physical",
+      "source": "NFL Combine bench press",
+      "formula": "rating = 40 + (reps - 4) / (49 - 4) * 59",
+      "effect_per_10_points": "+7.6 bench reps",
+      "position_ranges": {
+        "min": 60.0,
+        "avg": 66.0,
+        "max": 77.0,
+        "std": 6.8
+      },
+      "simulation_use": "block_power = base * (1 + (strength - 50) / 100)"
+    },
+    "jumping": {
+      "category": "physical",
+      "source": "NFL Combine vertical jump",
+      "formula": "rating = 40 + (vertical - 17.5) / (46.5 - 17.5) * 59",
+      "effect_per_10_points": "+4.9 inches vertical",
+      "simulation_use": "jump_height = base * (1 + (jumping - 50) / 100)"
+    },
+    "throw_accuracy_short": {
+      "category": "passing",
+      "source": "NFL PBP completion rate <10 air yards",
+      "tier_data": {
+        "elite": 0.7225000262260437,
+        "bad": 0.6729999780654907
+      },
+      "spread_elite_to_bad": 0.05,
+      "effect_per_10_points": "+0.9% completion",
+      "simulation_use": "short_accuracy_mod = 0.67 + (rating - 40) / 55 * 0.05"
+    },
+    "throw_accuracy_medium": {
+      "category": "passing",
+      "source": "NFL PBP completion rate 10-20 air yards",
+      "tier_data": {
+        "elite": 0.5954999923706055,
+        "bad": 0.4812000095844269
+      },
+      "spread_elite_to_bad": 0.114,
+      "effect_per_10_points": "+2.1% completion",
+      "simulation_use": "medium_accuracy_mod = 0.48 + (rating - 40) / 55 * 0.114"
+    },
+    "throw_accuracy_deep": {
+      "category": "passing",
+      "source": "NFL PBP completion rate 20+ air yards",
+      "tier_data": {
+        "elite": 0.40560001134872437,
+        "bad": 0.3001999855041504
+      },
+      "spread_elite_to_bad": 0.106,
+      "effect_per_10_points": "+1.9% completion",
+      "simulation_use": "deep_accuracy_mod = 0.30 + (rating - 40) / 55 * 0.106"
+    },
+    "poise": {
+      "category": "mental",
+      "source": "NFL PBP completion under pressure penalty",
+      "tier_data": {
+        "elite": 0.20649999380111694,
+        "bad": 0.22380000352859497
+      },
+      "effect_description": "Higher poise = smaller completion drop under pressure",
+      "simulation_use": "pressure_penalty = 0.27 - (poise - 40) / 55 * 0.02"
+    },
+    "elusiveness": {
+      "category": "rushing",
+      "source": "NFL NGS yards after contact",
+      "tier_data": {},
+      "effect_description": "Yards gained after first defender contact",
+      "simulation_use": "yac_bonus = (elusiveness - 50) / 50 * 1.5"
+    },
+    "ball_carrier_vision": {
+      "category": "rushing",
+      "source": "NFL NGS yards before contact",
+      "tier_data": {},
+      "effect_description": "Yards gained before first contact (finding holes)",
+      "simulation_use": "hole_finding_bonus = (vision - 50) / 50 * 1.0"
+    },
+    "trucking": {
+      "category": "rushing",
+      "source": "NFL PBP short yardage success rate (3rd/4th & 1-2)",
+      "tier_data": {
+        "elite": 0.7555,
+        "bad": 0.6239
+      },
+      "spread_elite_to_bad": 0.131,
+      "effect_per_10_points": "+2.4% short yardage success",
+      "simulation_use": "power_success = base + (trucking - 50) / 50 * 0.10"
+    },
+    "carrying": {
+      "category": "rushing",
+      "source": "NFL PBP fumble rate (inverse)",
+      "tier_data": {
+        "Elite": {
+          "fumble_rate": 0.02055,
+          "fumble_rate_per_100": 2.06,
+          "sample": 16737
+        },
+        "Above Avg": {
+          "fumble_rate": 0.00846,
+          "fumble_rate_per_100": 0.85,
+          "sample": 19622
+        },
+        "Below Avg": {
+          "fumble_rate": 0.00761,
+          "fumble_rate_per_100": 0.76,
+          "sample": 20238
+        },
+        "Bad": {
+          "fumble_rate": 0.00714,
+          "fumble_rate_per_100": 0.71,
+          "sample": 15267
+        }
+      },
+      "effect_description": "Lower carrying = higher fumble rate",
+      "simulation_use": "fumble_rate = 0.015 * (1 - (carrying - 40) / 55 * 0.5)"
+    },
+    "break_tackle": {
+      "category": "rushing",
+      "source": "NFL PBP stuff rate (inverse) + explosive rate",
+      "tier_data": {
+        "stuff_rate": {
+          "Elite": {
+            "stuff_rate": 0.1452,
+            "sample": 16675
+          },
+          "Above Avg": {
+            "stuff_rate": 0.1667,
+            "sample": 19588
+          },
+          "Below Avg": {
+            "stuff_rate": 0.1766,
+            "sample": 20198
+          },
+          "Bad": {
+            "stuff_rate": 0.1944,
+            "sample": 15247
+          }
+        },
+        "explosive_rate": {
+          "Elite": {
+            "explosive_rate": 0.1673,
+            "sample": 16675
+          },
+          "Above Avg": {
+            "explosive_rate": 0.116,
+            "sample": 19588
+          },
+          "Below Avg": {
+            "explosive_rate": 0.0997,
+            "sample": 20198
+          },
+          "Bad": {
+            "explosive_rate": 0.0716,
+            "sample": 15247
+          }
+        }
+      },
+      "effect_description": "Ability to avoid TFL and break big plays",
+      "simulation_use": "break_success = (break_tackle - 50) / 50 * 0.15"
+    },
+    "route_running": {
+      "category": "receiving",
+      "source": "NFL NGS avg_separation",
+      "tier_data": {
+        "Elite": {
+          "avg_separation": 2.921,
+          "median": 2.819,
+          "p25": 2.258,
+          "p75": 3.48,
+          "sample": 3823
+        },
+        "Above Avg": {
+          "avg_separation": 2.928,
+          "median": 2.824,
+          "p25": 2.277,
+          "p75": 3.475,
+          "sample": 3553
+        },
+        "Below Avg": {
+          "avg_separation": 3.062,
+          "median": 2.997,
+          "p25": 2.395,
+          "p75": 3.639,
+          "sample": 3009
+        },
+        "Bad": {
+          "avg_separation": 2.94,
+          "median": 2.82,
+          "p25": 2.26,
+          "p75": 3.515,
+          "sample": 1647
+        }
+      },
+      "effect_description": "Yards of separation at catch point",
+      "separation_to_catch": {
+        "Tight": {
+          "avg_catch_pct": 55.69,
+          "avg_separation": 1.854,
+          "sample": 3009
+        },
+        "Normal": {
+          "avg_catch_pct": 64.61,
+          "avg_separation": 2.88,
+          "sample": 6015
+        },
+        "Wide": {
+          "avg_catch_pct": 73.13,
+          "avg_separation": 4.23,
+          "sample": 3008
+        }
+      },
+      "simulation_use": "separation = 2.0 + (route_running - 50) / 50 * 1.5"
+    },
+    "catching": {
+      "category": "receiving",
+      "source": "NFL PBP catch rate",
+      "tier_data": {
+        "Elite": {
+          "catch_rate": 0.6710000038146973,
+          "sample": 27757
+        },
+        "Above Avg": {
+          "catch_rate": 0.6571999788284302,
+          "sample": 24860
+        },
+        "Below Avg": {
+          "catch_rate": 0.6730999946594238,
+          "sample": 22866
+        },
+        "Bad": {
+          "catch_rate": 0.6851999759674072,
+          "sample": 17000
+        }
+      },
+      "effect_description": "Base catch rate",
+      "simulation_use": "catch_prob = base + (catching - 50) / 50 * 0.10"
+    },
+    "catch_in_traffic": {
+      "category": "receiving",
+      "source": "NFL NGS YAC above expectation",
+      "tier_data": {
+        "Elite": {
+          "avg_yac": 4.93,
+          "avg_yac_above_expectation": 0.9,
+          "sample": 3823
+        },
+        "Above Avg": {
+          "avg_yac": 4.47,
+          "avg_yac_above_expectation": 0.56,
+          "sample": 3553
+        },
+        "Below Avg": {
+          "avg_yac": 4.48,
+          "avg_yac_above_expectation": 0.47,
+          "sample": 3009
+        },
+        "Bad": {
+          "avg_yac": 4.05,
+          "avg_yac_above_expectation": 0.3,
+          "sample": 1647
+        }
+      },
+      "effect_description": "YAC ability and contested catch success",
+      "simulation_use": "contested_bonus = (catch_in_traffic - 50) / 50 * 0.15"
+    },
+    "pass_block": {
+      "category": "blocking",
+      "source": "NFL PBP team pressure rate allowed",
+      "tier_data": {
+        "Elite": {
+          "pressure_allowed": 0.113,
+          "sack_rate_allowed": 0.05260000005364418,
+          "sample": 48
+        },
+        "Above Avg": {
+          "pressure_allowed": 0.1389,
+          "sack_rate_allowed": 0.06030000001192093,
+          "sample": 48
+        },
+        "Below Avg": {
+          "pressure_allowed": 0.1603,
+          "sack_rate_allowed": 0.06759999692440033,
+          "sample": 48
+        },
+        "Bad": {
+          "pressure_allowed": 0.1969,
+          "sack_rate_allowed": 0.08609999716281891,
+          "sample": 48
+        }
+      },
+      "spread_elite_to_bad": 0.0839,
+      "effect_per_10_points": "-1.5% pressure allowed",
+      "simulation_use": "pressure_allowed = 0.20 - (pass_block - 50) / 50 * 0.08"
+    },
+    "run_block": {
+      "category": "blocking",
+      "source": "NFL PBP team YPC",
+      "tier_data": {
+        "Elite": {
+          "ypc": 5.099999904632568,
+          "stuff_rate": 0.1567,
+          "explosive_rate": 0.1419,
+          "sample": 48
+        },
+        "Above Avg": {
+          "ypc": 4.599999904632568,
+          "stuff_rate": 0.1675,
+          "explosive_rate": 0.1198,
+          "sample": 48
+        },
+        "Below Avg": {
+          "ypc": 4.320000171661377,
+          "stuff_rate": 0.174,
+          "explosive_rate": 0.1117,
+          "sample": 48
+        },
+        "Bad": {
+          "ypc": 3.940000057220459,
+          "stuff_rate": 0.1902,
+          "explosive_rate": 0.0937,
+          "sample": 48
+        }
+      },
+      "effect_per_10_points": "+0.21 YPC",
+      "simulation_use": "ypc_bonus = (run_block - 50) / 50 * 0.5"
+    },
+    "pass_rush": {
+      "category": "blocking",
+      "source": "NFL PBP team pressure rate generated",
+      "tier_data": {
+        "Elite": {
+          "pressure_generated": 0.1811,
+          "sack_rate": 0.07599999755620956,
+          "sample": 48
+        },
+        "Above Avg": {
+          "pressure_generated": 0.1602,
+          "sack_rate": 0.06930000334978104,
+          "sample": 48
+        },
+        "Below Avg": {
+          "pressure_generated": 0.1413,
+          "sack_rate": 0.06430000066757202,
+          "sample": 48
+        },
+        "Bad": {
+          "pressure_generated": 0.1213,
+          "sack_rate": 0.05299999937415123,
+          "sample": 48
+        }
+      },
+      "spread_elite_to_bad": 0.0598,
+      "effect_per_10_points": "+1.1% pressure generated",
+      "simulation_use": "pressure_rate = 0.12 + (pass_rush - 50) / 50 * 0.06"
+    },
+    "block_shedding": {
+      "category": "blocking",
+      "source": "NFL PBP team stuff rate generated",
+      "tier_data": {
+        "Elite": {
+          "stuff_rate_generated": 0.2126,
+          "ypc_allowed": 4.260000228881836,
+          "sample": 48
+        },
+        "Above Avg": {
+          "stuff_rate_generated": 0.1806,
+          "ypc_allowed": 4.400000095367432,
+          "sample": 48
+        },
+        "Below Avg": {
+          "stuff_rate_generated": 0.1615,
+          "ypc_allowed": 4.659999847412109,
+          "sample": 48
+        },
+        "Bad": {
+          "stuff_rate_generated": 0.1324,
+          "ypc_allowed": 4.730000019073486,
+          "sample": 48
+        }
+      },
+      "spread_elite_to_bad": 0.0802,
+      "effect_per_10_points": "+1.5% stuff rate",
+      "simulation_use": "shed_rate = 0.13 + (block_shedding - 50) / 50 * 0.08"
+    },
+    "man_coverage": {
+      "category": "defense",
+      "source": "NFL PBP team completion allowed",
+      "tier_data": {
+        "Elite": 0.5759999752044678,
+        "Above Avg": 0.5964999794960022,
+        "Below Avg": 0.6115000247955322,
+        "Bad": 0.6287999749183655
+      },
+      "spread_elite_to_bad": 0.052799999713897705,
+      "effect_per_10_points": "-1.0% completion allowed",
+      "simulation_use": "coverage_mod = 1.0 - (man_coverage - 50) / 50 * 0.05"
+    },
+    "zone_coverage": {
+      "category": "defense",
+      "source": "NFL PBP team completion allowed (zone)",
+      "tier_data": {
+        "Elite": 0.5759999752044678,
+        "Above Avg": 0.5964999794960022,
+        "Below Avg": 0.6115000247955322,
+        "Bad": 0.6287999749183655
+      },
+      "note": "Uses same data as man_coverage; differentiation in simulation",
+      "simulation_use": "zone_mod = 1.0 - (zone_coverage - 50) / 50 * 0.05"
+    },
+    "tackle": {
+      "category": "defense",
+      "source": "NFL PBP team YPC allowed and stuff rate",
+      "tier_data": {
+        "Elite": {
+          "ypc_allowed": 4.449999809265137,
+          "stuff_rate": 0.1738
+        },
+        "Above Avg": {
+          "ypc_allowed": 4.429999828338623,
+          "stuff_rate": 0.1717
+        },
+        "Below Avg": {
+          "ypc_allowed": 4.579999923706055,
+          "stuff_rate": 0.1744
+        },
+        "Bad": {
+          "ypc_allowed": 4.639999866485596,
+          "stuff_rate": 0.1641
+        }
+      },
+      "effect_per_10_points": "-0.04 YPC allowed",
+      "simulation_use": "tackle_success = 0.85 + (tackle - 50) / 50 * 0.10"
+    },
+    "play_recognition": {
+      "category": "defense",
+      "source": "NFL PBP big play rate allowed",
+      "tier_data": {
+        "Elite": 0.075,
+        "Above Avg": 0.0824,
+        "Below Avg": 0.0843,
+        "Bad": 0.0944
+      },
+      "spread_elite_to_bad": 0.0194,
+      "effect_per_10_points": "-0.35% big plays allowed",
+      "simulation_use": "reaction_time = base - (play_recognition - 50) / 50 * 0.1"
+    },
+    "throw_power": {
+      "category": "passing",
+      "source": "Not directly measured in available data",
+      "description": "Ball velocity / deep ball success",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "throw_on_run": {
+      "category": "passing",
+      "source": "Not directly measured in available data",
+      "description": "Completion rate while scrambling",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "play_action": {
+      "category": "passing",
+      "source": "Not directly measured in available data",
+      "description": "Play action completion boost",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "release": {
+      "category": "receiving",
+      "source": "Not directly measured in available data",
+      "description": "Getting off press coverage",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "awareness": {
+      "category": "mental",
+      "source": "Not directly measured in available data",
+      "description": "Overall football IQ",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "stamina": {
+      "category": "physical",
+      "source": "Not directly measured in available data",
+      "description": "Fatigue resistance",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "injury": {
+      "category": "physical",
+      "source": "Not directly measured in available data",
+      "description": "Injury resistance",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "toughness": {
+      "category": "physical",
+      "source": "Not directly measured in available data",
+      "description": "Playing through pain",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "finesse_moves": {
+      "category": "blocking",
+      "source": "Not directly measured in available data",
+      "description": "Swim/spin moves (DL)",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "power_moves": {
+      "category": "blocking",
+      "source": "Not directly measured in available data",
+      "description": "Bull rush (DL)",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "pursuit": {
+      "category": "defense",
+      "source": "Not directly measured in available data",
+      "description": "Pursuit angle and speed",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "press": {
+      "category": "defense",
+      "source": "Not directly measured in available data",
+      "description": "Press coverage ability",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    },
+    "hit_power": {
+      "category": "defense",
+      "source": "Not directly measured in available data",
+      "description": "Hitting force",
+      "note": "Uses default scaling: base + (rating - 50) / 50 * effect_size"
+    }
+  }
+}

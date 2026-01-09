@@ -1,7 +1,7 @@
 // PlayerView.tsx - Unified player detail component for workspace panes and sideviews
 // Combines PlayerPane and PlayerDetailView into a single reusable component
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -11,12 +11,14 @@ import {
   ChevronRight,
   Maximize2,
   ArrowLeft,
+  BarChart2,
 } from 'lucide-react';
 import { adminApi } from '../../../api/adminClient';
 import { managementApi } from '../../../api/managementClient';
 import type { PlayerDetail, ArchetypeType, PersonalityTrait } from '../../../types/admin';
-import { StatBar, getStatColor, PlayerPortrait } from './index';
+import { StatBar, getStatColor, PlayerPortrait, StatsTable } from './index';
 import { useManagementStore, selectLeagueId, selectFranchiseId } from '../../../stores/managementStore';
+import { generateMockCareerStats } from '../../../utils/mockStats';
 
 // === Position-Based Key Stats ===
 
@@ -156,6 +158,7 @@ export interface PlayerViewProps {
   // Navigation
   onBack?: () => void;
   onPopOut?: (player: { id: string; name: string; position: string; overall: number }) => void;
+  onOpenStats?: (player: { id: string; name: string; position: string; overall: number }) => void;
 
   // Initial state
   defaultAttributesExpanded?: boolean;
@@ -169,6 +172,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   variant = 'pane',
   onBack,
   onPopOut,
+  onOpenStats,
   defaultAttributesExpanded = false,
 }) => {
   const [player, setPlayer] = useState<PlayerDetail | null>(null);
@@ -183,6 +187,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   // Collapsible section states
   const [sections, setSections] = useState({
     keyStats: true,
+    statistics: true,
     morale: true,
     personality: false,
     contract: false,
@@ -298,6 +303,18 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
 
   const isPaneVariant = variant === 'pane';
 
+  // Generate mock career stats (memoized to avoid regeneration on re-renders)
+  const careerStats = useMemo(() => {
+    return generateMockCareerStats(
+      player.id,
+      player.full_name,
+      player.position,
+      player.overall,
+      player.experience,
+      player.team_abbreviation || 'FA'
+    );
+  }, [player.id, player.full_name, player.position, player.overall, player.experience, player.team_abbreviation]);
+
   return (
     <div className={`player-view player-view--${variant}`}>
       {/* Header */}
@@ -354,6 +371,48 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                 {keyStats.map(({ key, label, value }) => (
                   <StatBar key={key} label={label} value={value} potential={potentials[key]} />
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Statistics */}
+        {careerStats.seasons.length > 0 && (
+          <div className="player-view__section player-view__section--collapsible">
+            <button
+              className="player-view__section-header"
+              onClick={() => toggleSection('statistics')}
+            >
+              <span>Statistics</span>
+              <span className="player-view__section-preview">
+                <span>{careerStats.seasons.length} seasons</span>
+                {sections.statistics ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              </span>
+            </button>
+            {sections.statistics && (
+              <div className="player-view__statistics">
+                <StatsTable
+                  seasons={careerStats.seasons}
+                  careerTotals={careerStats.career_totals}
+                  position={player.position}
+                  variant="compact"
+                  maxSeasons={3}
+                  showCareer={true}
+                />
+                {onOpenStats && careerStats.seasons.length > 3 && (
+                  <button
+                    className="player-view__stats-expand"
+                    onClick={() => onOpenStats({
+                      id: player.id,
+                      name: player.full_name,
+                      position: player.position,
+                      overall: player.overall,
+                    })}
+                  >
+                    <BarChart2 size={12} />
+                    View Full Stats ({careerStats.seasons.length} seasons)
+                  </button>
+                )}
               </div>
             )}
           </div>

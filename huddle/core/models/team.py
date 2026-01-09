@@ -12,6 +12,8 @@ from huddle.core.models.team_identity import TeamFinancials
 if TYPE_CHECKING:
     from huddle.core.playbook import Playbook, PlayerPlayKnowledge
     from huddle.core.game_prep import GamePrepBonus
+    from huddle.core.draft.picks import DraftPickInventory
+    from huddle.core.models.team_identity import TeamStatusState
 
 
 @dataclass
@@ -286,6 +288,12 @@ class Team:
     # Salary cap and financial state
     financials: TeamFinancials = field(default_factory=TeamFinancials)
 
+    # Draft picks inventory (all picks owned, past trades, etc.)
+    draft_picks: Optional["DraftPickInventory"] = None
+
+    # Team status state (contending, rebuilding, etc.)
+    status: Optional["TeamStatusState"] = None
+
     # Playbook system (play knowledge tracking)
     playbook: Optional["Playbook"] = None
     player_knowledge: Dict[UUID, "PlayerPlayKnowledge"] = field(default_factory=dict)
@@ -359,6 +367,38 @@ class Team:
     def can_afford(self, salary: int) -> bool:
         """Check if team can afford a contract with given salary."""
         return self.financials.can_sign(salary)
+
+    @property
+    def is_contending(self) -> bool:
+        """Check if team is in a contending window."""
+        if self.status:
+            from huddle.core.models.team_identity import TeamStatus
+            return self.status.current_status in {
+                TeamStatus.DYNASTY,
+                TeamStatus.CONTENDING,
+                TeamStatus.WINDOW_CLOSING,
+            }
+        return False
+
+    @property
+    def is_rebuilding(self) -> bool:
+        """Check if team is in a rebuild."""
+        if self.status:
+            from huddle.core.models.team_identity import TeamStatus
+            return self.status.current_status == TeamStatus.REBUILDING
+        return False
+
+    def get_owned_picks(self, year: int) -> list:
+        """Get all draft picks owned for a specific year."""
+        if self.draft_picks:
+            return [p for p in self.draft_picks.picks if p.year == year and p.current_team_id == str(self.id)]
+        return []
+
+    def get_traded_picks(self) -> list:
+        """Get all picks traded away."""
+        if self.draft_picks:
+            return [p for p in self.draft_picks.picks if p.original_team_id == str(self.id) and p.current_team_id != str(self.id)]
+        return []
 
     def get_player_knowledge(self, player_id: UUID) -> "PlayerPlayKnowledge":
         """
@@ -448,6 +488,14 @@ class Team:
         if self.game_prep_bonus:
             data["game_prep_bonus"] = self.game_prep_bonus.to_dict()
 
+        # Include draft picks inventory if present
+        if self.draft_picks:
+            data["draft_picks"] = self.draft_picks.to_dict()
+
+        # Include team status state if present
+        if self.status:
+            data["status"] = self.status.to_dict()
+
         return data
 
     @classmethod
@@ -496,6 +544,18 @@ class Team:
             from huddle.core.game_prep import GamePrepBonus
             game_prep_bonus = GamePrepBonus.from_dict(data["game_prep_bonus"])
 
+        # Load draft picks inventory if present
+        draft_picks = None
+        if "draft_picks" in data:
+            from huddle.core.draft.picks import DraftPickInventory
+            draft_picks = DraftPickInventory.from_dict(data["draft_picks"])
+
+        # Load team status state if present
+        status = None
+        if "status" in data:
+            from huddle.core.models.team_identity import TeamStatusState
+            status = TeamStatusState.from_dict(data["status"])
+
         team = cls(
             id=UUID(data["id"]) if "id" in data else uuid4(),
             name=data.get("name", ""),
@@ -506,6 +566,8 @@ class Team:
             secondary_color=data.get("secondary_color", "#FFFFFF"),
             tendencies=tendencies,
             financials=financials,
+            draft_picks=draft_picks,
+            status=status,
             playbook=playbook,
             player_knowledge=player_knowledge,
             game_prep_bonus=game_prep_bonus,

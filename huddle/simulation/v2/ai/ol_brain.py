@@ -1,12 +1,17 @@
 """Offensive Line Brain - Decision-making for OL.
 
-The OL brain controls tackles, guards, and centers in:
-- Pass protection
-- Run blocking
-- Stunt pickup
-- Communication (conceptual)
+INTERCEPT-PATH PHILOSOPHY:
+OL don't chase DL. They position BETWEEN DL and the ball/QB.
+Engagement happens as a SIDE EFFECT when DL runs into the OL
+who is in their path. OL success = DL doesn't reach target.
 
-Phases: PRE_SNAP → PASS_SET/RUN_BLOCK → ENGAGE → SUSTAIN
+The OL brain controls tackles, guards, and centers in:
+- Pass protection: Position between rusher and QB
+- Run blocking: Create lanes, seal defenders from ball
+- Stunt pickup: React to changing threats
+- Communication: MIKE calls, slide direction
+
+Key insight: We don't "find and fight" - we intercept paths.
 """
 
 from __future__ import annotations
@@ -18,6 +23,17 @@ from typing import Optional
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
+from ..core.trace import get_trace_system, TraceCategory
+
+
+# =============================================================================
+# Trace Helper
+# =============================================================================
+
+def _trace(world: WorldState, msg: str, category: TraceCategory = TraceCategory.DECISION):
+    """Add a trace for this OL."""
+    trace = get_trace_system()
+    trace.trace(world.me.id, world.me.name, category, msg)
 
 
 # =============================================================================
@@ -383,20 +399,203 @@ def _get_stunt_pickup_assignment(world: WorldState, state: OLState, stunt_type: 
 # Helper Functions
 # =============================================================================
 
-def _find_rusher(world: WorldState) -> Optional[PlayerView]:
-    """Find the defender rushing us."""
+def _is_dl_in_pursuit(opp: PlayerView, world: WorldState) -> bool:
+    """Check if a DL is in pursuit mode (chasing ballcarrier past LOS).
+
+    OL should NOT chase DL that are in pursuit - instead hold position or lead block.
+    """
+    # DL is past LOS and moving further downfield
+    if opp.pos.y > world.los_y + 2.0 and opp.velocity.y > 1.0:
+        return True
+
+    # DL is running horizontally across formation (chasing ball)
+    if abs(opp.velocity.x) > 3.0 and abs(opp.velocity.y) > 1.0:
+        return True
+
+    return False
+
+
+# =============================================================================
+# Intercept-Path Functions
+# =============================================================================
+
+def _get_protect_target(world: WorldState) -> Vec2:
+    """Get the position we're protecting (QB or ballcarrier).
+
+    Returns:
+        Position of the player we need to keep DL away from.
+    """
+    # Find QB
+    for tm in world.teammates:
+        if tm.position == Position.QB:
+            return tm.pos
+
+    # Fallback to pocket area
+    return Vec2(0, world.los_y - 5)
+
+
+def _calculate_intercept_position(
+    my_pos: Vec2,
+    threat_pos: Vec2,
+    threat_vel: Vec2,
+    protect_pos: Vec2,
+    world: WorldState
+) -> Vec2:
+    """Calculate where OL should position to intercept DL's path to target.
+
+    The OL doesn't chase the DL - they position BETWEEN DL and the target.
+    Engagement happens when DL runs into OL.
+
+    Args:
+        my_pos: Our current position
+        threat_pos: DL position
+        threat_vel: DL velocity
+        protect_pos: Position we're protecting (QB/ball)
+        world: World state for LOS reference
+
+    Returns:
+        Position to move to that intercepts DL's path
+    """
+    # Calculate DL's likely target path (toward protect_pos)
+    dl_to_target = protect_pos - threat_pos
+    if dl_to_target.length() < 0.1:
+        return my_pos  # DL is on target, hold
+
+    dl_direction = dl_to_target.normalized()
+
+    # Position on the line between DL and target
+    # Closer to DL = more aggressive, closer to target = more conservative
+    # Standard pass pro: meet them ~2 yards in front of protect pos
+
+    # Calculate point on DL's path that we can reach
+    dist_dl_to_target = dl_to_target.length()
+
+    # We want to be ~60% of the way from DL to target (meeting point)
+    intercept_ratio = 0.4  # Closer to DL = more aggressive
+
+    intercept_point = threat_pos + dl_direction * (dist_dl_to_target * intercept_ratio)
+
+    # Don't go past the LOS (on pass plays) or too far downfield (run plays)
+    if not world.is_run_play:
+        # Pass pro: stay behind LOS
+        clamped_y = min(intercept_point.y, world.los_y - 1.0)
+        intercept_point = Vec2(intercept_point.x, clamped_y)
+    else:
+        # Run blocking: can push past LOS
+        clamped_y = min(intercept_point.y, world.los_y + 3.0)
+        intercept_point = Vec2(intercept_point.x, clamped_y)
+
+    return intercept_point
+
+
+def _find_threat_in_zone(world: WorldState) -> Optional[PlayerView]:
+    """Find the DL threat in our zone that's heading toward our protect target.
+
+    Unlike _find_rusher which just finds closest DL, this identifies
+    DL that are actively threatening our protection responsibility.
+    """
     my_pos = world.me.pos
-    closest = None
-    closest_dist = float('inf')
+    my_position = world.me.position
+    protect_pos = _get_protect_target(world)
 
-    for tm in world.opponents:  # Defense (we're offense)
-        if tm.position in (Position.DE, Position.DT, Position.NT, Position.OLB, Position.MLB):
-            dist = tm.pos.distance_to(my_pos)
-            if dist < closest_dist and dist < 5.0:
-                closest_dist = dist
-                closest = tm
+    # Define our zone of responsibility
+    zone_ranges = {
+        Position.LT: (-6.0, -3.0),
+        Position.LG: (-3.0, -0.75),
+        Position.C: (-1.5, 1.5),
+        Position.RG: (0.75, 3.0),
+        Position.RT: (3.0, 6.0),
+    }
 
-    return closest
+    zone_min, zone_max = zone_ranges.get(my_position, (-2, 2))
+
+    # Find DL in our zone that's heading toward protect target
+    best_threat = None
+    best_threat_score = float('inf')
+
+    for opp in world.opponents:
+        if opp.position not in (Position.DE, Position.DT, Position.NT):
+            continue
+
+        # Skip DL in pursuit mode
+        if _is_dl_in_pursuit(opp, world):
+            continue
+
+        # Is this DL in or threatening our zone?
+        in_zone = zone_min - 1.5 <= opp.pos.x <= zone_max + 1.5
+
+        if not in_zone:
+            continue
+
+        # Calculate threat score (lower = more threatening)
+        # Based on: distance to protect target, closing speed, angle
+
+        dist_to_target = opp.pos.distance_to(protect_pos)
+
+        # Check if DL is moving toward protect target
+        to_target = (protect_pos - opp.pos).normalized()
+        closing_speed = opp.velocity.dot(to_target)
+
+        # More threatening if: closer to target, moving toward target
+        threat_score = dist_to_target - (closing_speed * 2)
+
+        if threat_score < best_threat_score:
+            best_threat_score = threat_score
+            best_threat = opp
+
+    return best_threat
+
+
+def _find_rusher_in_gap(world: WorldState) -> Optional[PlayerView]:
+    """Find the defender in OUR gap - don't chase DL outside our zone.
+
+    Each OL is responsible for a gap based on their position.
+    We only block DL that are threatening OUR gap, not random DL.
+    """
+    my_pos = world.me.pos
+    my_position = world.me.position
+
+    # Define gap responsibility (x-range we're responsible for)
+    # Based on 1.5 yard OL spacing
+    gap_ranges = {
+        Position.LT: (-4.5, -2.25),  # Outside LT to B gap
+        Position.LG: (-2.25, -0.75), # B gap to A gap
+        Position.C: (-0.75, 0.75),   # A gap (both sides)
+        Position.RG: (0.75, 2.25),   # A gap to B gap
+        Position.RT: (2.25, 4.5),    # B gap to outside RT
+    }
+
+    gap_min, gap_max = gap_ranges.get(my_position, (-2, 2))
+
+    # Find DL in our gap
+    best_target = None
+    best_priority = float('inf')
+
+    for opp in world.opponents:
+        if opp.position not in (Position.DE, Position.DT, Position.NT):
+            continue
+
+        # Skip DL in pursuit mode - don't chase them
+        if _is_dl_in_pursuit(opp, world):
+            continue
+
+        # Is this DL in our gap?
+        if gap_min <= opp.pos.x <= gap_max:
+            # Priority: closer to LOS and closer to us
+            y_from_los = abs(opp.pos.y - world.los_y)
+            x_from_me = abs(opp.pos.x - my_pos.x)
+            priority = y_from_los + x_from_me * 0.5
+
+            if priority < best_priority:
+                best_priority = priority
+                best_target = opp
+
+    return best_target
+
+
+def _find_rusher(world: WorldState) -> Optional[PlayerView]:
+    """Find the defender rushing us - wrapper for backward compatibility."""
+    return _find_rusher_in_gap(world)
 
 
 def _find_assigned_by_position(world: WorldState) -> Optional[PlayerView]:
@@ -435,9 +634,17 @@ def _find_assigned_by_position(world: WorldState) -> Optional[PlayerView]:
 
 def _is_pass_play(world: WorldState) -> bool:
     """Determine if this is a pass play (from our perspective)."""
+    # Explicit run play from WorldState
+    if world.is_run_play:
+        return False
+
     # Check if we got a pass protection assignment
     if "pass" in world.assignment.lower() or "protect" in world.assignment.lower():
         return True
+
+    # Check if we got a run assignment
+    if "run:" in world.assignment.lower():
+        return False
 
     # Check QB action
     for opp in world.opponents:
@@ -477,13 +684,21 @@ def _get_counter_for_move(move: Optional[str]) -> BlockCounter:
 
 
 def _get_kick_slide_depth(world: WorldState, rusher: Optional[PlayerView]) -> float:
-    """Calculate pass set depth based on rusher."""
-    base_depth = 3.0  # 3 yards behind LOS
+    """Calculate pass set depth based on rusher.
+
+    NFL OL typically set up only 1-2 yards behind LOS. They don't retreat
+    all the way back to the QB - they create a pocket by holding their ground.
+    """
+    base_depth = 1.5  # 1.5 yards behind LOS - realistic pass set
 
     if rusher:
-        # Deeper vs speed rusher (estimate from their current speed)
-        if rusher.speed > 6.0:  # Fast rusher
-            base_depth = 4.0
+        # Slightly deeper vs speed rusher (need cushion)
+        if hasattr(rusher, 'speed') and rusher.speed > 6.0:
+            base_depth = 2.0
+
+    # Tackles can set slightly deeper to protect the edge
+    if world.me.position in (Position.LT, Position.RT):
+        base_depth += 0.5
 
     return base_depth
 
@@ -496,17 +711,106 @@ def _get_zone_block_target(world: WorldState) -> Vec2:
     return Vec2(my_pos.x + 1, world.los_y + 2)
 
 
-def _find_second_level_target(world: WorldState) -> Optional[PlayerView]:
-    """Find LB to block at second level."""
+def _find_second_level_target(world: WorldState, ball_target: Optional[Vec2] = None) -> Optional[PlayerView]:
+    """Find LB to block at second level.
+
+    Prioritizes LBs that are:
+    1. Coming downhill (moving toward LOS)
+    2. Threatening the ball path
+    3. Closest to our position
+
+    Args:
+        world: World state
+        ball_target: Where the ball is heading (for threat calculation)
+    """
     my_pos = world.me.pos
 
-    for opp in world.opponents:  # LBs are opponents (defense)
-        if opp.position in (Position.MLB, Position.ILB, Position.OLB):
-            dist = opp.pos.distance_to(my_pos)
-            if dist < 8 and opp.pos.y > world.los_y:
-                return opp
+    # Default ball target if not provided
+    if ball_target is None:
+        playside_dir = 1 if getattr(world, 'run_play_side', 'right') == 'right' else -1
+        ball_target = Vec2(playside_dir * 3, world.los_y + 5)
 
-    return None
+    candidates = []
+    for opp in world.opponents:
+        if opp.position not in (Position.MLB, Position.ILB, Position.OLB):
+            continue
+
+        dist = opp.pos.distance_to(my_pos)
+        if dist > 10:  # Too far
+            continue
+
+        # LB must be at or past LOS (coming downhill) or close to it
+        if opp.pos.y < world.los_y - 2:
+            continue
+
+        # Calculate threat score - lower = more threatening
+        # LBs moving toward ball path are more threatening
+        dist_to_ball = opp.pos.distance_to(ball_target)
+        to_ball = (ball_target - opp.pos)
+        if to_ball.length() > 0.1:
+            to_ball = to_ball.normalized()
+            closing_speed = opp.velocity.dot(to_ball)
+        else:
+            closing_speed = 0
+
+        # LBs coming downhill (negative y velocity = toward LOS) are threats
+        downhill_speed = -opp.velocity.y if opp.velocity.y < 0 else 0
+
+        # Score: prioritize close LBs coming downhill toward ball
+        threat_score = dist_to_ball - (closing_speed * 2) - (downhill_speed * 3)
+
+        candidates.append((opp, threat_score, dist))
+
+    if not candidates:
+        return None
+
+    # Sort by threat score (most threatening first), then by distance
+    candidates.sort(key=lambda x: (x[1], x[2]))
+    return candidates[0][0]
+
+
+def _find_any_downhill_threat(world: WorldState) -> Optional[PlayerView]:
+    """Find ANY defender coming downhill toward the ballcarrier.
+
+    Used when OL is unengaged and should pick up the most dangerous threat.
+    Includes LBs, safeties, and even DBs filling against the run.
+    """
+    my_pos = world.me.pos
+    playside_dir = 1 if getattr(world, 'run_play_side', 'right') == 'right' else -1
+    ball_target = Vec2(playside_dir * 3, world.los_y + 5)
+
+    candidates = []
+    for opp in world.opponents:
+        # Skip DL - they're handled by other logic
+        if opp.position in (Position.DE, Position.DT, Position.NT):
+            continue
+
+        dist = opp.pos.distance_to(my_pos)
+        if dist > 8:  # Too far to pick up
+            continue
+
+        # Must be coming downhill (toward backfield)
+        if opp.velocity.y > -0.5:  # Not moving downhill
+            continue
+
+        # Must be in front of us (between us and ball path)
+        if opp.pos.y < my_pos.y - 2:
+            continue
+
+        # Calculate threat
+        dist_to_ball = opp.pos.distance_to(ball_target)
+        downhill_speed = abs(opp.velocity.y)
+
+        # Score by threat level
+        threat_score = dist_to_ball - (downhill_speed * 2)
+
+        candidates.append((opp, threat_score, dist))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda x: (x[1], x[2]))
+    return candidates[0][0]
 
 
 # =============================================================================
@@ -540,8 +844,15 @@ def ol_brain(world: WorldState) -> BrainDecision:
     # =========================================================================
     # MIKE Identification (Center makes call for all OL)
     # =========================================================================
+    just_made_call = False
     if _should_center_make_call(world) and _protection_call is None:
         _protection_call = _identify_mike(world)
+        just_made_call = True
+
+    # Build protection call string to return to orchestrator
+    protection_call_str = None
+    if just_made_call and _protection_call and _protection_call.slide_direction != "none":
+        protection_call_str = f"slide_{_protection_call.slide_direction}"
 
     # Find our assignment (use protection call if available)
     rusher = _find_rusher(world)
@@ -550,15 +861,20 @@ def ol_brain(world: WorldState) -> BrainDecision:
         state.original_assignment_id = rusher.id
 
     # =========================================================================
-    # Pass Protection
+    # Pass Protection - INTERCEPT PATH APPROACH
     # =========================================================================
+    # Key insight: Don't chase DL. Position BETWEEN DL and QB.
+    # Engagement happens when DL runs into us.
     if _is_pass_play(world):
-        # Pass set phase (first 0.5s)
+        protect_pos = _get_protect_target(world)
+        threat = _find_threat_in_zone(world)
+
+        # Pass set phase (first 0.5s) - establish position
         if world.time_since_snap < 0.5:
             state.phase = OLPhase.PASS_SET
 
             # Calculate set depth
-            set_depth = _get_kick_slide_depth(world, rusher)
+            set_depth = _get_kick_slide_depth(world, threat)
             set_pos = Vec2(world.me.pos.x, world.los_y - set_depth)
 
             # Include MIKE call in reasoning if we're Center
@@ -571,6 +887,7 @@ def ol_brain(world: WorldState) -> BrainDecision:
                 move_type="backpedal",
                 intent="pass_set",
                 reasoning=f"Setting at {set_depth:.1f}yd depth{mike_info}",
+                protection_call=protection_call_str,
             )
 
         # =====================================================================
@@ -584,60 +901,69 @@ def ol_brain(world: WorldState) -> BrainDecision:
                 state.switched_assignment = True
                 state.assigned_defender_id = new_assignment
 
-                # Find the new target
+                # Find the new threat and intercept their path
                 for opp in world.opponents:
                     if opp.id == new_assignment:
+                        intercept_pos = _calculate_intercept_position(
+                            world.me.pos, opp.pos, opp.velocity, protect_pos, world
+                        )
                         return BrainDecision(
-                            move_target=opp.pos,
+                            move_target=intercept_pos,
                             move_type="run",
                             action="pickup",
                             target_id=new_assignment,
                             intent="stunt_pickup",
-                            reasoning=f"Stunt pickup! Switching to crasher ({stunt})",
+                            reasoning=f"Stunt pickup! Intercepting crasher ({stunt})",
                         )
 
-        # Engaged phase
-        if rusher:
+        # =====================================================================
+        # Main Pass Protection Logic - Intercept DL path to QB
+        # =====================================================================
+        if threat:
             state.phase = OLPhase.ENGAGED
-            state.is_engaged = True
+            state.assigned_defender_id = threat.id
 
-            dist = world.me.pos.distance_to(rusher.pos)
+            dist_to_threat = world.me.pos.distance_to(threat.pos)
 
-            # Kick slide to rusher
-            if dist > 2.0:
-                return BrainDecision(
-                    move_target=rusher.pos + Vec2(0, -1),
-                    move_type="run",
-                    action="kick_slide",
-                    target_id=rusher.id,
-                    intent="close_distance",
-                    reasoning=f"Kick sliding to rusher ({dist:.1f}yd)",
-                )
-
-            # Engaged - counter moves
-            rush_move = _detect_rush_move(rusher)
-            counter = _get_counter_for_move(rush_move)
-
-            # Maintain position between rusher and QB
-            qb_pos = Vec2(0, world.los_y - 7)  # Assume QB dropback
-            for tm in world.teammates:
-                if tm.position == Position.QB:
-                    qb_pos = tm.pos
-                    break
-
-            # Position to protect QB
-            protect_pos = rusher.pos + (qb_pos - rusher.pos).normalized() * 1.5
-
-            return BrainDecision(
-                move_target=protect_pos,
-                move_type="run",
-                action=counter.value,
-                target_id=rusher.id,
-                intent="block",
-                reasoning=f"Blocking, {counter.value} vs {rush_move or 'rush'}",
+            # Calculate intercept position - where we need to be to block DL's path
+            intercept_pos = _calculate_intercept_position(
+                world.me.pos, threat.pos, threat.velocity, protect_pos, world
             )
 
-        # No rusher - look for blitzing LB (use MIKE call)
+            # If we're close to threat, we're engaged
+            if dist_to_threat < 1.5:
+                state.is_engaged = True
+
+                # Engaged - maintain position between threat and QB
+                # Don't chase threat - stay in their path
+                rush_move = _detect_rush_move(threat)
+                counter = _get_counter_for_move(rush_move)
+
+                # Calculate position to maintain - between threat and QB
+                to_qb = (protect_pos - threat.pos).normalized()
+                maintain_pos = threat.pos + to_qb * 1.2  # Stay 1.2yd in front of DL
+
+                return BrainDecision(
+                    move_target=maintain_pos,
+                    move_type="run",
+                    action=counter.value,
+                    target_id=threat.id,
+                    intent="block",
+                    reasoning=f"Engaged - {counter.value}, maintaining position",
+                )
+
+            # Not engaged yet - move to intercept position
+            # Don't run TO the DL, run to WHERE we need to be
+            return BrainDecision(
+                move_target=intercept_pos,
+                move_type="run",
+                action="kick_slide",
+                target_id=threat.id,
+                intent="intercept",
+                reasoning=f"Intercepting DL path ({dist_to_threat:.1f}yd away)",
+            )
+
+        # No direct threat - look for blitzing LB (use MIKE call)
         if _protection_call and _protection_call.mike_id:
             mike = None
             for opp in world.opponents:
@@ -646,134 +972,557 @@ def ol_brain(world: WorldState) -> BrainDecision:
                     break
 
             if mike and mike.pos.y < world.los_y + 2:
-                # MIKE is blitzing
+                # MIKE is blitzing - intercept their path
+                intercept_pos = _calculate_intercept_position(
+                    world.me.pos, mike.pos, mike.velocity, protect_pos, world
+                )
                 return BrainDecision(
-                    move_target=mike.pos,
+                    move_target=intercept_pos,
                     move_type="run",
                     action="pickup",
                     target_id=mike.id,
                     intent="blitz_pickup",
-                    reasoning="MIKE blitzing, picking up",
+                    reasoning="MIKE blitzing - intercepting path",
                 )
 
+        # No threats - hold position in our zone (don't retreat too far)
+        set_depth = _get_kick_slide_depth(world, None)
+        hold_pos = Vec2(world.me.pos.x, world.los_y - set_depth)
         return BrainDecision(
-            intent="look_for_work",
-            reasoning="No immediate threat, looking for work",
+            move_target=hold_pos,
+            intent="hold",
+            reasoning="No threat - holding zone",
         )
 
     # =========================================================================
-    # Run Blocking
+    # Run Blocking - Use assignments from run concept
     # =========================================================================
     state.phase = OLPhase.RUN_BLOCK
 
-    # Check if pulling
-    if state.is_pulling:
-        state.phase = OLPhase.PULLING
+    # Get assignment from WorldState
+    assignment = world.run_blocking_assignment
+    play_side = world.run_play_side
 
-        # Pull to playside
-        pull_target = Vec2(5, world.los_y + 3)  # Simplified
+    # Determine playside direction
+    playside_dir = 1 if play_side == "right" else -1
+
+    # Get our gap responsibility
+    gap_ranges = {
+        Position.LT: (-4.5, -2.25),
+        Position.LG: (-2.25, -0.75),
+        Position.C: (-0.75, 0.75),
+        Position.RG: (0.75, 2.25),
+        Position.RT: (2.25, 4.5),
+    }
+    my_gap_min, my_gap_max = gap_ranges.get(world.me.position, (-2, 2))
+    my_gap_center = (my_gap_min + my_gap_max) / 2
+
+    # =========================================================================
+    # First: Fire off the ball to LOS (first 0.2s)
+    # All OL should step forward at snap, not chase DL
+    # =========================================================================
+    if world.time_since_snap < 0.2:
+        # Fire forward to our gap at LOS
+        fire_target = Vec2(my_gap_center, world.los_y)
+        return BrainDecision(
+            move_target=fire_target,
+            move_type="run",
+            action="fire_out",
+            intent="run_block",
+            reasoning="Firing off the ball",
+        )
+
+    # =========================================================================
+    # Pull assignments (PULL_LEAD, PULL_WRAP)
+    # =========================================================================
+    if assignment in ("pull_lead", "pull_wrap"):
+        state.phase = OLPhase.PULLING
+        state.is_pulling = True
+
+        # Pull to playside - aim for hole area
+        pull_x = playside_dir * 4  # 4 yards playside
+        pull_y = world.los_y + 3   # 3 yards past LOS
+        pull_target = Vec2(pull_x, pull_y)
+
+        # Find a defender to kick out or lead on
+        kick_target = None
+        for opp in world.opponents:
+            if opp.position in (Position.DE, Position.OLB):
+                if abs(opp.pos.x - pull_x) < 3:
+                    kick_target = opp
+                    break
+
+        if kick_target and world.me.pos.distance_to(kick_target.pos) < 3:
+            return BrainDecision(
+                move_target=kick_target.pos,
+                move_type="sprint",
+                action="kick_out" if assignment == "pull_lead" else "wrap",
+                target_id=kick_target.id,
+                intent="pull_block",
+                reasoning=f"Pulling to kick out {kick_target.position.value}",
+            )
 
         return BrainDecision(
             move_target=pull_target,
             move_type="sprint",
             action="pull",
             intent="pulling",
-            reasoning="Pulling to hole",
+            reasoning=f"Pulling {play_side} to hole",
         )
 
     # =========================================================================
-    # Combo Block Logic
+    # Combo block assignment - INTERCEPT PATH APPROACH
     # =========================================================================
+    # Combo: Two OL work together to seal DL from ball path, then one climbs
+    if assignment == "combo":
+        # Ball path target for run plays
+        ball_target = Vec2(playside_dir * 3, world.los_y + 5)
+        if hasattr(world, 'run_aiming_point') and world.run_aiming_point:
+            ball_target = world.run_aiming_point
 
-    # Check if we should climb from existing combo
-    if state.combo_partner_id and state.combo_target_id:
-        if _should_climb_from_combo(world, state):
-            state.should_climb = True
-            lb = _find_second_level_target(world)
-            if lb:
-                state.phase = OLPhase.SECOND_LEVEL
-                # Clear combo state
-                state.combo_partner_id = None
-                state.combo_target_id = None
+        # Find combo partner
+        partner_pos = world.combo_partner_position
+        partner = None
+        if partner_pos:
+            for tm in world.teammates:
+                if tm.position and tm.position.value.upper() == partner_pos:
+                    partner = tm
+                    break
 
-                return BrainDecision(
-                    move_target=lb.pos,
-                    move_type="sprint",
-                    action="climb",
-                    target_id=lb.id,
-                    intent="combo_climb",
-                    reasoning="Releasing from combo to second level!",
-                )
+        # Find DL in our combined zone that could get to ball
+        dl_target = None
+        if partner:
+            my_gap_min_x = my_gap_min
+            my_gap_max_x = my_gap_max
+            partner_position = partner.position
 
-    # Check for new combo opportunity
-    if not state.combo_partner_id:
-        partner_id, dl_id = _find_combo_opportunity(world)
-        if partner_id and dl_id:
-            state.combo_partner_id = partner_id
-            state.combo_target_id = dl_id
+            partner_gap_ranges = {
+                Position.LT: (-4.5, -2.25),
+                Position.LG: (-2.25, -0.75),
+                Position.C: (-0.75, 0.75),
+                Position.RG: (0.75, 2.25),
+                Position.RT: (2.25, 4.5),
+            }
+            partner_gap = partner_gap_ranges.get(partner_position, (-2, 2))
 
-            # Find the DL to combo
+            combined_min = min(my_gap_min_x, partner_gap[0]) - 0.5
+            combined_max = max(my_gap_max_x, partner_gap[1]) + 0.5
+
+            midpoint = (world.me.pos + partner.pos) * 0.5
+            candidates = []
             for opp in world.opponents:
-                if opp.id == dl_id:
+                if opp.position in (Position.DE, Position.DT, Position.NT):
+                    if _is_dl_in_pursuit(opp, world):
+                        continue
+                    if not (combined_min <= opp.pos.x <= combined_max):
+                        continue
+                    if abs(opp.pos.y - world.los_y) > 3.0:
+                        continue
+
+                    # Score by threat to ball path
+                    dist_to_ball = opp.pos.distance_to(ball_target)
+                    to_ball = (ball_target - opp.pos).normalized()
+                    closing = opp.velocity.dot(to_ball)
+                    threat_score = dist_to_ball - (closing * 2)
+
+                    candidates.append((opp, threat_score))
+
+            if candidates:
+                # Most threatening to ball path first
+                candidates.sort(key=lambda x: x[1])
+                dl_target = candidates[0][0]
+                state.combo_target_id = dl_target.id
+
+        if dl_target:
+            # Check if we should climb to second level
+            if _should_climb_from_combo(world, state):
+                lb = _find_second_level_target(world)
+                if lb:
+                    state.phase = OLPhase.SECOND_LEVEL
+                    # Intercept LB's path to ball
+                    intercept_pos = _calculate_intercept_position(
+                        world.me.pos, lb.pos, lb.velocity, ball_target, world
+                    )
                     return BrainDecision(
-                        move_target=opp.pos,
-                        move_type="run",
-                        action="combo",
-                        target_id=dl_id,
-                        intent="combo_block",
-                        reasoning=f"Combo blocking with partner to DL",
+                        move_target=intercept_pos,
+                        move_type="sprint",
+                        action="climb",
+                        target_id=lb.id,
+                        intent="combo_climb",
+                        reasoning="Climbing - intercepting LB path to ball!",
                     )
 
-    # Active combo block (working with partner on DL)
-    if state.combo_target_id:
-        for opp in world.opponents:
-            if opp.id == state.combo_target_id:
-                # Double-team the DL
+            # Combo: Position to seal DL from ball path
+            # Don't just drive them - position between them and ball
+            dist_to_dl = world.me.pos.distance_to(dl_target.pos)
+
+            if dist_to_dl < 1.5:
+                # Engaged - seal playside shoulder
+                seal_pos = Vec2(
+                    dl_target.pos.x + playside_dir * 0.5,
+                    dl_target.pos.y + 0.3
+                )
                 return BrainDecision(
-                    move_target=opp.pos,
+                    move_target=seal_pos,
                     move_type="run",
                     action="double",
-                    target_id=opp.id,
+                    target_id=dl_target.id,
                     intent="combo_block",
-                    reasoning="Double-teaming in combo",
+                    reasoning=f"Combo: sealing DL from ball path with {partner_pos or 'partner'}",
+                )
+            else:
+                # Move to intercept DL's path to ball
+                intercept_pos = _calculate_intercept_position(
+                    world.me.pos, dl_target.pos, dl_target.velocity, ball_target, world
+                )
+                return BrainDecision(
+                    move_target=intercept_pos,
+                    move_type="run",
+                    action="double",
+                    target_id=dl_target.id,
+                    intent="combo_block",
+                    reasoning=f"Combo: intercepting DL path with {partner_pos or 'partner'}",
                 )
 
-    # Standard zone blocking
-    if rusher and rusher.pos.distance_to(world.me.pos) < 3:
-        # Engaged with DL - drive block
-        drive_dir = (rusher.pos - world.me.pos).normalized()
-        drive_target = rusher.pos + drive_dir * 2
-
+        # No valid combo target - hold gap
+        hold_pos = Vec2(my_gap_center, world.los_y + 0.5)
         return BrainDecision(
-            move_target=drive_target,
+            move_target=hold_pos,
             move_type="run",
-            action="drive",
-            target_id=rusher.id,
-            intent="drive_block",
-            reasoning="Drive blocking defender",
+            action="hold",
+            intent="combo_block",
+            reasoning="No combo target - holding gap",
         )
 
-    # Uncovered - climb to second level
-    lb = _find_second_level_target(world)
-    if lb:
-        state.phase = OLPhase.SECOND_LEVEL
+    # =========================================================================
+    # Zone step assignments (ZONE_STEP, REACH) - INTERCEPT PATH APPROACH
+    # =========================================================================
+    # Zone blocking: Position to seal DL from getting to the ball.
+    # Don't chase DL - position between them and the ball path.
+    if assignment in ("zone_step", "reach"):
+        my_pos = world.me.pos
 
+        # The "protect target" for run plays is the RB/ball path
+        ball_target = Vec2(playside_dir * 3, world.los_y + 5)  # Hole area
+        if hasattr(world, 'run_aiming_point') and world.run_aiming_point:
+            ball_target = world.run_aiming_point
+
+        # Find defender in OUR gap that could get to the ball
+        zone_target_opp = None
+        for opp in world.opponents:
+            if opp.position in (Position.DE, Position.DT, Position.NT):
+                # Skip DL in pursuit mode - don't chase them
+                if _is_dl_in_pursuit(opp, world):
+                    continue
+                # Only engage DL in our gap responsibility
+                if my_gap_min <= opp.pos.x <= my_gap_max:
+                    zone_target_opp = opp
+                    break
+
+        if zone_target_opp:
+            dist_to_dl = my_pos.distance_to(zone_target_opp.pos)
+
+            if dist_to_dl < 1.5:
+                # Engaged - seal DL from ball path
+                # Position on playside shoulder to seal
+                seal_pos = Vec2(
+                    zone_target_opp.pos.x + playside_dir * 0.5,  # Get playside shoulder
+                    zone_target_opp.pos.y + 0.3
+                )
+                return BrainDecision(
+                    move_target=seal_pos,
+                    move_type="run",
+                    action="sustain",
+                    target_id=zone_target_opp.id,
+                    intent="zone_block",
+                    reasoning=f"Sealing {zone_target_opp.position.value} from ball path",
+                )
+            else:
+                # Not engaged - move to intercept position between DL and ball path
+                intercept_pos = _calculate_intercept_position(
+                    my_pos, zone_target_opp.pos, zone_target_opp.velocity,
+                    ball_target, world
+                )
+                return BrainDecision(
+                    move_target=intercept_pos,
+                    move_type="run",
+                    action=assignment,
+                    target_id=zone_target_opp.id,
+                    intent="zone_block",
+                    reasoning=f"Intercepting {zone_target_opp.position.value}'s path to ball",
+                )
+
+        # No DL in our gap - check for LB to pick up
+        lb = _find_second_level_target(world)
+        if lb and my_gap_min - 1 <= lb.pos.x <= my_gap_max + 2:
+            # LB threatening our area - intercept their path
+            intercept_pos = _calculate_intercept_position(
+                my_pos, lb.pos, lb.velocity, ball_target, world
+            )
+            return BrainDecision(
+                move_target=intercept_pos,
+                move_type="run",
+                action="climb",
+                target_id=lb.id,
+                intent="second_level",
+                reasoning="Intercepting LB path to ball",
+            )
+
+        # No threats - hold position at LOS in our gap
+        hold_pos = Vec2(my_gap_center, world.los_y + 0.5)
         return BrainDecision(
-            move_target=lb.pos,
+            move_target=hold_pos,
             move_type="run",
-            action="climb",
-            target_id=lb.id,
-            intent="second_level",
-            reasoning="Climbing to block LB",
+            action="zone_step",
+            intent="zone_block",
+            reasoning="Holding gap - no threat to ball path",
         )
 
-    # Zone step
-    zone_target = _get_zone_block_target(world)
+    # =========================================================================
+    # Down block assignment
+    # =========================================================================
+    if assignment == "down":
+        my_pos = world.me.pos
 
+        # Block down - inside shoulder of defender
+        down_dir = -playside_dir  # Opposite of play direction
+        target_x = my_pos.x + down_dir * 1
+
+        # Find defender to down block
+        down_target = None
+        for opp in world.opponents:
+            if opp.position in (Position.DE, Position.DT, Position.NT):
+                if abs(opp.pos.x - target_x) < 2:
+                    down_target = opp
+                    break
+
+        if down_target:
+            return BrainDecision(
+                move_target=down_target.pos,
+                move_type="run",
+                action="down_block",
+                target_id=down_target.id,
+                intent="gap_block",
+                reasoning=f"Down block on {down_target.position.value}",
+            )
+
+    # =========================================================================
+    # Cutoff assignment (backside)
+    # =========================================================================
+    if assignment == "cutoff":
+        my_pos = world.me.pos
+
+        # Find DL in or near our gap to cutoff
+        # Cutoff blocks the backside - seal DL from pursuing
+        cutoff_target = None
+        for opp in world.opponents:
+            if opp.position in (Position.DE, Position.DT, Position.NT):
+                # Skip DL in pursuit mode - don't chase them
+                if _is_dl_in_pursuit(opp, world):
+                    continue
+                # Only block DL in or adjacent to our gap
+                expanded_min = my_gap_min - 1.0  # Slightly expand for backside
+                expanded_max = my_gap_max + 1.0
+                if expanded_min <= opp.pos.x <= expanded_max:
+                    cutoff_target = opp
+                    break
+
+        if cutoff_target:
+            dist_to_dl = my_pos.distance_to(cutoff_target.pos)
+
+            if dist_to_dl < 1.5:
+                # Engaged - sustain and seal
+                seal_pos = Vec2(
+                    cutoff_target.pos.x + playside_dir * 0.5,  # Get to playside shoulder
+                    cutoff_target.pos.y
+                )
+                return BrainDecision(
+                    move_target=seal_pos,
+                    move_type="run",
+                    action="cutoff",
+                    target_id=cutoff_target.id,
+                    intent="cutoff_block",
+                    reasoning=f"Sealing {cutoff_target.position.value}",
+                )
+            else:
+                # Move to engage
+                return BrainDecision(
+                    move_target=cutoff_target.pos,
+                    move_type="run",
+                    action="cutoff",
+                    target_id=cutoff_target.id,
+                    intent="cutoff_block",
+                    reasoning=f"Cutoff on {cutoff_target.position.value}",
+                )
+
+        # No DL to cutoff - hold position at LOS in our gap
+        hold_pos = Vec2(my_gap_center, world.los_y + 0.5)
+        return BrainDecision(
+            move_target=hold_pos,
+            move_type="run",
+            action="cutoff",
+            intent="cutoff_block",
+            reasoning="Holding backside gap",
+        )
+
+    # =========================================================================
+    # Pass set assignment (for draw plays - fake pass protection)
+    # =========================================================================
+    if assignment == "pass_set":
+        # Show pass protection initially, then transition to run block
+        if world.time_since_snap < 0.8:
+            # Pass set phase - drop back like pass pro
+            set_depth = 2.5
+            set_pos = Vec2(world.me.pos.x, world.los_y - set_depth)
+
+            return BrainDecision(
+                move_target=set_pos,
+                move_type="backpedal",
+                intent="pass_set",
+                reasoning="Draw - showing pass set",
+            )
+        else:
+            # Transition to run block - find nearest DL
+            if rusher:
+                return BrainDecision(
+                    move_target=rusher.pos,
+                    move_type="run",
+                    action="drive",
+                    target_id=rusher.id,
+                    intent="drive_block",
+                    reasoning="Draw - transitioning to run block",
+                )
+
+    # =========================================================================
+    # Base block assignment (man-on-man)
+    # =========================================================================
+    if assignment == "base":
+        my_pos = world.me.pos
+
+        # Find DL in our gap
+        base_target = None
+        for opp in world.opponents:
+            if opp.position in (Position.DE, Position.DT, Position.NT):
+                # Skip DL in pursuit mode - don't chase them
+                if _is_dl_in_pursuit(opp, world):
+                    continue
+                if my_gap_min <= opp.pos.x <= my_gap_max:
+                    base_target = opp
+                    break
+
+        if base_target:
+            dist_to_dl = my_pos.distance_to(base_target.pos)
+            if dist_to_dl < 1.5:
+                # Engaged - sustain
+                return BrainDecision(
+                    move_target=Vec2(base_target.pos.x, base_target.pos.y + 0.2),
+                    move_type="run",
+                    action="sustain",
+                    target_id=base_target.id,
+                    intent="base_block",
+                    reasoning=f"Sustaining on {base_target.position.value}",
+                )
+            else:
+                return BrainDecision(
+                    move_target=base_target.pos,
+                    move_type="run",
+                    action="drive",
+                    target_id=base_target.id,
+                    intent="base_block",
+                    reasoning=f"Base block on {base_target.position.value}",
+                )
+
+        # No DL in our gap - hold position
+        hold_pos = Vec2(my_gap_center, world.los_y + 0.5)
+        return BrainDecision(
+            move_target=hold_pos,
+            move_type="run",
+            action="hold",
+            intent="base_block",
+            reasoning="Holding gap, no DL",
+        )
+
+    # =========================================================================
+    # Default / Fallback - Find someone to block
+    # =========================================================================
+    # Ball path target
+    ball_target = Vec2(playside_dir * 3, world.los_y + 5)
+    if hasattr(world, 'run_aiming_point') and world.run_aiming_point:
+        ball_target = world.run_aiming_point
+
+    # 1. First look for DL in our gap
+    gap_dl = _find_rusher_in_gap(world)
+    if gap_dl:
+        dist_to_dl = world.me.pos.distance_to(gap_dl.pos)
+        if dist_to_dl < 1.5:
+            # Engaged - sustain
+            return BrainDecision(
+                move_target=Vec2(gap_dl.pos.x, gap_dl.pos.y + 0.2),
+                move_type="run",
+                action="sustain",
+                target_id=gap_dl.id,
+                intent="block",
+                reasoning=f"Blocking {gap_dl.position.value}",
+            )
+        else:
+            return BrainDecision(
+                move_target=gap_dl.pos,
+                move_type="run",
+                action="engage",
+                target_id=gap_dl.id,
+                intent="block",
+                reasoning=f"Engaging {gap_dl.position.value}",
+            )
+
+    # 2. No DL in gap - look for LB coming downhill
+    lb_target = _find_second_level_target(world, ball_target)
+    if lb_target:
+        dist_to_lb = world.me.pos.distance_to(lb_target.pos)
+        # Intercept LB's path to the ball
+        intercept_pos = _calculate_intercept_position(
+            world.me.pos, lb_target.pos, lb_target.velocity, ball_target, world
+        )
+        if dist_to_lb < 2.0:
+            return BrainDecision(
+                move_target=lb_target.pos,
+                move_type="run",
+                action="climb",
+                target_id=lb_target.id,
+                intent="second_level",
+                reasoning=f"Picking up {lb_target.position.value} at second level",
+            )
+        else:
+            return BrainDecision(
+                move_target=intercept_pos,
+                move_type="sprint",
+                action="climb",
+                target_id=lb_target.id,
+                intent="second_level",
+                reasoning=f"Climbing to intercept {lb_target.position.value}",
+            )
+
+    # 3. No LB - look for ANY downhill threat (safety, DB filling)
+    downhill_threat = _find_any_downhill_threat(world)
+    if downhill_threat:
+        intercept_pos = _calculate_intercept_position(
+            world.me.pos, downhill_threat.pos, downhill_threat.velocity, ball_target, world
+        )
+        return BrainDecision(
+            move_target=intercept_pos,
+            move_type="sprint",
+            action="lead",
+            target_id=downhill_threat.id,
+            intent="lead_block",
+            reasoning=f"Lead blocking on {downhill_threat.position.value} coming downhill",
+        )
+
+    # 4. Nobody to block - get to the second level and look for work
+    # Move toward the hole area in case a defender shows up
+    climb_target = Vec2(my_gap_center + playside_dir * 1.5, world.los_y + 3)
     return BrainDecision(
-        move_target=zone_target,
+        move_target=climb_target,
         move_type="run",
-        action="zone_step",
-        intent="zone_block",
-        reasoning="Zone stepping playside",
+        action="climb",
+        intent="second_level",
+        reasoning="Climbing to second level - looking for work",
     )

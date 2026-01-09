@@ -1,0 +1,223 @@
+{
+  "model_name": "two_point",
+  "version": "1.0",
+  "source": "nfl_data_py play-by-play 2019-2024",
+  "overall": {
+    "pat_attempts": 7774,
+    "pat_success_rate": 0.9439,
+    "two_point_attempts": 830,
+    "two_point_success_rate": 0.4771,
+    "go_for_2_rate": 0.0965,
+    "expected_points_pat": 0.9439,
+    "expected_points_2pt": 0.9542
+  },
+  "by_play_type": {
+    "pass": {
+      "attempts": 594,
+      "success_rate": 0.4478
+    },
+    "run": {
+      "attempts": 236,
+      "success_rate": 0.5508
+    }
+  },
+  "by_score_differential": {
+    "down_2": {
+      "score_diff": -2,
+      "total_tds": 62,
+      "two_point_attempts": 23,
+      "go_for_2_rate": 0.371,
+      "success_rate": 0.5217
+    },
+    "down_5": {
+      "score_diff": -5,
+      "total_tds": 76,
+      "two_point_attempts": 67,
+      "go_for_2_rate": 0.8816,
+      "success_rate": 0.5224
+    },
+    "down_8": {
+      "score_diff": -8,
+      "total_tds": 113,
+      "two_point_attempts": 94,
+      "go_for_2_rate": 0.8319,
+      "success_rate": 0.4149
+    },
+    "down_9": {
+      "score_diff": -9,
+      "total_tds": 77,
+      "two_point_attempts": 1,
+      "go_for_2_rate": 0.013,
+      "success_rate": 1.0
+    },
+    "down_11": {
+      "score_diff": -11,
+      "total_tds": 154,
+      "two_point_attempts": 86,
+      "go_for_2_rate": 0.5584,
+      "success_rate": 0.4419
+    },
+    "down_12": {
+      "score_diff": -12,
+      "total_tds": 76,
+      "two_point_attempts": 3,
+      "go_for_2_rate": 0.0395,
+      "success_rate": 0.3333
+    },
+    "down_14": {
+      "score_diff": -14,
+      "total_tds": 260,
+      "two_point_attempts": 36,
+      "go_for_2_rate": 0.1385,
+      "success_rate": 0.5556
+    },
+    "down_15": {
+      "score_diff": -15,
+      "total_tds": 60,
+      "two_point_attempts": 20,
+      "go_for_2_rate": 0.3333,
+      "success_rate": 0.55
+    },
+    "tied": {
+      "score_diff": 0,
+      "total_tds": 1582,
+      "two_point_attempts": 17,
+      "go_for_2_rate": 0.0107,
+      "success_rate": 0.4706
+    },
+    "up_1": {
+      "score_diff": 1,
+      "total_tds": 135,
+      "two_point_attempts": 12,
+      "go_for_2_rate": 0.0889,
+      "success_rate": 0.5833
+    },
+    "up_7": {
+      "score_diff": 7,
+      "total_tds": 560,
+      "two_point_attempts": 5,
+      "go_for_2_rate": 0.0089,
+      "success_rate": 0.6
+    },
+    "up_8": {
+      "score_diff": 8,
+      "total_tds": 86,
+      "two_point_attempts": 3,
+      "go_for_2_rate": 0.0349,
+      "success_rate": 0.3333
+    }
+  },
+  "by_quarter": {
+    "Q1": {
+      "total_tds": 1709,
+      "two_point_attempts": 20,
+      "go_for_2_rate": 0.0117,
+      "success_rate": 0.5
+    },
+    "Q2": {
+      "total_tds": 2594,
+      "two_point_attempts": 80,
+      "go_for_2_rate": 0.0308,
+      "success_rate": 0.475
+    },
+    "Q3": {
+      "total_tds": 1831,
+      "two_point_attempts": 183,
+      "go_for_2_rate": 0.0999,
+      "success_rate": 0.4863
+    },
+    "Q4": {
+      "total_tds": 2470,
+      "two_point_attempts": 547,
+      "go_for_2_rate": 0.2215,
+      "success_rate": 0.4735
+    }
+  },
+  "by_time_remaining": {
+    "under_2_min": {
+      "total_tds": 439,
+      "two_point_attempts": 132,
+      "go_for_2_rate": 0.3007,
+      "success_rate": 0.4545
+    },
+    "2_to_5_min": {
+      "total_tds": 553,
+      "two_point_attempts": 136,
+      "go_for_2_rate": 0.2459,
+      "success_rate": 0.5147
+    },
+    "5_to_10_min": {
+      "total_tds": 706,
+      "two_point_attempts": 131,
+      "go_for_2_rate": 0.1856,
+      "success_rate": 0.4733
+    },
+    "over_10_min": {
+      "total_tds": 772,
+      "two_point_attempts": 148,
+      "go_for_2_rate": 0.1917,
+      "success_rate": 0.4527
+    }
+  },
+  "decision_chart": {
+    "description": "Score differential AFTER scoring TD, BEFORE PAT/2PT",
+    "recommendations": {
+      "-8": {
+        "recommendation": "GO_FOR_2",
+        "reason": "2PT ties game, PAT still down 7"
+      },
+      "-5": {
+        "recommendation": "GO_FOR_2",
+        "reason": "2PT gets within FG, PAT still need TD"
+      },
+      "-2": {
+        "recommendation": "GO_FOR_2",
+        "reason": "2PT ties, PAT down 1"
+      },
+      "-9": {
+        "recommendation": "GO_FOR_2",
+        "reason": "2PT makes it one score (down 7)"
+      },
+      "-15": {
+        "recommendation": "GO_FOR_2",
+        "reason": "2PT makes it two scores (down 13)"
+      },
+      "-14": {
+        "recommendation": "KICK_PAT",
+        "reason": "PAT down 13, 2PT down 12 - both two scores"
+      },
+      "-11": {
+        "recommendation": "GO_FOR_2",
+        "reason": "2PT down 9 (TD+2PT ties), PAT down 10 (need TD+FG)"
+      },
+      "-4": {
+        "recommendation": "KICK_PAT",
+        "reason": "PAT down 3 (FG ties), 2PT down 2 (similar)"
+      },
+      "-1": {
+        "recommendation": "KICK_PAT",
+        "reason": "PAT ties game"
+      },
+      "0": {
+        "recommendation": "KICK_PAT",
+        "reason": "PAT goes up 1, safe lead"
+      },
+      "+1": {
+        "recommendation": "GO_FOR_2",
+        "reason": "2PT up 3 (need FG to tie), PAT up 2"
+      },
+      "+7": {
+        "recommendation": "KICK_PAT",
+        "reason": "PAT up 8 (need TD+2PT to tie)"
+      },
+      "+8": {
+        "recommendation": "KICK_PAT",
+        "reason": "PAT up 9 (two scores)"
+      }
+    }
+  },
+  "implementation_hints": {
+    "two_point_decision": "\ndef should_go_for_two(score_diff_after_td: int, quarter: int, time_remaining: int) -> bool:\n    '''\n    Decide whether to attempt 2-point conversion.\n\n    Args:\n        score_diff_after_td: Our score - opponent score AFTER TD (before PAT/2PT)\n        quarter: Current quarter (1-4)\n        time_remaining: Seconds remaining in game\n\n    Returns:\n        True if should go for 2, False for PAT\n    '''\n    # Classic chart situations (always go for 2)\n    go_for_2_diffs = [-8, -5, -2, -9, -15, -11, 1]\n\n    if score_diff_after_td in go_for_2_diffs:\n        return True\n\n    # Late game trailing - more aggressive\n    if quarter == 4 and time_remaining < 300 and score_diff_after_td < 0:\n        # Down multiple scores late, go for 2\n        if score_diff_after_td <= -8:\n            return True\n\n    # Default: kick PAT\n    return False\n",
+    "expected_value_comparison": "\n# Expected points comparison\nPAT_SUCCESS_RATE = 0.944\nTWO_PT_SUCCESS_RATE = 0.477\n\nexpected_pat = PAT_SUCCESS_RATE * 1  # = 0.944 points\nexpected_2pt = TWO_PT_SUCCESS_RATE * 2  # = 0.954 points\n\n# Pure EV says go for 2, but game theory matters more\n# The decision chart accounts for discrete score states\n"
+  }
+}

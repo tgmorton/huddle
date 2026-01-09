@@ -1,6 +1,19 @@
 """
 NFL Season Calendar and Time Progression System.
 
+DEPRECATED: This minute-based calendar is deprecated in favor of the
+day-based calendar at huddle.core.calendar.league_calendar.
+
+The new calendar:
+- Uses days instead of minutes for time progression
+- Integrates with the League model
+- Supports historical simulation
+- See: huddle.core.calendar.league_calendar.LeagueCalendar
+
+This module is kept for backward compatibility but new code should use
+the day-based calendar instead.
+
+Original description:
 This module handles the flow of time through an NFL season, including:
 - Season phases (offseason, free agency, draft, regular season, playoffs)
 - Real-time progression with pause/speed controls
@@ -580,12 +593,12 @@ class LeagueCalendar:
             SeasonPhase.POST_DRAFT: datetime(year, 4, 28, 8, 0),
             SeasonPhase.OTA: datetime(year, 5, 20, 8, 0),
             SeasonPhase.MINICAMP: datetime(year, 6, 10, 8, 0),
-            SeasonPhase.TRAINING_CAMP: datetime(year, 7, 25, 8, 0),
-            SeasonPhase.PRESEASON: datetime(year, 8, 10, 8, 0),
-            SeasonPhase.REGULAR_SEASON: datetime(year, 9, 5, 8, 0),  # Week 1 Thursday
+            SeasonPhase.TRAINING_CAMP: datetime(year, 7, 23, 8, 0),  # Tuesday
+            SeasonPhase.PRESEASON: datetime(year, 8, 6, 8, 0),  # Tuesday
+            SeasonPhase.REGULAR_SEASON: datetime(year, 9, 3, 8, 0),  # Week 1 Tuesday
         }
 
-        start_date = phase_starts.get(start_phase, datetime(year, 9, 5, 8, 0))
+        start_date = phase_starts.get(start_phase, datetime(year, 9, 3, 8, 0))
 
         return cls(
             season_year=year,

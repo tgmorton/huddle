@@ -1,0 +1,268 @@
+{
+  "model_name": "passing_attribute_projection",
+  "description": "Maps QB passing attributes to NFL performance metrics",
+  "data_source": "NFL PBP 2019-2024",
+  "accuracy_by_depth": {
+    "Elite": {
+      "behind_los": {
+        "completion_rate": 0.8169999718666077,
+        "int_rate": 0.005400000140070915,
+        "sample": 5744,
+        "avg_air_yards": -3.4000000953674316
+      },
+      "short": {
+        "completion_rate": 0.7225000262260437,
+        "int_rate": 0.01140000019222498,
+        "sample": 17855,
+        "avg_air_yards": 4.199999809265137
+      },
+      "medium": {
+        "completion_rate": 0.5954999923706055,
+        "int_rate": 0.027499999850988388,
+        "sample": 7516,
+        "avg_air_yards": 13.800000190734863
+      },
+      "deep": {
+        "completion_rate": 0.40560001134872437,
+        "int_rate": 0.053199999034404755,
+        "sample": 4061,
+        "avg_air_yards": 29.200000762939453
+      }
+    },
+    "Above Avg": {
+      "behind_los": {
+        "completion_rate": 0.8119000196456909,
+        "int_rate": 0.007199999876320362,
+        "sample": 5152,
+        "avg_air_yards": -3.4000000953674316
+      },
+      "short": {
+        "completion_rate": 0.7124000191688538,
+        "int_rate": 0.013100000098347664,
+        "sample": 16156,
+        "avg_air_yards": 4.199999809265137
+      },
+      "medium": {
+        "completion_rate": 0.5667999982833862,
+        "int_rate": 0.03099999949336052,
+        "sample": 6475,
+        "avg_air_yards": 13.899999618530273
+      },
+      "deep": {
+        "completion_rate": 0.37220001220703125,
+        "int_rate": 0.0544000007212162,
+        "sample": 3713,
+        "avg_air_yards": 29.600000381469727
+      }
+    },
+    "Below Avg": {
+      "behind_los": {
+        "completion_rate": 0.7937999963760376,
+        "int_rate": 0.009100000374019146,
+        "sample": 3938,
+        "avg_air_yards": -3.5
+      },
+      "short": {
+        "completion_rate": 0.6970000267028809,
+        "int_rate": 0.014399999752640724,
+        "sample": 11847,
+        "avg_air_yards": 4.199999809265137
+      },
+      "medium": {
+        "completion_rate": 0.5256999731063843,
+        "int_rate": 0.03579999879002571,
+        "sample": 4862,
+        "avg_air_yards": 13.800000190734863
+      },
+      "deep": {
+        "completion_rate": 0.34369999170303345,
+        "int_rate": 0.06530000269412994,
+        "sample": 2709,
+        "avg_air_yards": 29.0
+      }
+    },
+    "Bad": {
+      "behind_los": {
+        "completion_rate": 0.7739999890327454,
+        "int_rate": 0.010599999688565731,
+        "sample": 3018,
+        "avg_air_yards": -3.4000000953674316
+      },
+      "short": {
+        "completion_rate": 0.6729999780654907,
+        "int_rate": 0.016200000420212746,
+        "sample": 8654,
+        "avg_air_yards": 4.199999809265137
+      },
+      "medium": {
+        "completion_rate": 0.4812000095844269,
+        "int_rate": 0.05130000039935112,
+        "sample": 3431,
+        "avg_air_yards": 13.899999618530273
+      },
+      "deep": {
+        "completion_rate": 0.3001999855041504,
+        "int_rate": 0.07900000363588333,
+        "sample": 2012,
+        "avg_air_yards": 29.399999618530273
+      }
+    }
+  },
+  "pressure_performance": {
+    "Elite": {
+      "clean_pocket": 0.6891000270843506,
+      "under_pressure": 0.48260000348091125,
+      "pressure_penalty": 0.20649999380111694,
+      "clean_sample": 27561,
+      "pressure_sample": 9787
+    },
+    "Above Avg": {
+      "clean_pocket": 0.6735000014305115,
+      "under_pressure": 0.46779999136924744,
+      "pressure_penalty": 0.20579999685287476,
+      "clean_sample": 24257,
+      "pressure_sample": 9419
+    },
+    "Below Avg": {
+      "clean_pocket": 0.6419000029563904,
+      "under_pressure": 0.44290000200271606,
+      "pressure_penalty": 0.19900000095367432,
+      "clean_sample": 18311,
+      "pressure_sample": 7036
+    },
+    "Bad": {
+      "clean_pocket": 0.6218000054359436,
+      "under_pressure": 0.39800000190734863,
+      "pressure_penalty": 0.22380000352859497,
+      "clean_sample": 13148,
+      "pressure_sample": 5628
+    }
+  },
+  "play_action": {},
+  "throw_power_proxy": {
+    "Elite": {
+      "deep_completion": 0.40560001134872437,
+      "avg_deep_air_yards": 29.200000762939453,
+      "max_air_yards_p90": 42.0,
+      "int_rate": 0.053199999034404755,
+      "sample": 4061
+    },
+    "Above Avg": {
+      "deep_completion": 0.37220001220703125,
+      "avg_deep_air_yards": 29.600000381469727,
+      "max_air_yards_p90": 43.0,
+      "int_rate": 0.0544000007212162,
+      "sample": 3713
+    },
+    "Below Avg": {
+      "deep_completion": 0.34369999170303345,
+      "avg_deep_air_yards": 29.0,
+      "max_air_yards_p90": 42.0,
+      "int_rate": 0.06530000269412994,
+      "sample": 2709
+    },
+    "Bad": {
+      "deep_completion": 0.3001999855041504,
+      "avg_deep_air_yards": 29.399999618530273,
+      "max_air_yards_p90": 43.0,
+      "int_rate": 0.07900000363588333,
+      "sample": 2012
+    }
+  },
+  "attribute_calibration": {
+    "throw_accuracy_short": {
+      "nfl_metric": "completion_rate_under_10_yards",
+      "tier_data": {
+        "Elite": 0.7225000262260437,
+        "Above Avg": 0.7124000191688538,
+        "Below Avg": 0.6970000267028809,
+        "Bad": 0.6729999780654907
+      },
+      "effect_per_10_points": 0.09,
+      "rating_formula": "completion = base + (rating - 50) / 50 * spread",
+      "spread_elite_to_bad": 0.0494999997317791
+    },
+    "throw_accuracy_medium": {
+      "nfl_metric": "completion_rate_10_to_20_yards",
+      "tier_data": {
+        "Elite": 0.5954999923706055,
+        "Above Avg": 0.5667999982833862,
+        "Below Avg": 0.5256999731063843,
+        "Bad": 0.4812000095844269
+      },
+      "spread_elite_to_bad": 0.11429999768733978,
+      "effect_per_10_points": 0.2078
+    },
+    "throw_accuracy_deep": {
+      "nfl_metric": "completion_rate_over_20_yards",
+      "tier_data": {
+        "Elite": 0.40560001134872437,
+        "Above Avg": 0.37220001220703125,
+        "Below Avg": 0.34369999170303345,
+        "Bad": 0.3001999855041504
+      },
+      "spread_elite_to_bad": 0.10540000349283218,
+      "effect_per_10_points": 0.1916
+    },
+    "throw_power": {
+      "nfl_metric": "deep_ball_completion_and_air_yards",
+      "tier_data": {
+        "Elite": {
+          "deep_completion": 0.40560001134872437,
+          "avg_deep_air_yards": 29.200000762939453,
+          "max_air_yards_p90": 42.0
+        },
+        "Above Avg": {
+          "deep_completion": 0.37220001220703125,
+          "avg_deep_air_yards": 29.600000381469727,
+          "max_air_yards_p90": 43.0
+        },
+        "Below Avg": {
+          "deep_completion": 0.34369999170303345,
+          "avg_deep_air_yards": 29.0,
+          "max_air_yards_p90": 42.0
+        },
+        "Bad": {
+          "deep_completion": 0.3001999855041504,
+          "avg_deep_air_yards": 29.399999618530273,
+          "max_air_yards_p90": 43.0
+        }
+      }
+    },
+    "poise": {
+      "nfl_metric": "completion_under_pressure_penalty",
+      "tier_data": {
+        "Elite": {
+          "clean_pocket": 0.6891000270843506,
+          "under_pressure": 0.48260000348091125,
+          "pressure_penalty": 0.20649999380111694
+        },
+        "Above Avg": {
+          "clean_pocket": 0.6735000014305115,
+          "under_pressure": 0.46779999136924744,
+          "pressure_penalty": 0.20579999685287476
+        },
+        "Below Avg": {
+          "clean_pocket": 0.6419000029563904,
+          "under_pressure": 0.44290000200271606,
+          "pressure_penalty": 0.19900000095367432
+        },
+        "Bad": {
+          "clean_pocket": 0.6218000054359436,
+          "under_pressure": 0.39800000190734863,
+          "pressure_penalty": 0.22380000352859497
+        }
+      },
+      "effect_description": "Higher poise = smaller completion drop under pressure",
+      "penalty_spread": 0.01730000041425228
+    }
+  },
+  "attributes_covered": [
+    "throw_accuracy_short",
+    "throw_accuracy_medium",
+    "throw_accuracy_deep",
+    "throw_power",
+    "poise",
+    "play_action"
+  ]
+}

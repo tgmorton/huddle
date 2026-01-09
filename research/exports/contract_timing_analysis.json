@@ -1,0 +1,2046 @@
+{
+  "meta": {
+    "description": "Contract timing analysis for extension decisions",
+    "methodology": "Based on development curves and salary allocation data"
+  },
+  "extension_windows": {
+    "QB": {
+      "peak_age": 29,
+      "prime_years": [
+        27,
+        33
+      ],
+      "decline_rate": "4%/year",
+      "replacement_difficulty": "very_hard",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            26,
+            28
+          ],
+          "description": "Extend at age 26-28",
+          "prime_years_captured": 7,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            29,
+            29
+          ],
+          "description": "Extend at age 29",
+          "prime_years_captured": 4,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            30,
+            32
+          ],
+          "description": "Extend at age 30+",
+          "prime_years_captured": 3,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "RB": {
+      "peak_age": 26,
+      "prime_years": [
+        24,
+        28
+      ],
+      "decline_rate": "12%/year",
+      "replacement_difficulty": "very_easy",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            23,
+            25
+          ],
+          "description": "Extend at age 23-25",
+          "prime_years_captured": 5,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            26,
+            26
+          ],
+          "description": "Extend at age 26",
+          "prime_years_captured": 2,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            27,
+            29
+          ],
+          "description": "Extend at age 27+",
+          "prime_years_captured": 1,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "WR": {
+      "peak_age": 27,
+      "prime_years": [
+        25,
+        30
+      ],
+      "decline_rate": "6%/year",
+      "replacement_difficulty": "medium",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            24,
+            26
+          ],
+          "description": "Extend at age 24-26",
+          "prime_years_captured": 6,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            27,
+            27
+          ],
+          "description": "Extend at age 27",
+          "prime_years_captured": 3,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            28,
+            30
+          ],
+          "description": "Extend at age 28+",
+          "prime_years_captured": 2,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "TE": {
+      "peak_age": 28,
+      "prime_years": [
+        26,
+        31
+      ],
+      "decline_rate": "5%/year",
+      "replacement_difficulty": "easy",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            25,
+            27
+          ],
+          "description": "Extend at age 25-27",
+          "prime_years_captured": 6,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            28,
+            28
+          ],
+          "description": "Extend at age 28",
+          "prime_years_captured": 3,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            29,
+            31
+          ],
+          "description": "Extend at age 29+",
+          "prime_years_captured": 2,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "OL": {
+      "peak_age": 28,
+      "prime_years": [
+        26,
+        32
+      ],
+      "decline_rate": "4%/year",
+      "replacement_difficulty": "hard",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            25,
+            27
+          ],
+          "description": "Extend at age 25-27",
+          "prime_years_captured": 7,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            28,
+            28
+          ],
+          "description": "Extend at age 28",
+          "prime_years_captured": 4,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            29,
+            31
+          ],
+          "description": "Extend at age 29+",
+          "prime_years_captured": 3,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "CB": {
+      "peak_age": 27,
+      "prime_years": [
+        25,
+        29
+      ],
+      "decline_rate": "10%/year",
+      "replacement_difficulty": "easy",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            24,
+            26
+          ],
+          "description": "Extend at age 24-26",
+          "prime_years_captured": 5,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            27,
+            27
+          ],
+          "description": "Extend at age 27",
+          "prime_years_captured": 2,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            28,
+            30
+          ],
+          "description": "Extend at age 28+",
+          "prime_years_captured": 1,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "S": {
+      "peak_age": 28,
+      "prime_years": [
+        26,
+        30
+      ],
+      "decline_rate": "6%/year",
+      "replacement_difficulty": "medium",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            25,
+            27
+          ],
+          "description": "Extend at age 25-27",
+          "prime_years_captured": 5,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            28,
+            28
+          ],
+          "description": "Extend at age 28",
+          "prime_years_captured": 2,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            29,
+            31
+          ],
+          "description": "Extend at age 29+",
+          "prime_years_captured": 1,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "LB": {
+      "peak_age": 27,
+      "prime_years": [
+        25,
+        30
+      ],
+      "decline_rate": "7%/year",
+      "replacement_difficulty": "easy",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            24,
+            26
+          ],
+          "description": "Extend at age 24-26",
+          "prime_years_captured": 6,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            27,
+            27
+          ],
+          "description": "Extend at age 27",
+          "prime_years_captured": 3,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            28,
+            30
+          ],
+          "description": "Extend at age 28+",
+          "prime_years_captured": 2,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "EDGE": {
+      "peak_age": 27,
+      "prime_years": [
+        25,
+        30
+      ],
+      "decline_rate": "8%/year",
+      "replacement_difficulty": "hard",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            24,
+            26
+          ],
+          "description": "Extend at age 24-26",
+          "prime_years_captured": 6,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            27,
+            27
+          ],
+          "description": "Extend at age 27",
+          "prime_years_captured": 3,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            28,
+            30
+          ],
+          "description": "Extend at age 28+",
+          "prime_years_captured": 2,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    },
+    "DL": {
+      "peak_age": 28,
+      "prime_years": [
+        26,
+        31
+      ],
+      "decline_rate": "5%/year",
+      "replacement_difficulty": "medium",
+      "extension_windows": {
+        "optimal": {
+          "ages": [
+            25,
+            27
+          ],
+          "description": "Extend at age 25-27",
+          "prime_years_captured": 6,
+          "recommendation": "EXTEND - best value"
+        },
+        "acceptable": {
+          "ages": [
+            28,
+            28
+          ],
+          "description": "Extend at age 28",
+          "prime_years_captured": 3,
+          "recommendation": "EXTEND - if elite player"
+        },
+        "risky": {
+          "ages": [
+            29,
+            31
+          ],
+          "description": "Extend at age 29+",
+          "prime_years_captured": 2,
+          "recommendation": "CAUTION - declining production"
+        }
+      }
+    }
+  },
+  "contract_length_guidance": {
+    "QB": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 12
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 11
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 10
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 8 prime years",
+        "years_to_prime_end": 8
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 7 prime years",
+        "years_to_prime_end": 7
+      },
+      "27": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "28": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "29": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 4 prime years left",
+        "years_to_prime_end": 4
+      },
+      "30": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 3 prime years left",
+        "years_to_prime_end": 3
+      },
+      "31": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "33": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (4%/year)",
+        "years_to_prime_end": 0
+      }
+    },
+    "RB": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 7
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "25": {
+        "ideal_years": 3,
+        "max_years": 4,
+        "rationale": "Locks in 3 prime years",
+        "years_to_prime_end": 3
+      },
+      "26": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "27": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "28": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "29": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 12%/year decline",
+        "years_to_prime_end": 0
+      },
+      "30": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 12%/year decline",
+        "years_to_prime_end": 0
+      },
+      "31": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 12%/year decline",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 12%/year decline",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 12%/year decline",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 12%/year decline",
+        "years_to_prime_end": 0
+      }
+    },
+    "WR": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 8
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 7 prime years",
+        "years_to_prime_end": 7
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "27": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 3 prime years left",
+        "years_to_prime_end": 3
+      },
+      "28": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "29": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "30": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "31": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      }
+    },
+    "TE": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 10
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 8
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 7 prime years",
+        "years_to_prime_end": 7
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "27": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "28": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 3 prime years left",
+        "years_to_prime_end": 3
+      },
+      "29": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "30": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "31": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (5%/year)",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (5%/year)",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (5%/year)",
+        "years_to_prime_end": 0
+      }
+    },
+    "OL": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 11
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 10
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 8 prime years",
+        "years_to_prime_end": 8
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 7 prime years",
+        "years_to_prime_end": 7
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "27": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "28": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 4 prime years left",
+        "years_to_prime_end": 4
+      },
+      "29": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 3 prime years left",
+        "years_to_prime_end": 3
+      },
+      "30": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "31": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "32": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (4%/year)",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (4%/year)",
+        "years_to_prime_end": 0
+      }
+    },
+    "CB": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 8
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 7
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "26": {
+        "ideal_years": 3,
+        "max_years": 4,
+        "rationale": "Locks in 3 prime years",
+        "years_to_prime_end": 3
+      },
+      "27": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "28": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "29": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "30": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 10%/year decline",
+        "years_to_prime_end": 0
+      },
+      "31": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 10%/year decline",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 10%/year decline",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 10%/year decline",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 1,
+        "rationale": "Past prime, 10%/year decline",
+        "years_to_prime_end": 0
+      }
+    },
+    "S": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 8
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 7
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "27": {
+        "ideal_years": 3,
+        "max_years": 4,
+        "rationale": "Locks in 3 prime years",
+        "years_to_prime_end": 3
+      },
+      "28": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "29": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "30": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "31": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (6%/year)",
+        "years_to_prime_end": 0
+      }
+    },
+    "LB": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 8
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 7 prime years",
+        "years_to_prime_end": 7
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "27": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 3 prime years left",
+        "years_to_prime_end": 3
+      },
+      "28": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "29": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "30": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "31": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (7%/year)",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (7%/year)",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (7%/year)",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (7%/year)",
+        "years_to_prime_end": 0
+      }
+    },
+    "EDGE": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 8
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 7 prime years",
+        "years_to_prime_end": 7
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "27": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 3 prime years left",
+        "years_to_prime_end": 3
+      },
+      "28": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "29": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "30": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "31": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (8%/year)",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (8%/year)",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (8%/year)",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (8%/year)",
+        "years_to_prime_end": 0
+      }
+    },
+    "DL": {
+      "21": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 10
+      },
+      "22": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 9
+      },
+      "23": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Captures development and prime years",
+        "years_to_prime_end": 8
+      },
+      "24": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 7 prime years",
+        "years_to_prime_end": 7
+      },
+      "25": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 6 prime years",
+        "years_to_prime_end": 6
+      },
+      "26": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 5 prime years",
+        "years_to_prime_end": 5
+      },
+      "27": {
+        "ideal_years": 4,
+        "max_years": 5,
+        "rationale": "Locks in 4 prime years",
+        "years_to_prime_end": 4
+      },
+      "28": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 3 prime years left",
+        "years_to_prime_end": 3
+      },
+      "29": {
+        "ideal_years": 2,
+        "max_years": 3,
+        "rationale": "Only 2 prime years left",
+        "years_to_prime_end": 2
+      },
+      "30": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Only 1 prime years left",
+        "years_to_prime_end": 1
+      },
+      "31": {
+        "ideal_years": 0,
+        "max_years": 1,
+        "rationale": "Only 0 prime years left",
+        "years_to_prime_end": 0
+      },
+      "32": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (5%/year)",
+        "years_to_prime_end": 0
+      },
+      "33": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (5%/year)",
+        "years_to_prime_end": 0
+      },
+      "34": {
+        "ideal_years": 1,
+        "max_years": 2,
+        "rationale": "Past prime but slow decline (5%/year)",
+        "years_to_prime_end": 0
+      }
+    }
+  },
+  "extend_vs_replace": {
+    "QB": {
+      "replacement_difficulty": "very_hard",
+      "peak_age": 29,
+      "decline_rate": "4%",
+      "rules": [
+        {
+          "condition": "Elite (top 5 at position) AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Top of market",
+          "rationale": "QB is hard to replace via draft/FA"
+        },
+        {
+          "condition": "Elite AND at peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Still valuable, worth paying"
+        },
+        {
+          "condition": "Elite AND 1-2 years past peak",
+          "decision": "EXTEND with caution",
+          "max_cost": "Below market",
+          "rationale": "4%/year decline expected"
+        },
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "SHORT DEAL",
+          "max_cost": "Market rate",
+          "rationale": "4%/year decline"
+        }
+      ]
+    },
+    "RB": {
+      "replacement_difficulty": "very_easy",
+      "peak_age": 26,
+      "decline_rate": "12%",
+      "rules": [
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "CONSIDER",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "REPLACE",
+          "max_cost": "Below market",
+          "rationale": "12%/year decline"
+        },
+        {
+          "condition": "Any quality AND age 28+",
+          "decision": "REPLACE via draft/FA",
+          "max_cost": "Veteran minimum",
+          "rationale": "RB easily replaced, save cap"
+        }
+      ]
+    },
+    "WR": {
+      "replacement_difficulty": "medium",
+      "peak_age": 27,
+      "decline_rate": "6%",
+      "rules": [
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "SHORT DEAL",
+          "max_cost": "Market rate",
+          "rationale": "6%/year decline"
+        }
+      ]
+    },
+    "TE": {
+      "replacement_difficulty": "easy",
+      "peak_age": 28,
+      "decline_rate": "5%",
+      "rules": [
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "SHORT DEAL",
+          "max_cost": "Market rate",
+          "rationale": "5%/year decline"
+        },
+        {
+          "condition": "Any quality AND age 28+",
+          "decision": "REPLACE via draft/FA",
+          "max_cost": "Veteran minimum",
+          "rationale": "TE easily replaced, save cap"
+        }
+      ]
+    },
+    "OL": {
+      "replacement_difficulty": "hard",
+      "peak_age": 28,
+      "decline_rate": "4%",
+      "rules": [
+        {
+          "condition": "Elite (top 5 at position) AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Top of market",
+          "rationale": "OL is hard to replace via draft/FA"
+        },
+        {
+          "condition": "Elite AND at peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Still valuable, worth paying"
+        },
+        {
+          "condition": "Elite AND 1-2 years past peak",
+          "decision": "EXTEND with caution",
+          "max_cost": "Below market",
+          "rationale": "4%/year decline expected"
+        },
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "SHORT DEAL",
+          "max_cost": "Market rate",
+          "rationale": "4%/year decline"
+        }
+      ]
+    },
+    "CB": {
+      "replacement_difficulty": "easy",
+      "peak_age": 27,
+      "decline_rate": "10%",
+      "rules": [
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "REPLACE",
+          "max_cost": "Below market",
+          "rationale": "10%/year decline"
+        },
+        {
+          "condition": "Any quality AND age 28+",
+          "decision": "REPLACE via draft/FA",
+          "max_cost": "Veteran minimum",
+          "rationale": "CB easily replaced, save cap"
+        }
+      ]
+    },
+    "S": {
+      "replacement_difficulty": "medium",
+      "peak_age": 28,
+      "decline_rate": "6%",
+      "rules": [
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "SHORT DEAL",
+          "max_cost": "Market rate",
+          "rationale": "6%/year decline"
+        }
+      ]
+    },
+    "LB": {
+      "replacement_difficulty": "easy",
+      "peak_age": 27,
+      "decline_rate": "7%",
+      "rules": [
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "SHORT DEAL",
+          "max_cost": "Market rate",
+          "rationale": "7%/year decline"
+        },
+        {
+          "condition": "Any quality AND age 28+",
+          "decision": "REPLACE via draft/FA",
+          "max_cost": "Veteran minimum",
+          "rationale": "LB easily replaced, save cap"
+        }
+      ]
+    },
+    "EDGE": {
+      "replacement_difficulty": "hard",
+      "peak_age": 27,
+      "decline_rate": "8%",
+      "rules": [
+        {
+          "condition": "Elite (top 5 at position) AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Top of market",
+          "rationale": "EDGE is hard to replace via draft/FA"
+        },
+        {
+          "condition": "Elite AND at peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Still valuable, worth paying"
+        },
+        {
+          "condition": "Elite AND 1-2 years past peak",
+          "decision": "EXTEND with caution",
+          "max_cost": "Below market",
+          "rationale": "8%/year decline expected"
+        },
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "REPLACE",
+          "max_cost": "Below market",
+          "rationale": "8%/year decline"
+        }
+      ]
+    },
+    "DL": {
+      "replacement_difficulty": "medium",
+      "peak_age": 28,
+      "decline_rate": "5%",
+      "rules": [
+        {
+          "condition": "Good starter AND pre-peak",
+          "decision": "EXTEND",
+          "max_cost": "Market rate",
+          "rationale": "Growth potential justifies investment"
+        },
+        {
+          "condition": "Good starter AND past peak",
+          "decision": "SHORT DEAL",
+          "max_cost": "Market rate",
+          "rationale": "5%/year decline"
+        }
+      ]
+    }
+  },
+  "surplus_value_windows": {
+    "QB": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          28
+        ],
+        "surplus_level": "MEDIUM",
+        "explanation": "Still improving (8%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          27,
+          33
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          34,
+          35
+        ],
+        "surplus_level": "MEDIUM",
+        "explanation": "Declining 4%/year, paying for past",
+        "strategy": "Can extend technique-based veterans"
+      }
+    ],
+    "RB": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          25
+        ],
+        "surplus_level": "HIGH",
+        "explanation": "Still improving (15%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          24,
+          28
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          29,
+          35
+        ],
+        "surplus_level": "NEGATIVE",
+        "explanation": "Declining 12%/year, paying for past",
+        "strategy": "Do not extend; replace via draft"
+      }
+    ],
+    "WR": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          26
+        ],
+        "surplus_level": "HIGH",
+        "explanation": "Still improving (12%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          25,
+          30
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          31,
+          35
+        ],
+        "surplus_level": "LOW",
+        "explanation": "Declining 6%/year, paying for past",
+        "strategy": "Short deal only if no replacement ready"
+      }
+    ],
+    "TE": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          27
+        ],
+        "surplus_level": "HIGH",
+        "explanation": "Still improving (10%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          26,
+          31
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          32,
+          35
+        ],
+        "surplus_level": "MEDIUM",
+        "explanation": "Declining 5%/year, paying for past",
+        "strategy": "Can extend technique-based veterans"
+      }
+    ],
+    "OL": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          27
+        ],
+        "surplus_level": "MEDIUM",
+        "explanation": "Still improving (8%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          26,
+          32
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          33,
+          35
+        ],
+        "surplus_level": "MEDIUM",
+        "explanation": "Declining 4%/year, paying for past",
+        "strategy": "Can extend technique-based veterans"
+      }
+    ],
+    "CB": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          26
+        ],
+        "surplus_level": "HIGH",
+        "explanation": "Still improving (12%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          25,
+          29
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          30,
+          35
+        ],
+        "surplus_level": "NEGATIVE",
+        "explanation": "Declining 10%/year, paying for past",
+        "strategy": "Do not extend; replace via draft"
+      }
+    ],
+    "S": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          27
+        ],
+        "surplus_level": "HIGH",
+        "explanation": "Still improving (10%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          26,
+          30
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          31,
+          35
+        ],
+        "surplus_level": "LOW",
+        "explanation": "Declining 6%/year, paying for past",
+        "strategy": "Short deal only if no replacement ready"
+      }
+    ],
+    "LB": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          26
+        ],
+        "surplus_level": "HIGH",
+        "explanation": "Still improving (12%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          25,
+          30
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          31,
+          35
+        ],
+        "surplus_level": "LOW",
+        "explanation": "Declining 7%/year, paying for past",
+        "strategy": "Short deal only if no replacement ready"
+      }
+    ],
+    "EDGE": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          26
+        ],
+        "surplus_level": "HIGH",
+        "explanation": "Still improving (10%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          25,
+          30
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          31,
+          35
+        ],
+        "surplus_level": "LOW",
+        "explanation": "Declining 8%/year, paying for past",
+        "strategy": "Short deal only if no replacement ready"
+      }
+    ],
+    "DL": [
+      {
+        "phase": "Rookie Contract",
+        "typical_ages": [
+          21,
+          24
+        ],
+        "surplus_level": "VERY HIGH",
+        "explanation": "Cheap contract, player developing toward peak",
+        "strategy": "Maximize playing time, evaluate for extension"
+      },
+      {
+        "phase": "Second Contract (Pre-Peak)",
+        "typical_ages": [
+          25,
+          27
+        ],
+        "surplus_level": "MEDIUM",
+        "explanation": "Still improving (8%/year), prime years ahead",
+        "strategy": "Extend before FA if above-average player"
+      },
+      {
+        "phase": "Prime Years",
+        "typical_ages": [
+          26,
+          31
+        ],
+        "surplus_level": "NEUTRAL",
+        "explanation": "Paying market rate for peak production",
+        "strategy": "Only extend if elite; otherwise let FA determine value"
+      },
+      {
+        "phase": "Post-Prime",
+        "typical_ages": [
+          32,
+          35
+        ],
+        "surplus_level": "MEDIUM",
+        "explanation": "Declining 5%/year, paying for past",
+        "strategy": "Can extend technique-based veterans"
+      }
+    ]
+  },
+  "market_data": {
+    "QB": {
+      "avg_years": 1.9,
+      "avg_apy_cap_pct": 1.79,
+      "median_apy_cap_pct": 0.4,
+      "max_apy_cap_pct": 24.5,
+      "n_contracts": 2075
+    },
+    "RB": {
+      "avg_years": 1.8,
+      "avg_apy_cap_pct": 0.58,
+      "median_apy_cap_pct": 0.3,
+      "max_apy_cap_pct": 15.8,
+      "n_contracts": 3668
+    },
+    "WR": {
+      "avg_years": 1.7,
+      "avg_apy_cap_pct": 0.64,
+      "median_apy_cap_pct": 0.3,
+      "max_apy_cap_pct": 14.4,
+      "n_contracts": 7151
+    },
+    "TE": {
+      "avg_years": 1.7,
+      "avg_apy_cap_pct": 0.56,
+      "median_apy_cap_pct": 0.3,
+      "max_apy_cap_pct": 8.2,
+      "n_contracts": 3287
+    },
+    "CB": {
+      "avg_years": 1.8,
+      "avg_apy_cap_pct": 0.66,
+      "median_apy_cap_pct": 0.3,
+      "max_apy_cap_pct": 19.6,
+      "n_contracts": 5799
+    },
+    "S": {
+      "avg_years": 1.8,
+      "avg_apy_cap_pct": 0.64,
+      "median_apy_cap_pct": 0.4,
+      "max_apy_cap_pct": 9.6,
+      "n_contracts": 3662
+    },
+    "LB": {
+      "avg_years": 1.8,
+      "avg_apy_cap_pct": 0.62,
+      "median_apy_cap_pct": 0.4,
+      "max_apy_cap_pct": 12.4,
+      "n_contracts": 4651
+    }
+  },
+  "recommendations": {
+    "general_principles": [
+      "Extend players BEFORE peak to capture prime at pre-prime cost",
+      "Shorter deals for fast-declining positions (RB, CB)",
+      "Longer deals OK for slow-declining positions (QB, OL)",
+      "Replacement difficulty should influence willingness to pay"
+    ],
+    "by_position_tier": {
+      "extend_aggressively": {
+        "positions": [
+          "QB",
+          "EDGE",
+          "OL"
+        ],
+        "reason": "Hard to replace via draft/FA, slow decline",
+        "timing": "2-3 years before peak",
+        "max_years": "4-5 years"
+      },
+      "extend_selectively": {
+        "positions": [
+          "WR",
+          "DL",
+          "S",
+          "TE"
+        ],
+        "reason": "Moderate replacement difficulty",
+        "timing": "1-2 years before peak",
+        "max_years": "3-4 years"
+      },
+      "avoid_extensions": {
+        "positions": [
+          "RB",
+          "CB",
+          "LB"
+        ],
+        "reason": "Easy to replace, fast decline (RB/CB) or deep position (LB)",
+        "timing": "Only extend elite players",
+        "max_years": "2-3 years, prefer 1-year deals"
+      }
+    },
+    "red_flags": [
+      "Never give long deals to RBs over 26 (12%/year decline)",
+      "CBs over 29 are risky (speed-dependent, 10%/year decline)",
+      "Avoid guaranteeing years past prime end for any position",
+      "Don't pay market rate for players 2+ years past peak"
+    ],
+    "best_practices": [
+      "Use franchise tag to bridge extension negotiations at peak",
+      "Structure deals with declining cap hits (front-load)",
+      "Include performance incentives for aging players",
+      "Plan replacement 2 years before expected decline"
+    ]
+  }
+}

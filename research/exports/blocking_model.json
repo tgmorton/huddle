@@ -1,0 +1,221 @@
+{
+  "model_name": "ol_dl_blocking",
+  "version": "1.0",
+  "description": "Pass protection and run blocking calibration model",
+  "pass_protection": {
+    "overall": {
+      "sack_rate": 0.0659,
+      "hit_rate": 0.1479,
+      "pressure_rate": 0.2776
+    },
+    "by_rushers": {
+      "0": {
+        "sack_rate": 0.0625,
+        "pressure_rate": 0.22,
+        "hit_rate": 0.13,
+        "count": 400
+      },
+      "1": {
+        "sack_rate": 0.0046,
+        "pressure_rate": 0.0161,
+        "hit_rate": 0.0138,
+        "count": 434
+      },
+      "2": {
+        "sack_rate": 0.0129,
+        "pressure_rate": 0.0699,
+        "hit_rate": 0.0281,
+        "count": 1316
+      },
+      "3": {
+        "sack_rate": 0.0354,
+        "pressure_rate": 0.1903,
+        "hit_rate": 0.0867,
+        "count": 8381
+      },
+      "4": {
+        "sack_rate": 0.0623,
+        "pressure_rate": 0.2599,
+        "hit_rate": 0.1369,
+        "count": 77777
+      },
+      "5": {
+        "sack_rate": 0.0846,
+        "pressure_rate": 0.3348,
+        "hit_rate": 0.1861,
+        "count": 24955
+      },
+      "6": {
+        "sack_rate": 0.0898,
+        "pressure_rate": 0.4099,
+        "hit_rate": 0.2256,
+        "count": 6857
+      },
+      "7": {
+        "sack_rate": 0.0771,
+        "pressure_rate": 0.4555,
+        "hit_rate": 0.24,
+        "count": 1504
+      },
+      "8": {
+        "sack_rate": 0.1061,
+        "pressure_rate": 0.3966,
+        "hit_rate": 0.2346,
+        "count": 179
+      }
+    },
+    "by_down": {
+      "1": {
+        "sack_rate": 0.0511,
+        "pressure_rate": 0.2498,
+        "hit_rate": 0.1219
+      },
+      "2": {
+        "sack_rate": 0.0553,
+        "pressure_rate": 0.2594,
+        "hit_rate": 0.1284
+      },
+      "3": {
+        "sack_rate": 0.099,
+        "pressure_rate": 0.3348,
+        "hit_rate": 0.2044
+      },
+      "4": {
+        "sack_rate": 0.0765,
+        "pressure_rate": 0.3325,
+        "hit_rate": 0.1994
+      }
+    },
+    "third_long": {
+      "sack_rate": 0.10901951726527313,
+      "pressure_rate": 0.35927936251299225,
+      "count": 17318
+    }
+  },
+  "time_to_throw": {
+    "mean": 2.723,
+    "median": 2.569,
+    "std": 1.044,
+    "percentiles": {
+      "p10": 1.67,
+      "p25": 2.04,
+      "p50": 2.57,
+      "p75": 3.17,
+      "p90": 3.95
+    },
+    "pressure_timing": {
+      "sack_timing_mean": 3.2997257709503174,
+      "sack_timing_median": 2.9000000953674316,
+      "hit_timing_mean": 3.284001588821411,
+      "hit_timing_median": 3.0
+    }
+  },
+  "run_blocking": {
+    "overall": {
+      "mean_yards": 4.316314697265625,
+      "median_yards": 3.0,
+      "stuff_rate": 0.18279424757043292,
+      "count": 81496
+    }
+  },
+  "derived_win_rates": {
+    "description": "Estimated OL/DL win rates per time unit",
+    "pass_rush": {
+      "base_win_rate_per_second": 0.026,
+      "base_win_rate_per_tick": 0.0013,
+      "by_rushers": {
+        "3": {
+          "pressure_rate": 0.12,
+          "sack_rate": 0.03
+        },
+        "4": {
+          "pressure_rate": 0.18,
+          "sack_rate": 0.05
+        },
+        "5": {
+          "pressure_rate": 0.28,
+          "sack_rate": 0.08
+        },
+        "6": {
+          "pressure_rate": 0.35,
+          "sack_rate": 0.12
+        },
+        "7": {
+          "pressure_rate": 0.42,
+          "sack_rate": 0.15
+        }
+      },
+      "pressure_to_sack_rate": 0.25,
+      "timing": {
+        "pressure_starts": 1.5,
+        "pressure_peak": 3.0,
+        "sack_timing_mean": 3.0,
+        "clean_pocket_threshold": 2.5
+      }
+    },
+    "run_block": {
+      "base_win_rate": 0.55,
+      "stuff_rate_baseline": 0.18,
+      "by_gap": {
+        "A": {
+          "win_rate": 0.5,
+          "stuff_rate": 0.22
+        },
+        "B": {
+          "win_rate": 0.55,
+          "stuff_rate": 0.18
+        },
+        "C": {
+          "win_rate": 0.58,
+          "stuff_rate": 0.16
+        },
+        "D": {
+          "win_rate": 0.52,
+          "stuff_rate": 0.2
+        }
+      },
+      "attribute_modifiers": {
+        "per_10_rbk_advantage": 0.03,
+        "per_10_str_advantage": 0.02,
+        "per_10_bsh_disadvantage": -0.025
+      }
+    }
+  },
+  "calibration_targets": {
+    "sack_rate": 0.066,
+    "pressure_rate": 0.25,
+    "hit_rate": 0.15,
+    "time_to_throw_mean": 2.7,
+    "run_stuff_rate": 0.18
+  },
+  "factor_mapping": {
+    "pass_rushers": {
+      "huddle_factor": "play.num_rushers",
+      "available": true
+    },
+    "time_in_pocket": {
+      "huddle_factor": "qb.time_in_pocket",
+      "available": true
+    },
+    "pressure_level": {
+      "huddle_factor": "qb.pressure_level",
+      "available": true
+    },
+    "ol_pbk": {
+      "huddle_factor": "player.pbk",
+      "available": true
+    },
+    "dl_pmv": {
+      "huddle_factor": "player.pmv + player.fnm",
+      "available": true
+    },
+    "ol_rbk": {
+      "huddle_factor": "player.rbk",
+      "available": true
+    },
+    "dl_bsh": {
+      "huddle_factor": "player.bsh",
+      "available": true
+    }
+  }
+}

@@ -5,12 +5,23 @@
  * - Generate new simulations
  * - Browse teams, rosters, standings
  * - View draft results and transactions
+ * - Analyze AI decision-making (GM archetypes, cap allocation, FA strategy)
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSimExplorerStore } from '../../stores/simExplorerStore';
 import type { ViewMode } from '../../stores/simExplorerStore';
+import * as historyClient from '../../api/historyClient';
 import './SimExplorer.css';
+
+// GM Archetype colors and labels
+const GM_ARCHETYPE_STYLES: Record<string, { color: string; label: string }> = {
+  analytics: { color: '#3b82f6', label: 'Analytics' },
+  old_school: { color: '#f59e0b', label: 'Old School' },
+  cap_wizard: { color: '#10b981', label: 'Cap Wizard' },
+  win_now: { color: '#ef4444', label: 'Win Now' },
+  balanced: { color: '#6b7280', label: 'Balanced' },
+};
 
 export default function SimExplorer() {
   const {
@@ -125,21 +136,33 @@ export default function SimExplorer() {
               <ul className="team-list">
                 {currentSimulation.teams
                   .sort((a, b) => b.win_pct - a.win_pct)
-                  .map((team) => (
-                    <li
-                      key={team.team_id}
-                      className={selectedTeamId === team.team_id ? 'selected' : ''}
-                      onClick={() => selectTeam(team.team_id)}
-                    >
-                      <span className="team-name">{team.team_name}</span>
-                      <span className="team-record">
-                        {team.wins}-{team.losses}
-                      </span>
-                      <span className={`team-status status-${team.status.toLowerCase()}`}>
-                        {team.status}
-                      </span>
-                    </li>
-                  ))}
+                  .map((team) => {
+                    const gmStyle = GM_ARCHETYPE_STYLES[team.gm_archetype || 'balanced'];
+                    return (
+                      <li
+                        key={team.team_id}
+                        className={selectedTeamId === team.team_id ? 'selected' : ''}
+                        onClick={() => selectTeam(team.team_id)}
+                      >
+                        <span className="team-name">{team.team_name}</span>
+                        <span className="team-record">
+                          {team.wins}-{team.losses}
+                        </span>
+                        {team.gm_archetype && (
+                          <span
+                            className="gm-badge"
+                            style={{ backgroundColor: gmStyle.color }}
+                            title={gmStyle.label}
+                          >
+                            {gmStyle.label.charAt(0)}
+                          </span>
+                        )}
+                        <span className={`team-status status-${team.status.toLowerCase()}`}>
+                          {team.status}
+                        </span>
+                      </li>
+                    );
+                  })}
               </ul>
             </section>
           )}
@@ -155,7 +178,7 @@ export default function SimExplorer() {
             <>
               {/* View Tabs */}
               <nav className="view-tabs">
-                {(['overview', 'standings', 'roster', 'draft', 'transactions'] as ViewMode[]).map(
+                {(['overview', 'standings', 'roster', 'draft', 'transactions', 'profile', 'strategy'] as ViewMode[]).map(
                   (mode) => (
                     <button
                       key={mode}
@@ -172,7 +195,13 @@ export default function SimExplorer() {
               <div className="view-content">
                 {isLoading && <div className="loading">Loading...</div>}
 
-                {viewMode === 'overview' && <OverviewView simulation={currentSimulation} />}
+                {viewMode === 'overview' && (
+                  <OverviewView
+                    simulation={currentSimulation}
+                    standings={standings}
+                    selectedSeason={selectedSeason}
+                  />
+                )}
                 {viewMode === 'standings' && standings && <StandingsView standings={standings} />}
                 {viewMode === 'roster' && selectedRoster && <RosterView roster={selectedRoster} />}
                 {viewMode === 'roster' && !selectedRoster && (
@@ -181,6 +210,29 @@ export default function SimExplorer() {
                 {viewMode === 'draft' && draft && <DraftView draft={draft} />}
                 {viewMode === 'transactions' && transactions && (
                   <TransactionsView transactions={transactions} />
+                )}
+                {viewMode === 'profile' && selectedTeamId && currentSimulation && selectedSeason && (
+                  <TeamProfileView
+                    simId={currentSimulation.sim_id}
+                    teamId={selectedTeamId}
+                    season={selectedSeason}
+                  />
+                )}
+                {viewMode === 'profile' && !selectedTeamId && (
+                  <div className="empty-view">Select a team to view profile</div>
+                )}
+                {viewMode === 'strategy' && selectedTeamId && currentSimulation && selectedSeason && (
+                  <StrategyView
+                    simId={currentSimulation.sim_id}
+                    teamId={selectedTeamId}
+                    season={selectedSeason}
+                  />
+                )}
+                {viewMode === 'strategy' && !selectedTeamId && currentSimulation && selectedSeason && (
+                  <GMComparisonView
+                    simId={currentSimulation.sim_id}
+                    season={selectedSeason}
+                  />
                 )}
               </div>
             </>
@@ -193,7 +245,15 @@ export default function SimExplorer() {
 
 // Sub-components
 
-function OverviewView({ simulation }: { simulation: import('../../api/historyClient').FullSimulationData }) {
+function OverviewView({
+  simulation,
+  standings,
+  selectedSeason,
+}: {
+  simulation: import('../../api/historyClient').FullSimulationData;
+  standings: import('../../api/historyClient').StandingsData | null;
+  selectedSeason: number | null;
+}) {
   return (
     <div className="overview-view">
       <div className="overview-stats">
@@ -210,10 +270,8 @@ function OverviewView({ simulation }: { simulation: import('../../api/historyCli
           <span className="stat-value">{simulation.summary.total_transactions}</span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Years</span>
-          <span className="stat-value">
-            {simulation.summary.start_year} - {simulation.summary.end_year}
-          </span>
+          <span className="stat-label">Viewing</span>
+          <span className="stat-value">{selectedSeason ?? '-'}</span>
         </div>
       </div>
 
@@ -229,7 +287,7 @@ function OverviewView({ simulation }: { simulation: import('../../api/historyCli
         </thead>
         <tbody>
           {simulation.seasons.map((season) => (
-            <tr key={season.season}>
+            <tr key={season.season} className={season.season === selectedSeason ? 'selected-row' : ''}>
               <td>{season.season}</td>
               <td>{season.total_transactions}</td>
               <td>{season.draft_picks}</td>
@@ -239,35 +297,35 @@ function OverviewView({ simulation }: { simulation: import('../../api/historyCli
         </tbody>
       </table>
 
-      <h3>Team Overview</h3>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Team</th>
-            <th>Record</th>
-            <th>Win%</th>
-            <th>Roster</th>
-            <th>Cap Used</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {simulation.teams
-            .sort((a, b) => b.win_pct - a.win_pct)
-            .map((team) => (
+      <h3>{selectedSeason} Standings</h3>
+      {standings ? (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Team</th>
+              <th>Record</th>
+              <th>Win%</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {standings.teams.map((team) => (
               <tr key={team.team_id}>
+                <td>{team.rank}</td>
                 <td>{team.team_name}</td>
                 <td>
                   {team.wins}-{team.losses}
                 </td>
                 <td>{(team.win_pct * 100).toFixed(1)}%</td>
-                <td>{team.roster_size}</td>
-                <td>{team.cap_pct.toFixed(1)}%</td>
                 <td className={`status-${team.status.toLowerCase()}`}>{team.status}</td>
               </tr>
             ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      ) : (
+        <p className="empty-state">Loading standings...</p>
+      )}
     </div>
   );
 }
@@ -354,6 +412,10 @@ function DraftView({ draft }: { draft: import('../../api/historyClient').DraftDa
   return (
     <div className="draft-view">
       <h3>{draft.season} Draft</h3>
+      <p className="view-description">
+        Position Value: Research-backed draft value (1.0 = best to draft, 0.1 = sign in FA).
+        GM Adj: Archetype modifier.
+      </p>
       {draft.picks.length === 0 ? (
         <p className="empty-state">No draft data available for this season</p>
       ) : (
@@ -365,6 +427,9 @@ function DraftView({ draft }: { draft: import('../../api/historyClient').DraftDa
               <th>Player</th>
               <th>Pos</th>
               <th>OVR</th>
+              <th>Pos Value</th>
+              <th>GM Adj</th>
+              <th>Draft?</th>
             </tr>
           </thead>
           <tbody>
@@ -378,6 +443,19 @@ function DraftView({ draft }: { draft: import('../../api/historyClient').DraftDa
                 <td>{pick.position}</td>
                 <td className={`overall ovr-${Math.floor(pick.overall_rating / 10) * 10}`}>
                   {pick.overall_rating}
+                </td>
+                <td className={pick.position_value && pick.position_value >= 0.5 ? 'value-high' : 'value-low'}>
+                  {pick.position_value?.toFixed(2) ?? '-'}
+                </td>
+                <td className={pick.gm_adjustment && pick.gm_adjustment > 0 ? 'adj-positive' : pick.gm_adjustment && pick.gm_adjustment < 0 ? 'adj-negative' : ''}>
+                  {pick.gm_adjustment ? (pick.gm_adjustment > 0 ? '+' : '') + pick.gm_adjustment.toFixed(2) : '-'}
+                </td>
+                <td>
+                  {pick.is_draft_priority !== undefined && (
+                    <span className={pick.is_draft_priority ? 'priority-yes' : 'priority-no'}>
+                      {pick.is_draft_priority ? '✓' : '✗'}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -419,6 +497,313 @@ function TransactionsView({ transactions }: { transactions: import('../../api/hi
               <td>{tx.player_position}</td>
             </tr>
           ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+// =============================================================================
+// New AI Visibility Views
+// =============================================================================
+
+function TeamProfileView({ simId, teamId, season }: { simId: string; teamId: string; season: number }) {
+  const [profile, setProfile] = useState<historyClient.TeamProfile | null>(null);
+  const [allocation, setAllocation] = useState<historyClient.CapAllocationData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      historyClient.getTeamProfile(simId, teamId, season),
+      historyClient.getTeamAllocation(simId, teamId, season),
+    ])
+      .then(([p, a]) => {
+        setProfile(p);
+        setAllocation(a);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [simId, teamId, season]);
+
+  if (loading) return <div className="loading">Loading profile...</div>;
+  if (!profile) return <div className="empty-state">No profile data available</div>;
+
+  const gmStyle = GM_ARCHETYPE_STYLES[profile.gm_archetype] || GM_ARCHETYPE_STYLES.balanced;
+
+  return (
+    <div className="profile-view">
+      <div className="profile-header">
+        <h3>{profile.team_name}</h3>
+        <span className="gm-badge-large" style={{ backgroundColor: gmStyle.color }}>
+          {gmStyle.label} GM
+        </span>
+      </div>
+
+      <div className="profile-section">
+        <h4>GM Philosophy</h4>
+        <p className="gm-description">{profile.gm_description}</p>
+        <div className="profile-stats">
+          <div className="stat">
+            <span className="stat-label">Rookie Premium</span>
+            <span className="stat-value">{profile.rookie_premium}x</span>
+          </div>
+          <div className="stat">
+            <span className="stat-label">Draft Philosophy</span>
+            <span className="stat-value">{profile.draft_philosophy.replace('_', ' ')}</span>
+          </div>
+          <div className="stat">
+            <span className="stat-label">Spending Style</span>
+            <span className="stat-value">{profile.spending_style}</span>
+          </div>
+          <div className="stat">
+            <span className="stat-label">Status</span>
+            <span className="stat-value">{profile.status}</span>
+          </div>
+        </div>
+      </div>
+
+      {Object.keys(profile.position_preferences).length > 0 && (
+        <div className="profile-section">
+          <h4>Position Preferences</h4>
+          <div className="position-prefs">
+            {Object.entries(profile.position_preferences)
+              .sort((a, b) => b[1] - a[1])
+              .map(([pos, adj]) => (
+                <span
+                  key={pos}
+                  className={`pref-badge ${adj > 1 ? 'pref-high' : adj < 1 ? 'pref-low' : ''}`}
+                >
+                  {pos}: {adj > 1 ? '+' : ''}{((adj - 1) * 100).toFixed(0)}%
+                </span>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {allocation && (
+        <div className="profile-section">
+          <h4>Cap Allocation vs Optimal</h4>
+          <p className="section-description">
+            Gap: positive = under-invested, negative = over-invested
+          </p>
+          <div className="allocation-grid">
+            <div className="allocation-side">
+              <h5>Offense</h5>
+              {allocation.offense_allocation.map((pos) => (
+                <div key={pos.position} className="allocation-row">
+                  <span className="pos-name">{pos.position}</span>
+                  <div className="allocation-bar-container">
+                    <div
+                      className="allocation-bar actual"
+                      style={{ width: `${Math.min(100, pos.actual_pct * 3)}%` }}
+                    />
+                    <div
+                      className="allocation-bar target"
+                      style={{ width: `${Math.min(100, pos.target_pct * 3)}%` }}
+                    />
+                  </div>
+                  <span className={`gap ${pos.gap > 0 ? 'gap-under' : pos.gap < 0 ? 'gap-over' : ''}`}>
+                    {pos.gap > 0 ? '+' : ''}{pos.gap.toFixed(1)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="allocation-side">
+              <h5>Defense</h5>
+              {allocation.defense_allocation.map((pos) => (
+                <div key={pos.position} className="allocation-row">
+                  <span className="pos-name">{pos.position}</span>
+                  <div className="allocation-bar-container">
+                    <div
+                      className="allocation-bar actual"
+                      style={{ width: `${Math.min(100, pos.actual_pct * 3)}%` }}
+                    />
+                    <div
+                      className="allocation-bar target"
+                      style={{ width: `${Math.min(100, pos.target_pct * 3)}%` }}
+                    />
+                  </div>
+                  <span className={`gap ${pos.gap > 0 ? 'gap-under' : pos.gap < 0 ? 'gap-over' : ''}`}>
+                    {pos.gap > 0 ? '+' : ''}{pos.gap.toFixed(1)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="allocation-legend">
+            <span><span className="legend-actual" /> Actual</span>
+            <span><span className="legend-target" /> Target</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StrategyView({ simId, teamId, season }: { simId: string; teamId: string; season: number }) {
+  const [rosterPlan, setRosterPlan] = useState<historyClient.RosterPlan | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    historyClient.getRosterPlan(simId, teamId, season)
+      .then(setRosterPlan)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [simId, teamId, season]);
+
+  if (loading) return <div className="loading">Loading roster plan...</div>;
+  if (!rosterPlan) return <div className="empty-state">No roster plan data available</div>;
+
+  const formatMoney = (k: number) => `$${(k / 1000).toFixed(1)}M`;
+  const gmStyle = GM_ARCHETYPE_STYLES[rosterPlan.gm_archetype] || GM_ARCHETYPE_STYLES.balanced;
+
+  const renderPositionPlan = (plan: historyClient.PositionPlan) => (
+    <div key={plan.position} className="position-plan">
+      <div className="position-plan-header">
+        <span className="position-name">{plan.position}</span>
+        <span className={`need-level need-${plan.need_level > 0.7 ? 'high' : plan.need_level > 0.4 ? 'medium' : 'low'}`}>
+          {(plan.need_level * 100).toFixed(0)}% need
+        </span>
+        <span className={`research-rec rec-${plan.research_recommendation === 'Draft' ? 'draft' : 'fa'}`}>
+          {plan.research_recommendation}
+        </span>
+      </div>
+      <div className="position-plan-reason">{plan.need_reason}</div>
+      {plan.current_starter && (
+        <div className="current-starter">
+          Current: {plan.current_starter} ({plan.current_overall} OVR, age {plan.current_age})
+          {plan.current_contract_years && <span className="contract-years">{plan.current_contract_years}yr left</span>}
+        </div>
+      )}
+      <div className="position-options">
+        {plan.options.map((opt, idx) => (
+          <div key={idx} className={`option-row option-${opt.option_type.toLowerCase()}`}>
+            <div className="option-prob">
+              <span className="prob-bar" style={{ width: `${opt.probability}%` }} />
+              <span className="prob-text">{opt.probability.toFixed(0)}%</span>
+            </div>
+            <div className="option-info">
+              <span className="option-name">{opt.player_name}</span>
+              <span className="option-details">
+                {opt.overall} OVR, {opt.age}yo
+                {opt.projected_cost && ` - ${formatMoney(opt.projected_cost)}/yr`}
+              </span>
+            </div>
+            <span className={`option-type type-${opt.option_type.toLowerCase()}`}>
+              {opt.option_type}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="strategy-view roster-plan-view">
+      <div className="strategy-header">
+        <h3>{rosterPlan.team_name} Roster Plan ({season})</h3>
+        <span className="gm-badge-large" style={{ backgroundColor: gmStyle.color }}>
+          {gmStyle.label} GM
+        </span>
+      </div>
+
+      <div className="roster-plan-summary">
+        <div className="summary-stat">
+          <span className="stat-label">Cap Space</span>
+          <span className="stat-value">{formatMoney(rosterPlan.cap_space)}</span>
+        </div>
+        <div className="summary-stat">
+          <span className="stat-label">Total Needs</span>
+          <span className="stat-value">{rosterPlan.total_needs}</span>
+        </div>
+        <div className="summary-stat">
+          <span className="stat-label">FA Targets</span>
+          <span className="stat-value">{rosterPlan.fa_targets}</span>
+        </div>
+        <div className="summary-stat">
+          <span className="stat-label">Draft Targets</span>
+          <span className="stat-value">{rosterPlan.draft_targets}</span>
+        </div>
+      </div>
+
+      <div className="draft-picks-info">
+        <h4>Draft Capital</h4>
+        <div className="picks-list">
+          {rosterPlan.draft_picks.map((pick, idx) => (
+            <span key={idx} className="pick-badge">{pick}</span>
+          ))}
+        </div>
+      </div>
+
+      <div className="position-plans-grid">
+        <div className="plans-column">
+          <h4>Offense</h4>
+          {rosterPlan.offense_plans.map(renderPositionPlan)}
+        </div>
+        <div className="plans-column">
+          <h4>Defense</h4>
+          {rosterPlan.defense_plans.map(renderPositionPlan)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GMComparisonView({ simId, season }: { simId: string; season: number }) {
+  const [comparison, setComparison] = useState<historyClient.GMComparisonData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    historyClient.getGMComparison(simId, season)
+      .then(setComparison)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [simId, season]);
+
+  if (loading) return <div className="loading">Loading comparison...</div>;
+  if (!comparison) return <div className="empty-state">No comparison data available</div>;
+
+  return (
+    <div className="gm-comparison-view">
+      <h3>GM Archetype Performance ({season})</h3>
+      <p className="view-description">
+        Compare how different GM philosophies performed this season.
+        Select a team to see detailed strategy.
+      </p>
+
+      <table className="data-table comparison-table">
+        <thead>
+          <tr>
+            <th>Archetype</th>
+            <th>Teams</th>
+            <th>Avg Wins</th>
+            <th>Win %</th>
+            <th>Playoffs</th>
+            <th>Champs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {comparison.archetypes.map((entry) => {
+            const style = GM_ARCHETYPE_STYLES[entry.archetype] || GM_ARCHETYPE_STYLES.balanced;
+            return (
+              <tr key={entry.archetype}>
+                <td>
+                  <span className="gm-badge" style={{ backgroundColor: style.color }}>
+                    {style.label}
+                  </span>
+                </td>
+                <td>{entry.team_count}</td>
+                <td>{entry.avg_wins.toFixed(1)}</td>
+                <td>{(entry.avg_win_pct * 100).toFixed(1)}%</td>
+                <td>{entry.playoffs_made}</td>
+                <td>{entry.championships}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

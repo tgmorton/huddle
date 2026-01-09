@@ -344,7 +344,8 @@ def _create_drag() -> RouteDefinition:
         name="Drag",
         route_type=RouteType.DRAG,
         waypoints=[
-            RouteWaypoint(Vec2(0, 1), phase=RoutePhase.RELEASE, description="Quick release"),
+            # Start angling toward break immediately - no straight release
+            # This prevents the "shifty" direction change at waypoint 1
             RouteWaypoint(Vec2(3, 3), is_break=True, phase=RoutePhase.BREAK, description="Get to 3 yards"),
             RouteWaypoint(Vec2(10, 4), phase=RoutePhase.POST_BREAK, look_for_ball=True, description="Drag across"),
             RouteWaypoint(Vec2(20, 5), phase=RoutePhase.COMPLETE, description="Continue across"),

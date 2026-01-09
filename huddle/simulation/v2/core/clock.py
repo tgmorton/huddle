@@ -79,6 +79,11 @@ class Clock:
         return self.current_time
 
     @property
+    def dt(self) -> float:
+        """Delta time per tick (alias for tick_rate)."""
+        return self.tick_rate
+
+    @property
     def ticks(self) -> int:
         """Current tick count (alias for tick_count)."""
         return self.tick_count

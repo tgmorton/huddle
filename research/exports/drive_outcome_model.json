@@ -1,0 +1,344 @@
+{
+  "model_name": "drive_outcomes",
+  "version": "1.0",
+  "source": "nfl_data_py play-by-play 2019-2024",
+  "overall_outcomes": {
+    "touchdown": {
+      "count": 8210,
+      "rate": 0.232
+    },
+    "field_goal": {
+      "count": 5486,
+      "rate": 0.155
+    },
+    "punt": {
+      "count": 13123,
+      "rate": 0.3708
+    },
+    "turnover": {
+      "count": 3786,
+      "rate": 0.107
+    },
+    "turnover_on_downs": {
+      "count": 1961,
+      "rate": 0.0554
+    },
+    "end_of_half": {
+      "count": 1316,
+      "rate": 0.0372
+    },
+    "safety": {
+      "count": 96,
+      "rate": 0.0027
+    }
+  },
+  "total_drives": 35387,
+  "by_starting_position": {
+    "opp_1-10": {
+      "count": 214,
+      "outcomes": {
+        "touchdown": {
+          "count": 154,
+          "rate": 0.7196
+        },
+        "field_goal": {
+          "count": 43,
+          "rate": 0.2009
+        },
+        "turnover": {
+          "count": 6,
+          "rate": 0.028
+        },
+        "turnover_on_downs": {
+          "count": 9,
+          "rate": 0.0421
+        }
+      },
+      "scoring_rate": 0.9206,
+      "points_expected": 5.28
+    },
+    "opp_11-20": {
+      "count": 385,
+      "outcomes": {
+        "touchdown": {
+          "count": 198,
+          "rate": 0.5143
+        },
+        "field_goal": {
+          "count": 142,
+          "rate": 0.3688
+        },
+        "turnover": {
+          "count": 17,
+          "rate": 0.0442
+        },
+        "turnover_on_downs": {
+          "count": 13,
+          "rate": 0.0338
+        }
+      },
+      "scoring_rate": 0.8831,
+      "points_expected": 4.45
+    },
+    "opp_21-35": {
+      "count": 1003,
+      "outcomes": {
+        "touchdown": {
+          "count": 440,
+          "rate": 0.4387
+        },
+        "field_goal": {
+          "count": 350,
+          "rate": 0.349
+        },
+        "punt": {
+          "count": 23,
+          "rate": 0.0229
+        },
+        "turnover": {
+          "count": 57,
+          "rate": 0.0568
+        },
+        "turnover_on_downs": {
+          "count": 43,
+          "rate": 0.0429
+        }
+      },
+      "scoring_rate": 0.7876,
+      "points_expected": 3.9
+    },
+    "opp_36-50": {
+      "count": 1878,
+      "outcomes": {
+        "touchdown": {
+          "count": 580,
+          "rate": 0.3088
+        },
+        "field_goal": {
+          "count": 483,
+          "rate": 0.2572
+        },
+        "punt": {
+          "count": 319,
+          "rate": 0.1699
+        },
+        "turnover": {
+          "count": 152,
+          "rate": 0.0809
+        },
+        "turnover_on_downs": {
+          "count": 131,
+          "rate": 0.0698
+        }
+      },
+      "scoring_rate": 0.566,
+      "points_expected": 2.78
+    },
+    "own_36-50": {
+      "count": 4502,
+      "outcomes": {
+        "touchdown": {
+          "count": 1244,
+          "rate": 0.2763
+        },
+        "field_goal": {
+          "count": 837,
+          "rate": 0.1859
+        },
+        "punt": {
+          "count": 1359,
+          "rate": 0.3019
+        },
+        "turnover": {
+          "count": 433,
+          "rate": 0.0962
+        },
+        "turnover_on_downs": {
+          "count": 269,
+          "rate": 0.0598
+        }
+      },
+      "scoring_rate": 0.4622,
+      "points_expected": 2.35
+    },
+    "own_21-35": {
+      "count": 20056,
+      "outcomes": {
+        "touchdown": {
+          "count": 4359,
+          "rate": 0.2173
+        },
+        "field_goal": {
+          "count": 2876,
+          "rate": 0.1434
+        },
+        "punt": {
+          "count": 7925,
+          "rate": 0.3951
+        },
+        "turnover": {
+          "count": 2295,
+          "rate": 0.1144
+        },
+        "turnover_on_downs": {
+          "count": 1147,
+          "rate": 0.0572
+        }
+      },
+      "scoring_rate": 0.3607,
+      "points_expected": 1.84
+    },
+    "own_1-20": {
+      "count": 7349,
+      "outcomes": {
+        "touchdown": {
+          "count": 1235,
+          "rate": 0.1681
+        },
+        "field_goal": {
+          "count": 755,
+          "rate": 0.1027
+        },
+        "punt": {
+          "count": 3497,
+          "rate": 0.4758
+        },
+        "turnover": {
+          "count": 826,
+          "rate": 0.1124
+        },
+        "turnover_on_downs": {
+          "count": 349,
+          "rate": 0.0475
+        }
+      },
+      "scoring_rate": 0.2708,
+      "points_expected": 1.4
+    }
+  },
+  "red_zone": {
+    "total_drives": 599,
+    "td_rate": 0.5876,
+    "fg_rate": 0.3088,
+    "scoring_rate": 0.8965,
+    "turnover_rate": 0.0751,
+    "inside_10": {
+      "total_drives": 214,
+      "td_rate": 0.7196,
+      "scoring_rate": 0.9206
+    },
+    "11_to_20": {
+      "total_drives": 385,
+      "td_rate": 0.5143,
+      "scoring_rate": 0.8831
+    }
+  },
+  "scoring_by_yardline": {
+    "1-10": {
+      "count": 214,
+      "td_rate": 0.7196,
+      "fg_rate": 0.2009,
+      "scoring_rate": 0.9206,
+      "points_expected": 5.28
+    },
+    "11-20": {
+      "count": 385,
+      "td_rate": 0.5143,
+      "fg_rate": 0.3688,
+      "scoring_rate": 0.8831,
+      "points_expected": 4.45
+    },
+    "21-30": {
+      "count": 627,
+      "td_rate": 0.4689,
+      "fg_rate": 0.3413,
+      "scoring_rate": 0.8102,
+      "points_expected": 4.07
+    },
+    "31-40": {
+      "count": 859,
+      "td_rate": 0.3481,
+      "fg_rate": 0.3446,
+      "scoring_rate": 0.6927,
+      "points_expected": 3.3
+    },
+    "41-50": {
+      "count": 1395,
+      "td_rate": 0.3061,
+      "fg_rate": 0.2315,
+      "scoring_rate": 0.5376,
+      "points_expected": 2.68
+    },
+    "51-60": {
+      "count": 2591,
+      "td_rate": 0.2825,
+      "fg_rate": 0.1876,
+      "scoring_rate": 0.4701,
+      "points_expected": 2.4
+    },
+    "61-70": {
+      "count": 6173,
+      "td_rate": 0.2396,
+      "fg_rate": 0.169,
+      "scoring_rate": 0.4086,
+      "points_expected": 2.06
+    },
+    "71-80": {
+      "count": 15794,
+      "td_rate": 0.2148,
+      "fg_rate": 0.1383,
+      "scoring_rate": 0.353,
+      "points_expected": 1.81
+    },
+    "81-90": {
+      "count": 4956,
+      "td_rate": 0.1729,
+      "fg_rate": 0.1082,
+      "scoring_rate": 0.2811,
+      "points_expected": 1.45
+    },
+    "91-99": {
+      "count": 2393,
+      "td_rate": 0.158,
+      "fg_rate": 0.0915,
+      "scoring_rate": 0.2495,
+      "points_expected": 1.3
+    }
+  },
+  "drive_efficiency": {
+    "avg_yards_per_drive": 32.599998474121094,
+    "avg_plays_per_drive": 5.9,
+    "avg_first_downs_per_drive": 1.7699999809265137,
+    "yards_per_play": 5.51,
+    "by_outcome": {
+      "touchdown": {
+        "avg_yards": 64.5,
+        "avg_plays": 7.8,
+        "avg_first_downs": 3.6600000858306885
+      },
+      "field_goal": {
+        "avg_yards": 46.29999923706055,
+        "avg_plays": 8.0,
+        "avg_first_downs": 2.4000000953674316
+      },
+      "punt": {
+        "avg_yards": 11.399999618530273,
+        "avg_plays": 4.2,
+        "avg_first_downs": 0.5600000023841858
+      },
+      "turnover": {
+        "avg_yards": 22.799999237060547,
+        "avg_plays": 4.7,
+        "avg_first_downs": 1.2400000095367432
+      }
+    }
+  },
+  "three_and_out": {
+    "rate": 0.2089,
+    "count": 7392
+  },
+  "implementation_hints": {
+    "expected_points": "\ndef expected_points_from_field_position(yardline_100: int) -> float:\n    '''\n    Expected points based on starting field position.\n    yardline_100: distance from opponent's end zone (1 = opponent's 1, 99 = own 1)\n\n    Returns expected points for the drive.\n    '''\n    # Approximate from research data\n    if yardline_100 <= 10:\n        return 4.5  # Red zone inside 10\n    elif yardline_100 <= 20:\n        return 3.8  # Red zone 11-20\n    elif yardline_100 <= 35:\n        return 2.5  # Field goal range\n    elif yardline_100 <= 50:\n        return 1.8  # Opponent territory\n    elif yardline_100 <= 65:\n        return 1.2  # Midfield\n    elif yardline_100 <= 80:\n        return 0.8  # Own 20-35\n    else:\n        return 0.4  # Deep own territory\n",
+    "drive_outcome_probability": "\ndef drive_outcome_probabilities(start_yardline: int) -> dict:\n    '''\n    Returns probability distribution for drive outcomes.\n\n    Example for midfield (start_yardline ~50):\n    - TD: 22%\n    - FG: 12%\n    - Punt: 45%\n    - Turnover: 12%\n    - TOD: 5%\n    - Other: 4%\n    '''\n    # Lookup from by_starting_position table\n    pass\n"
+  }
+}

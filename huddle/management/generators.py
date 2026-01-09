@@ -17,12 +17,15 @@ from huddle.management.events import (
     EventQueue,
     EventCategory,
     EventPriority,
+    DisplayMode,
+    EventStatus,
     create_game_event,
     create_practice_event,
     create_free_agent_event,
     create_scouting_event,
     create_deadline_event,
     create_trade_offer_event,
+    create_scout_report_event,
 )
 from huddle.management.ticker import (
     TickerFeed,
@@ -499,3 +502,274 @@ class EventGenerator:
             ))
 
         return sorted(free_agents, key=lambda fa: -fa.overall)
+
+    def generate_random_day_events(
+        self,
+        week: int,
+        day: int,
+        phase: SeasonPhase,
+    ) -> list[ManagementEvent]:
+        """
+        Generate events for a specific day following NFL week pattern.
+
+        Day pattern during regular season:
+        - Tuesday (1): Practice, Scout Report for Sunday opponent
+        - Wednesday (2): Practice, 30% Injury Report, 20% Media
+        - Thursday (3): Practice, 20% Media, 10% Player Meeting
+        - Friday (4): Practice (final), 15% Trade/Contract
+        - Saturday (5): Travel prep (light day)
+        - Sunday (6): GAME DAY
+
+        Returns events that should be added to the queue for that day.
+        """
+        events = []
+
+        # Only generate during regular season or preseason
+        if phase not in {SeasonPhase.REGULAR_SEASON, SeasonPhase.PRESEASON}:
+            return events
+
+        # Tuesday (day=1): Practice + Scout Report
+        if day == 1:
+            events.append(self._create_practice_day_event(week, day))
+            # Generate scout report for upcoming opponent
+            scout_event = self._create_scout_report_for_week(week, day)
+            if scout_event:
+                events.append(scout_event)
+
+        # Wednesday (day=2): Practice + random events
+        elif day == 2:
+            events.append(self._create_practice_day_event(week, day))
+            if random.random() < 0.30:
+                events.append(self._create_injury_report_event(week, day))
+            if random.random() < 0.20:
+                events.append(self._create_media_request_event(week, day))
+
+        # Thursday (day=3): Practice + random events
+        elif day == 3:
+            events.append(self._create_practice_day_event(week, day))
+            if random.random() < 0.20:
+                events.append(self._create_media_request_event(week, day))
+            if random.random() < 0.10:
+                events.append(self._create_player_meeting_event(week, day))
+
+        # Friday (day=4): Final practice + maybe trade/contract
+        elif day == 4:
+            events.append(self._create_practice_day_event(week, day, is_final=True))
+            if random.random() < 0.15:
+                events.append(self._create_contract_event(week, day))
+
+        # Saturday (day=5): Light travel day - minimal events
+        elif day == 5:
+            # Very rare event on travel day
+            if random.random() < 0.05:
+                events.append(self._create_media_request_event(week, day))
+
+        # Sunday (day=6): GAME DAY
+        elif day == 6:
+            game_event = self._create_game_day_event(week, day)
+            if game_event:
+                events.append(game_event)
+
+        return events
+
+    def _create_scout_report_for_week(self, week: int, day: int) -> Optional[ManagementEvent]:
+        """Create scout report for this week's opponent."""
+        # Find game for this week
+        game = next(
+            (g for g in self.schedule if g.week == week),
+            None
+        )
+
+        if not game:
+            return None
+
+        return create_scout_report_event(
+            opponent_name=game.opponent_name,
+            opponent_id=game.opponent_id,
+            week=week,
+            scheduled_week=week,
+            scheduled_day=day,
+            team_id=self.player_team_id,
+        )
+
+    def _create_game_day_event(self, week: int, day: int) -> Optional[ManagementEvent]:
+        """Create game day event for this week."""
+        # Find game for this week
+        game = next(
+            (g for g in self.schedule if g.week == week),
+            None
+        )
+
+        if not game:
+            return None
+
+        location = "vs" if game.is_home else "@"
+        return ManagementEvent(
+            event_type="game_day",
+            category=EventCategory.GAME,
+            priority=EventPriority.CRITICAL,
+            title=f"Week {week}: {location} {game.opponent_name}",
+            description=f"Game {'at home' if game.is_home else 'on the road'} against {game.opponent_name}",
+            icon="game",
+            display_mode=DisplayMode.PANE,
+            scheduled_week=week,
+            scheduled_day=day,
+            auto_pause=True,
+            requires_attention=True,
+            can_dismiss=False,
+            can_delegate=True,  # Can sim
+            team_id=self.player_team_id,
+            payload={
+                "opponent_id": str(game.opponent_id),
+                "opponent_name": game.opponent_name,
+                "is_home": game.is_home,
+                "week": week,
+            },
+        )
+
+    def _create_contract_event(self, week: int, day: int) -> ManagementEvent:
+        """Create a contract/trade related event."""
+        event_types = [
+            ("trade_offer", "Trade Offer", "A team has expressed interest in your player"),
+            ("contract_demand", "Contract Talk", "A player wants to discuss their future"),
+        ]
+        event_type, title, desc = random.choice(event_types)
+
+        return ManagementEvent(
+            event_type=event_type,
+            category=EventCategory.CONTRACT,
+            priority=EventPriority.NORMAL,
+            title=title,
+            description=desc,
+            icon="contract",
+            display_mode=DisplayMode.PANE,
+            scheduled_week=week,
+            scheduled_day=day,
+            requires_attention=True,
+            can_dismiss=True,
+        )
+
+    def _create_practice_day_event(self, week: int, day: int, is_final: bool = False) -> ManagementEvent:
+        """Create a practice event for a specific day."""
+        day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        title = f"{day_names[day]} Practice"
+        if is_final:
+            title = "Final Practice"
+
+        return ManagementEvent(
+            event_type="practice",
+            category=EventCategory.PRACTICE,
+            priority=EventPriority.NORMAL,
+            title=title,
+            description="Allocate practice time and focus areas",
+            icon="practice",
+            display_mode=DisplayMode.PANE,
+            scheduled_week=week,
+            scheduled_day=day,
+            status=EventStatus.PENDING,
+            requires_attention=True,
+            can_dismiss=True,
+            can_delegate=True,
+            payload={
+                "is_final": is_final,
+            },
+        )
+
+    def _create_media_request_event(self, week: int, day: int) -> ManagementEvent:
+        """Create a media request event."""
+        topics = [
+            "Your team's performance this season",
+            "The upcoming matchup",
+            "A recent controversial call",
+            "Your quarterback's development",
+            "Team chemistry",
+        ]
+        return ManagementEvent(
+            event_type="media_request",
+            category=EventCategory.MEDIA,
+            priority=EventPriority.LOW,
+            title="Press Conference Request",
+            description=f"Media wants to discuss: {random.choice(topics)}",
+            icon="media",
+            display_mode=DisplayMode.MODAL,
+            scheduled_week=week,
+            scheduled_day=day,
+            requires_attention=False,
+            can_dismiss=True,
+        )
+
+    def _create_injury_report_event(self, week: int, day: int) -> ManagementEvent:
+        """Create an injury report event."""
+        return ManagementEvent(
+            event_type="injury_report",
+            category=EventCategory.INJURY,
+            priority=EventPriority.HIGH,
+            title="Injury Report Update",
+            description="Review player injury statuses",
+            icon="injury",
+            display_mode=DisplayMode.MODAL,
+            scheduled_week=week,
+            scheduled_day=day,
+            auto_pause=True,
+            requires_attention=True,
+            can_dismiss=False,
+        )
+
+    def _create_player_meeting_event(self, week: int, day: int) -> ManagementEvent:
+        """Create a player meeting request event."""
+        reasons = [
+            "wants to discuss playing time",
+            "has concerns about the game plan",
+            "wants to talk about their future",
+            "requested a private meeting",
+        ]
+        return ManagementEvent(
+            event_type="player_meeting",
+            category=EventCategory.PLAYER,
+            priority=EventPriority.NORMAL,
+            title="Player Meeting Request",
+            description=f"A player {random.choice(reasons)}",
+            icon="player",
+            display_mode=DisplayMode.PANE,
+            scheduled_week=week,
+            scheduled_day=day,
+            requires_attention=True,
+            can_dismiss=True,
+        )
+
+
+def create_triggered_event(
+    trigger: "EventTrigger",
+    source_event: ManagementEvent,
+) -> Optional[ManagementEvent]:
+    """
+    Create a follow-up event from a trigger.
+
+    Called when an event's trigger condition is met.
+    The new event is scheduled based on the trigger's delay_days.
+    """
+    from huddle.management.events import EventTrigger
+
+    # Calculate scheduled day (source day + delay)
+    source_week = source_event.scheduled_week or 1
+    source_day = source_event.scheduled_day or 0
+    total_days = source_day + trigger.delay_days
+
+    new_week = source_week + (total_days // 7)
+    new_day = total_days % 7
+
+    # Create the triggered event
+    new_event = ManagementEvent(
+        event_type=trigger.event_type,
+        category=source_event.category,  # Inherit category
+        priority=EventPriority.NORMAL,
+        title=trigger.event_type.replace("_", " ").title(),
+        description=f"Follow-up from: {source_event.title}",
+        icon=source_event.icon,
+        scheduled_week=new_week,
+        scheduled_day=new_day,
+        arc_id=source_event.arc_id or source_event.id,  # Link to arc
+        payload=trigger.payload.copy() if trigger.payload else {},
+    )
+
+    return new_event

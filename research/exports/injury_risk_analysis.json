@@ -1,0 +1,482 @@
+{
+  "meta": {
+    "description": "Injury risk analysis by position",
+    "data_source": "NFL injury reports 2019-2024",
+    "total_reports": 33635
+  },
+  "injury_frequency": {
+    "by_position": {
+      "CB": {
+        "avg_injury_reports_per_season": 698.0,
+        "relative_rate": 1.25
+      },
+      "DL": {
+        "avg_injury_reports_per_season": 471.3,
+        "relative_rate": 0.84
+      },
+      "EDGE": {
+        "avg_injury_reports_per_season": 442.3,
+        "relative_rate": 0.79
+      },
+      "LB": {
+        "avg_injury_reports_per_season": 727.0,
+        "relative_rate": 1.3
+      },
+      "OL": {
+        "avg_injury_reports_per_season": 1033.5,
+        "relative_rate": 1.84
+      },
+      "QB": {
+        "avg_injury_reports_per_season": 193.3,
+        "relative_rate": 0.34
+      },
+      "RB": {
+        "avg_injury_reports_per_season": 456.8,
+        "relative_rate": 0.81
+      },
+      "S": {
+        "avg_injury_reports_per_season": 457.3,
+        "relative_rate": 0.82
+      },
+      "TE": {
+        "avg_injury_reports_per_season": 366.5,
+        "relative_rate": 0.65
+      },
+      "WR": {
+        "avg_injury_reports_per_season": 759.7,
+        "relative_rate": 1.36
+      }
+    },
+    "ranking": [
+      "OL",
+      "WR",
+      "LB",
+      "CB",
+      "DL",
+      "S",
+      "RB",
+      "EDGE",
+      "TE",
+      "QB"
+    ]
+  },
+  "games_missed": {
+    "by_position": {
+      "CB": {
+        "avg_games_missed_per_season": 152.0,
+        "relative_rate": 1.53
+      },
+      "DL": {
+        "avg_games_missed_per_season": 66.8,
+        "relative_rate": 0.67
+      },
+      "EDGE": {
+        "avg_games_missed_per_season": 62.5,
+        "relative_rate": 0.63
+      },
+      "LB": {
+        "avg_games_missed_per_season": 134.3,
+        "relative_rate": 1.35
+      },
+      "OL": {
+        "avg_games_missed_per_season": 172.7,
+        "relative_rate": 1.74
+      },
+      "QB": {
+        "avg_games_missed_per_season": 32.3,
+        "relative_rate": 0.33
+      },
+      "RB": {
+        "avg_games_missed_per_season": 78.8,
+        "relative_rate": 0.79
+      },
+      "S": {
+        "avg_games_missed_per_season": 87.7,
+        "relative_rate": 0.88
+      },
+      "TE": {
+        "avg_games_missed_per_season": 68.3,
+        "relative_rate": 0.69
+      },
+      "WR": {
+        "avg_games_missed_per_season": 136.7,
+        "relative_rate": 1.38
+      }
+    },
+    "ranking": [
+      "OL",
+      "CB",
+      "WR",
+      "LB",
+      "S",
+      "RB",
+      "TE",
+      "DL",
+      "EDGE",
+      "QB"
+    ],
+    "highest_risk": [
+      [
+        "OL",
+        {
+          "avg_games_missed_per_season": 172.7,
+          "relative_rate": 1.74
+        }
+      ],
+      [
+        "CB",
+        {
+          "avg_games_missed_per_season": 152.0,
+          "relative_rate": 1.53
+        }
+      ],
+      [
+        "WR",
+        {
+          "avg_games_missed_per_season": 136.7,
+          "relative_rate": 1.38
+        }
+      ]
+    ],
+    "lowest_risk": [
+      [
+        "DL",
+        {
+          "avg_games_missed_per_season": 66.8,
+          "relative_rate": 0.67
+        }
+      ],
+      [
+        "EDGE",
+        {
+          "avg_games_missed_per_season": 62.5,
+          "relative_rate": 0.63
+        }
+      ],
+      [
+        "QB",
+        {
+          "avg_games_missed_per_season": 32.3,
+          "relative_rate": 0.33
+        }
+      ]
+    ]
+  },
+  "injury_types": {
+    "overall_top_10": {
+      "Knee": 2641,
+      "Ankle": 2364,
+      "Hamstring": 1820,
+      "Shoulder": 1025,
+      "Concussion": 941,
+      "Groin": 730,
+      "Calf": 668,
+      "Illness": 659,
+      "Foot": 645,
+      "Back": 548
+    },
+    "by_position": {
+      "LB": {
+        "Knee": 362,
+        "Ankle": 298,
+        "Hamstring": 274,
+        "Shoulder": 143,
+        "Groin": 116
+      },
+      "OL": {
+        "Knee": 613,
+        "Ankle": 545,
+        "Concussion": 171,
+        "Back": 164,
+        "Shoulder": 149
+      },
+      "WR": {
+        "Hamstring": 437,
+        "Knee": 310,
+        "Ankle": 287,
+        "Concussion": 170,
+        "Shoulder": 157
+      },
+      "CB": {
+        "Hamstring": 390,
+        "Knee": 286,
+        "Ankle": 254,
+        "Shoulder": 165,
+        "Groin": 152
+      },
+      "RB": {
+        "Ankle": 263,
+        "Knee": 215,
+        "Hamstring": 153,
+        "Shoulder": 80,
+        "Illness": 73
+      },
+      "TE": {
+        "Knee": 176,
+        "Ankle": 136,
+        "Hamstring": 119,
+        "Concussion": 96,
+        "Shoulder": 49
+      },
+      "EDGE": {
+        "Knee": 199,
+        "Ankle": 184,
+        "Shoulder": 86,
+        "Hamstring": 72,
+        "Groin": 59
+      },
+      "DL": {
+        "Knee": 239,
+        "Ankle": 155,
+        "Calf": 105,
+        "Shoulder": 105,
+        "Foot": 70
+      },
+      "S": {
+        "Hamstring": 221,
+        "Ankle": 192,
+        "Knee": 191,
+        "Concussion": 93,
+        "Shoulder": 91
+      },
+      "QB": {
+        "Knee": 50,
+        "Ankle": 50,
+        "Concussion": 41,
+        "right Thumb": 31,
+        "right Shoulder": 30
+      }
+    },
+    "severity_categories": {
+      "minor": [
+        "Illness",
+        "Rest",
+        "Veteran Rest",
+        "Not Injury Related"
+      ],
+      "moderate": [
+        "Ankle",
+        "Hamstring",
+        "Groin",
+        "Calf",
+        "Foot",
+        "Toe",
+        "Quadricep",
+        "Thigh"
+      ],
+      "serious": [
+        "Knee",
+        "Shoulder",
+        "Back",
+        "Hip",
+        "Neck",
+        "Elbow"
+      ],
+      "severe": [
+        "ACL",
+        "Achilles",
+        "Concussion",
+        "Pectoral"
+      ]
+    }
+  },
+  "durability_scores": {
+    "scores": {
+      "CB": 14.8,
+      "DL": 75.4,
+      "EDGE": 78.5,
+      "LB": 27.4,
+      "OL": 0.1,
+      "QB": 100.0,
+      "RB": 66.9,
+      "S": 60.6,
+      "TE": 74.4,
+      "WR": 25.7
+    },
+    "tiers": {
+      "highly_durable": [
+        "DL",
+        "EDGE",
+        "QB",
+        "TE"
+      ],
+      "average_durability": [
+        "RB",
+        "S"
+      ],
+      "injury_prone": [
+        "CB",
+        "LB",
+        "OL",
+        "WR"
+      ]
+    }
+  },
+  "risk_profiles": {
+    "LB": {
+      "total_injury_reports": 4362,
+      "games_missed": 806,
+      "out_rate": 0.185,
+      "avg_games_missed_per_season": 134.3,
+      "top_injuries": {
+        "Knee": 362,
+        "Ankle": 298,
+        "Hamstring": 274
+      }
+    },
+    "OL": {
+      "total_injury_reports": 6201,
+      "games_missed": 1036,
+      "out_rate": 0.167,
+      "avg_games_missed_per_season": 172.7,
+      "top_injuries": {
+        "Knee": 613,
+        "Ankle": 545,
+        "Concussion": 171
+      }
+    },
+    "WR": {
+      "total_injury_reports": 4558,
+      "games_missed": 820,
+      "out_rate": 0.18,
+      "avg_games_missed_per_season": 136.7,
+      "top_injuries": {
+        "Hamstring": 437,
+        "Knee": 310,
+        "Ankle": 287
+      }
+    },
+    "CB": {
+      "total_injury_reports": 4188,
+      "games_missed": 912,
+      "out_rate": 0.218,
+      "avg_games_missed_per_season": 152.0,
+      "top_injuries": {
+        "Hamstring": 390,
+        "Knee": 286,
+        "Ankle": 254
+      }
+    },
+    "RB": {
+      "total_injury_reports": 2741,
+      "games_missed": 473,
+      "out_rate": 0.173,
+      "avg_games_missed_per_season": 78.8,
+      "top_injuries": {
+        "Ankle": 263,
+        "Knee": 215,
+        "Hamstring": 153
+      }
+    },
+    "TE": {
+      "total_injury_reports": 2199,
+      "games_missed": 410,
+      "out_rate": 0.186,
+      "avg_games_missed_per_season": 68.3,
+      "top_injuries": {
+        "Knee": 176,
+        "Ankle": 136,
+        "Hamstring": 119
+      }
+    },
+    "EDGE": {
+      "total_injury_reports": 2654,
+      "games_missed": 375,
+      "out_rate": 0.141,
+      "avg_games_missed_per_season": 62.5,
+      "top_injuries": {
+        "Knee": 199,
+        "Ankle": 184,
+        "Shoulder": 86
+      }
+    },
+    "DL": {
+      "total_injury_reports": 2828,
+      "games_missed": 401,
+      "out_rate": 0.142,
+      "avg_games_missed_per_season": 66.8,
+      "top_injuries": {
+        "Knee": 239,
+        "Ankle": 155,
+        "Calf": 105
+      }
+    },
+    "S": {
+      "total_injury_reports": 2744,
+      "games_missed": 526,
+      "out_rate": 0.192,
+      "avg_games_missed_per_season": 87.7,
+      "top_injuries": {
+        "Hamstring": 221,
+        "Ankle": 192,
+        "Knee": 191
+      }
+    },
+    "QB": {
+      "total_injury_reports": 1160,
+      "games_missed": 194,
+      "out_rate": 0.167,
+      "avg_games_missed_per_season": 32.3,
+      "top_injuries": {
+        "Knee": 50,
+        "Ankle": 50,
+        "Concussion": 41
+      }
+    }
+  },
+  "recommendations": {
+    "contract_implications": {
+      "high_risk_positions": {
+        "positions": [
+          "CB",
+          "WR",
+          "LB"
+        ],
+        "recommendation": "Limit guaranteed money, include injury protections",
+        "rationale": "Highest games missed rates - more likely to lose value to injury"
+      },
+      "low_risk_positions": {
+        "positions": [
+          "QB",
+          "DL"
+        ],
+        "recommendation": "More comfortable with guarantees",
+        "rationale": "Lower injury rates relative to roster size"
+      }
+    },
+    "roster_construction": {
+      "depth_priorities": [
+        "CB depth critical - highest games missed",
+        "WR depth important - high injury frequency",
+        "RB depth valuable - contact position"
+      ],
+      "injury_reserve_planning": [
+        "Budget 2-3 IR spots for CB/WR",
+        "Expect ~1 significant OL injury per season",
+        "QB injuries rare but catastrophic - always have backup"
+      ]
+    },
+    "player_evaluation": {
+      "injury_history_weight": {
+        "minor_injury_history": "Discount 5-10% on contract value",
+        "major_injury_history": "Discount 15-25% on contract value",
+        "chronic_issues": "Consider not signing/short deal only"
+      },
+      "position_specific": {
+        "RB": "Contact injuries accumulate - weight recent history heavily",
+        "WR": "Hamstring/soft tissue issues often recur",
+        "CB": "Speed-dependent - any leg injury is concerning",
+        "OL": "Can often play through injuries - durability matters less"
+      }
+    },
+    "age_interaction": {
+      "insight": "Injury risk increases with age, especially past 28",
+      "recommendation": "Apply additional injury discount for players 29+",
+      "high_risk_combos": [
+        "RB 28+ with any injury history",
+        "CB 29+ with hamstring/groin issues",
+        "WR 30+ with any soft tissue injury"
+      ]
+    }
+  }
+}

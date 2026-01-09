@@ -1,0 +1,241 @@
+{
+  "model_name": "receiving_attribute_projection",
+  "description": "Maps WR receiving attributes to NFL performance metrics",
+  "data_source": "NFL PBP and NGS 2019-2024",
+  "separation": {
+    "Elite": {
+      "avg_separation": 2.921,
+      "median": 2.819,
+      "p25": 2.258,
+      "p75": 3.48,
+      "sample": 3823
+    },
+    "Above Avg": {
+      "avg_separation": 2.928,
+      "median": 2.824,
+      "p25": 2.277,
+      "p75": 3.475,
+      "sample": 3553
+    },
+    "Below Avg": {
+      "avg_separation": 3.062,
+      "median": 2.997,
+      "p25": 2.395,
+      "p75": 3.639,
+      "sample": 3009
+    },
+    "Bad": {
+      "avg_separation": 2.94,
+      "median": 2.82,
+      "p25": 2.26,
+      "p75": 3.515,
+      "sample": 1647
+    }
+  },
+  "cushion": {
+    "Elite": {
+      "avg_cushion": 5.991,
+      "median": 5.974,
+      "sample": 3823
+    },
+    "Above Avg": {
+      "avg_cushion": 6.041,
+      "median": 6.062,
+      "sample": 3553
+    },
+    "Below Avg": {
+      "avg_cushion": 6.112,
+      "median": 6.08,
+      "sample": 3009
+    },
+    "Bad": {
+      "avg_cushion": 6.088,
+      "median": 6.044,
+      "sample": 1647
+    }
+  },
+  "yac": {
+    "Elite": {
+      "avg_yac": 4.93,
+      "avg_yac_above_expectation": 0.9,
+      "sample": 3823
+    },
+    "Above Avg": {
+      "avg_yac": 4.47,
+      "avg_yac_above_expectation": 0.56,
+      "sample": 3553
+    },
+    "Below Avg": {
+      "avg_yac": 4.48,
+      "avg_yac_above_expectation": 0.47,
+      "sample": 3009
+    },
+    "Bad": {
+      "avg_yac": 4.05,
+      "avg_yac_above_expectation": 0.3,
+      "sample": 1647
+    }
+  },
+  "catch_rate": {
+    "Elite": {
+      "catch_rate": 0.6710000038146973,
+      "sample": 27757
+    },
+    "Above Avg": {
+      "catch_rate": 0.6571999788284302,
+      "sample": 24860
+    },
+    "Below Avg": {
+      "catch_rate": 0.6730999946594238,
+      "sample": 22866
+    },
+    "Bad": {
+      "catch_rate": 0.6851999759674072,
+      "sample": 17000
+    }
+  },
+  "catch_by_depth": {
+    "Elite": {
+      "short": {
+        "catch_rate": 0.7379999756813049,
+        "sample": 12665
+      },
+      "medium": {
+        "catch_rate": 0.6419000029563904,
+        "sample": 7623
+      },
+      "deep": {
+        "catch_rate": 0.45399999618530273,
+        "sample": 4769
+      }
+    },
+    "Above Avg": {
+      "short": {
+        "catch_rate": 0.7389000058174133,
+        "sample": 12332
+      },
+      "medium": {
+        "catch_rate": 0.5738000273704529,
+        "sample": 6157
+      },
+      "deep": {
+        "catch_rate": 0.3801000118255615,
+        "sample": 3454
+      }
+    },
+    "Below Avg": {
+      "short": {
+        "catch_rate": 0.7329999804496765,
+        "sample": 12373
+      },
+      "medium": {
+        "catch_rate": 0.5464000105857849,
+        "sample": 4409
+      },
+      "deep": {
+        "catch_rate": 0.31310001015663147,
+        "sample": 2092
+      }
+    },
+    "Bad": {
+      "short": {
+        "catch_rate": 0.7111999988555908,
+        "sample": 8953
+      },
+      "medium": {
+        "catch_rate": 0.4481000006198883,
+        "sample": 1877
+      },
+      "deep": {
+        "catch_rate": 0.2142000049352646,
+        "sample": 957
+      }
+    }
+  },
+  "separation_to_catch": {
+    "Tight": {
+      "avg_catch_pct": 55.69,
+      "avg_separation": 1.854,
+      "sample": 3009
+    },
+    "Normal": {
+      "avg_catch_pct": 64.61,
+      "avg_separation": 2.88,
+      "sample": 6015
+    },
+    "Wide": {
+      "avg_catch_pct": 73.13,
+      "avg_separation": 4.23,
+      "sample": 3008
+    }
+  },
+  "attribute_calibration": {
+    "route_running": {
+      "nfl_metric": "avg_separation_yards",
+      "tier_data": {
+        "Elite": 2.921,
+        "Above Avg": 2.928,
+        "Below Avg": 3.062,
+        "Bad": 2.94
+      },
+      "spread_elite_to_bad": -0.019,
+      "effect_per_10_points": -0.003
+    },
+    "release": {
+      "nfl_metric": "avg_cushion_yards",
+      "tier_data": {
+        "Elite": 5.991,
+        "Above Avg": 6.041,
+        "Below Avg": 6.112,
+        "Bad": 6.088
+      },
+      "note": "Higher cushion may indicate respect for speed OR inability to beat press"
+    },
+    "catching": {
+      "nfl_metric": "catch_rate",
+      "tier_data": {
+        "Elite": 0.6710000038146973,
+        "Above Avg": 0.6571999788284302,
+        "Below Avg": 0.6730999946594238,
+        "Bad": 0.6851999759674072
+      },
+      "spread_elite_to_bad": -0.0142000000923872,
+      "effect_per_10_points": -0.0026
+    },
+    "catch_in_traffic": {
+      "nfl_metric": "yac_above_expectation",
+      "tier_data": {
+        "Elite": 0.9,
+        "Above Avg": 0.56,
+        "Below Avg": 0.47,
+        "Bad": 0.3
+      },
+      "spread_elite_to_bad": 0.6,
+      "effect_per_10_points": 0.109
+    },
+    "separation_to_catch_correlation": {
+      "description": "How separation affects catch rate",
+      "tight_separation": {
+        "avg_catch_pct": 55.69,
+        "avg_separation": 1.854,
+        "sample": 3009
+      },
+      "normal_separation": {
+        "avg_catch_pct": 64.61,
+        "avg_separation": 2.88,
+        "sample": 6015
+      },
+      "wide_separation": {
+        "avg_catch_pct": 73.13,
+        "avg_separation": 4.23,
+        "sample": 3008
+      }
+    }
+  },
+  "attributes_covered": [
+    "route_running",
+    "catching",
+    "catch_in_traffic",
+    "release"
+  ]
+}

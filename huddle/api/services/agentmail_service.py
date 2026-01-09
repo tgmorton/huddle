@@ -1,7 +1,6 @@
 """Service for managing AgentMail WebSocket connections and file watching."""
 
 import asyncio
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path

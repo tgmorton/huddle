@@ -16,3 +16,4 @@ export type { InlinePlayerCardProps, InlinePlayerData } from './InlinePlayerCard
 export { PlayerView } from './PlayerView';
 export type { PlayerViewProps } from './PlayerView';
 export { DeskDrawer } from './DeskDrawer';
+export { StatsTable, LeagueLeadersTable } from './StatsTable';

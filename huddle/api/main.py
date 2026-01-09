@@ -23,8 +23,14 @@ from huddle.api.routers import (
     v2_sim_router,
     agentmail_router,
     agentmail_websocket_router,
+    portraits_router,
+    history_router,
+    free_agency_router,
+    position_plan_router,
+    coach_mode_router,
 )
 from huddle.api.routers.admin import router as admin_router
+from huddle.api.routers.arms_prototype import router as arms_prototype_router
 
 
 @asynccontextmanager
@@ -85,6 +91,12 @@ def create_app() -> FastAPI:
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(v2_sim_router, prefix="/api/v1")
     app.include_router(agentmail_router, prefix="/api/v1")  # Agent communication
+    app.include_router(portraits_router, prefix="/api/v1")  # Player portraits
+    app.include_router(history_router, prefix="/api/v1")  # Historical simulation explorer
+    app.include_router(free_agency_router, prefix="/api/v1")  # Free agency bidding
+    app.include_router(position_plan_router, prefix="/api/v1")  # HC09-style position planning
+    app.include_router(arms_prototype_router, prefix="/api/v1")  # Arms prototype visualization
+    app.include_router(coach_mode_router, prefix="/api/v1")  # Coach mode game interface
     app.include_router(websocket_router)
     app.include_router(sandbox_websocket_router)
     app.include_router(management_websocket_router)

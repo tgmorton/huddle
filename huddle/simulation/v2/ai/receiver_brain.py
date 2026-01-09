@@ -1,7 +1,14 @@
 """Receiver Brain - Decision-making for WRs and TEs.
 
-The receiver brain controls route running, catch execution, and blocking.
-After the catch, control transfers to the Ballcarrier Brain.
+SEPARATION-FIRST PHILOSOPHY:
+The goal is to GET OPEN (create separation) and GAIN YARDS. The DB is
+an obstacle between us and being open - we're not trying to "beat" them,
+we're trying to create space for the QB to complete a pass.
+
+- Routes create separation through spacing and timing
+- Release/breaks create open windows, not 1v1 victories
+- After catch = ballcarrier philosophy (yards toward endzone)
+- Contested catches happen when separation failed, not as a goal
 
 Phases: RELEASE → STEM → BREAK → POST_BREAK → CATCH → (Ballcarrier Brain)
 """
@@ -15,6 +22,17 @@ from typing import Optional
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team, BallState
+from ..core.trace import get_trace_system, TraceCategory
+
+
+# =============================================================================
+# Trace Helper
+# =============================================================================
+
+def _trace(world: WorldState, msg: str, category: TraceCategory = TraceCategory.DECISION):
+    """Add a trace for this receiver."""
+    trace = get_trace_system()
+    trace.trace(world.me.id, world.me.name, category, msg)
 
 
 # =============================================================================
@@ -22,15 +40,18 @@ from ..core.entities import Position, Team, BallState
 # =============================================================================
 
 class RoutePhase(str, Enum):
-    """Current phase of route execution."""
+    """Current phase of route execution.
+
+    SEPARATION-FIRST: Each phase is about creating/maintaining separation.
+    """
     PRE_SNAP = "pre_snap"
-    RELEASE = "release"      # First 0.5s - winning vs press
-    STEM = "stem"           # Selling vertical, setting up break
-    BREAK = "break"         # Executing the break
-    POST_BREAK = "post_break"  # After break - find window or accelerate
-    SCRAMBLE = "scramble"    # QB scrambling, find space
-    BALL_TRACKING = "ball_tracking"  # Ball in air to me
-    BLOCKING = "blocking"    # Run play blocking
+    RELEASE = "release"      # Create initial separation from LOS
+    STEM = "stem"           # Create vertical separation, sell route
+    BREAK = "break"         # Create lateral separation with cut
+    POST_BREAK = "post_break"  # Maximize separation, find open space
+    SCRAMBLE = "scramble"    # Find open space for scramble completion
+    BALL_TRACKING = "ball_tracking"  # Secure the completion
+    BLOCKING = "blocking"    # Create separation for ballcarrier
 
 
 class CatchType(str, Enum):
@@ -104,13 +125,17 @@ def _reset_state(player_id: str) -> None:
 # =============================================================================
 
 def _find_covering_defender(world: WorldState) -> Optional[PlayerView]:
-    """Find the defender covering this receiver."""
+    """Find the nearest defender (obstacle to separation).
+
+    SEPARATION-FIRST: We're not looking for "who to beat" - we're
+    identifying what's between us and being open for a completion.
+    """
     my_pos = world.me.pos
     closest = None
     closest_dist = float('inf')
 
     for opp in world.opponents:
-        # Look for DBs and LBs in coverage
+        # DBs and LBs can be in coverage
         if opp.position not in (Position.CB, Position.FS, Position.SS, Position.MLB, Position.OLB, Position.ILB):
             continue
 
@@ -123,7 +148,7 @@ def _find_covering_defender(world: WorldState) -> Optional[PlayerView]:
 
 
 def _calculate_separation(world: WorldState, defender: Optional[PlayerView]) -> float:
-    """Calculate effective separation from defender."""
+    """Calculate our separation (how open we are for a completion)."""
     if not defender:
         return 10.0  # Wide open
 
@@ -193,55 +218,171 @@ def _is_qb_scrambling(world: WorldState) -> bool:
 
 
 def _find_open_space(world: WorldState) -> Vec2:
-    """Find open space for scramble drill."""
+    """Find open space for scramble drill.
+
+    SCRAMBLE DRILL RULES (NFL-style):
+    1. Get into QB's field of vision (same direction they're rolling)
+    2. Find soft spots in the defense (windows between defenders)
+    3. Stay past LOS but find open grass
+    4. Make yourself an easy target by stopping in clear space
+    """
     my_pos = world.me.pos
 
-    # Try to find space away from defenders
-    best_pos = my_pos
-    best_clearance = 0.0
+    # Find QB to understand their roll direction
+    qb = None
+    for teammate in world.teammates:
+        # QB will have a position of QB
+        if hasattr(teammate, 'position') and str(teammate.position).upper() in ('QB', 'POSITION.QB'):
+            qb = teammate
+            break
 
-    # Check several candidate positions
-    candidates = [
-        my_pos + Vec2(5, 0),   # Right
-        my_pos + Vec2(-5, 0),  # Left
-        my_pos + Vec2(0, 5),   # Upfield
-        my_pos + Vec2(3, 3),   # Diagonal
-        my_pos + Vec2(-3, 3),
-    ]
+    # Determine QB's roll direction from their velocity
+    qb_rolling_right = False
+    qb_rolling_left = False
+    if qb and hasattr(qb, 'velocity') and qb.velocity:
+        if qb.velocity.x > 1.0:
+            qb_rolling_right = True
+        elif qb.velocity.x < -1.0:
+            qb_rolling_left = True
+
+    # Build candidate positions based on QB's roll direction
+    candidates = []
+
+    # If QB rolling right, move to right side of field
+    if qb_rolling_right:
+        candidates.append(my_pos + Vec2(6, 3))   # Upfield and right (into vision)
+        candidates.append(my_pos + Vec2(4, 0))   # Right
+        candidates.append(my_pos + Vec2(5, 5))   # Deep right
+    # If QB rolling left, move to left side
+    elif qb_rolling_left:
+        candidates.append(my_pos + Vec2(-6, 3))  # Upfield and left (into vision)
+        candidates.append(my_pos + Vec2(-4, 0))  # Left
+        candidates.append(my_pos + Vec2(-5, 5))  # Deep left
+    else:
+        # QB in pocket or scrambling forward - find any open grass
+        candidates.append(my_pos + Vec2(5, 3))   # Right diagonal
+        candidates.append(my_pos + Vec2(-5, 3))  # Left diagonal
+        candidates.append(my_pos + Vec2(0, 6))   # Straight upfield
+        candidates.append(my_pos + Vec2(4, -2))  # Back and right (comeback)
+        candidates.append(my_pos + Vec2(-4, -2)) # Back and left (comeback)
+
+    # Evaluate candidates by defender clearance AND visibility to QB
+    best_pos = my_pos
+    best_score = 0.0
 
     for pos in candidates:
-        min_dist = float('inf')
+        # Calculate clearance from nearest defender
+        min_defender_dist = float('inf')
         for opp in world.opponents:
             dist = opp.pos.distance_to(pos)
-            if dist < min_dist:
-                min_dist = dist
+            if dist < min_defender_dist:
+                min_defender_dist = dist
 
-        if min_dist > best_clearance:
-            best_clearance = min_dist
+        # Calculate visibility to QB (penalize positions behind QB)
+        qb_visibility = 1.0
+        if qb:
+            # Position should be roughly in QB's field of view
+            to_pos = pos - qb.pos
+            # Behind QB is bad
+            if to_pos.y < -2:  # Behind LOS
+                qb_visibility = 0.3
+            # Far to opposite side of roll is also harder to see
+            if qb_rolling_right and to_pos.x < -5:
+                qb_visibility *= 0.5
+            elif qb_rolling_left and to_pos.x > 5:
+                qb_visibility *= 0.5
+
+        # Score = defender clearance * visibility
+        score = min_defender_dist * qb_visibility
+
+        if score > best_score:
+            best_score = score
             best_pos = pos
 
     return best_pos
 
 
-def _get_ball_adjustment(world: WorldState) -> tuple[CatchType, Vec2]:
-    """Determine how to adjust to the ball and catch type."""
+def _get_ball_adjustment(world: WorldState) -> tuple[CatchType, Vec2, Vec2, bool]:
+    """Determine how to adjust to the ball, catch type, and whether to run through.
+
+    JUDGEMENT CALL: Receiver decides if they can run through the ball or must adjust.
+    - Good throw (on path): Run through, catch in stride, maintain momentum
+    - Bad throw (off path): Adjust to ball, may need to slow/stop
+    - Better WRs can handle tighter adjustments
+
+    Returns:
+        (catch_type, catch_point, continue_direction, can_run_through)
+        - catch_point: where the ball will arrive
+        - continue_direction: direction to keep running after catch
+        - can_run_through: True if catch can be made in stride
+    """
     ball = world.ball
     my_pos = world.me.pos
+    my_vel = world.me.velocity
+    attrs = world.me.attributes
+
+    # Default continue direction
+    if my_vel.length() > 0.5:
+        my_dir = my_vel.normalized()
+    else:
+        my_dir = Vec2(0, 1)  # Default upfield
 
     if not ball.flight_target:
-        return CatchType.HANDS, my_pos
+        return CatchType.HANDS, my_pos, my_dir, False
 
     target = ball.flight_target
     to_ball = target - my_pos
 
-    # Determine catch type based on ball location
-    # For now, simplified version
-    if to_ball.length() < 1.0:
-        # Ball coming right to us
-        return CatchType.HANDS, target
+    # === JUDGE: Can we run through this ball? ===
+    # A good throw is "on path" - where we're naturally going
+    # Calculate how far off our current path the ball is
 
-    # Ball requires adjustment
-    return CatchType.HANDS, target
+    if my_vel.length() > 1.0:
+        # Project where we'll be in ~0.3s if we keep running
+        projected_pos = my_pos + my_vel * 0.3
+
+        # How far is ball target from our projected path?
+        path_error = target.distance_to(projected_pos)
+
+        # How far is ball target from current position?
+        direct_dist = to_ball.length()
+
+        # Calculate "on path" threshold based on receiver attributes
+        # Better route runners and catchers can handle more deviation
+        catching = attrs.catching
+        route_running = attrs.route_running
+        adjustment_skill = (catching + route_running) / 2.0
+
+        # Base threshold: 1.5 yards
+        # Good receivers (85+): can handle up to 2.5 yards
+        # Elite receivers (95+): can handle up to 3.0 yards
+        base_threshold = 1.5
+        skill_bonus = (adjustment_skill - 70) / 100.0 * 1.5  # 0 to 1.5 yards
+        on_path_threshold = base_threshold + max(0, skill_bonus)
+
+        # Is ball close enough to our path to run through?
+        can_run_through = path_error < on_path_threshold
+
+        # Continue direction:
+        # - If running through: keep our current direction
+        # - If adjusting: direction is toward ball, then upfield
+        if can_run_through:
+            continue_dir = my_dir
+        else:
+            # Blend: start toward ball, but curve upfield
+            to_ball_dir = to_ball.normalized() if to_ball.length() > 0.1 else Vec2(0, 1)
+            upfield = Vec2(0, 1)
+            continue_dir = (to_ball_dir + upfield).normalized()
+
+    else:
+        # Not moving much - can't "run through", must adjust
+        can_run_through = False
+        continue_dir = to_ball.normalized() if to_ball.length() > 0.1 else Vec2(0, 1)
+
+    # Determine catch type based on ball location
+    catch_type = CatchType.HANDS
+
+    return catch_type, target, continue_dir, can_run_through
 
 
 def _find_nearest_defender_to_block(world: WorldState) -> Optional[PlayerView]:
@@ -282,13 +423,15 @@ def _select_release_type(
     defender: Optional[PlayerView],
     route_direction: str,
 ) -> ReleaseType:
-    """Select the best release technique vs press coverage.
+    """Select release technique to create separation from press.
 
-    From design doc:
-        Swim: Arm over defender - best vs inside leverage
-        Rip: Arm under defender - best vs outside leverage
-        Speed: Outrun jam - best vs slower DB
-        Hesitation: Fake inside, go outside - best vs aggressive press
+    SEPARATION-FIRST: The goal is to create separation from LOS,
+    not to "beat" the DB. Each technique creates space differently.
+
+    Swim: Create separation by going over/around
+    Rip: Create separation by going under/through
+    Speed: Create separation with burst
+    Hesitation: Create separation with misdirection
     """
     if not defender or defender.distance > 2.0:
         return ReleaseType.FREE
@@ -505,31 +648,109 @@ def receiver_brain(world: WorldState) -> BrainDecision:
         )
 
     # =========================================================================
-    # Ball in air - Track and catch
+    # Run Play - RB follows run path to mesh point before handoff
+    # =========================================================================
+    if world.is_run_play and world.me.position in (Position.RB, Position.FB):
+        # RB/FB follows run path waypoints before handoff
+        if world.run_path and len(world.run_path) > 0:
+            # Find current waypoint (mesh point is first waypoint)
+            mesh_point = world.run_path[0]
+            dist_to_mesh = world.me.pos.distance_to(mesh_point)
+
+            if dist_to_mesh > 0.5:
+                # Move to mesh point for handoff
+                return BrainDecision(
+                    move_target=mesh_point,
+                    move_type="jog",  # Controlled speed to mesh point
+                    intent="run_path",
+                    reasoning=f"Moving to mesh point ({dist_to_mesh:.1f}yd away)",
+                )
+            else:
+                # At mesh point, hold for handoff
+                return BrainDecision(
+                    intent="hold",
+                    reasoning="At mesh point, waiting for handoff",
+                )
+        else:
+            # No run path, just hold position
+            return BrainDecision(
+                intent="hold",
+                reasoning="Run play but no path - holding for handoff",
+            )
+
+    # =========================================================================
+    # Ball in air - Track and catch (in stride if possible)
     # =========================================================================
     if world.ball.is_in_flight:
         if world.ball.intended_receiver_id == world.me.id:
             state.route_phase = RoutePhase.BALL_TRACKING
             state.is_target = True
 
-            catch_type, target_pos = _get_ball_adjustment(world)
+            catch_type, catch_point, continue_dir, can_run_through = _get_ball_adjustment(world)
 
-            # Move to catch point
-            dist_to_ball = world.me.pos.distance_to(target_pos)
+            # Calculate distance to catch point
+            dist_to_catch = world.me.pos.distance_to(catch_point)
 
-            if dist_to_ball < 0.5:
-                # Ready to catch
-                return BrainDecision(
-                    intent="catch",
-                    reasoning=f"Ball arriving, {catch_type.value} catch",
-                )
+            # === GOOD THROW: Run through the ball ===
+            if can_run_through:
+                _trace(world, f"Ball on path - catching in stride", TraceCategory.PERCEPTION)
 
-            return BrainDecision(
-                move_target=target_pos,
-                move_type="sprint",
-                intent="track_ball",
-                reasoning=f"Tracking ball, {dist_to_ball:.1f}yd to catch point",
-            )
+                if dist_to_catch < 0.5:
+                    # At catch point - keep running!
+                    yac_target = catch_point + continue_dir * 5.0
+                    return BrainDecision(
+                        move_target=yac_target,
+                        move_type="sprint",
+                        intent="catch_and_run",
+                        reasoning=f"Catch in stride, YAC mode",
+                    )
+                elif dist_to_catch < 3.0:
+                    # Close - target past catch point
+                    yac_target = catch_point + continue_dir * 3.0
+                    return BrainDecision(
+                        move_target=yac_target,
+                        move_type="sprint",
+                        intent="track_ball",
+                        reasoning=f"Ball arriving in stride ({dist_to_catch:.1f}yd)",
+                    )
+                else:
+                    # Further out - run through catch point
+                    return BrainDecision(
+                        move_target=catch_point + continue_dir * 2.0,
+                        move_type="sprint",
+                        intent="track_ball",
+                        reasoning=f"Running through catch ({dist_to_catch:.1f}yd)",
+                    )
+
+            # === BAD THROW: Must adjust to ball ===
+            else:
+                _trace(world, f"Ball off path - adjusting ({dist_to_catch:.1f}yd)", TraceCategory.PERCEPTION)
+
+                if dist_to_catch < 0.5:
+                    # At catch point - try to continue but may be slow
+                    yac_target = catch_point + continue_dir * 3.0
+                    return BrainDecision(
+                        move_target=yac_target,
+                        move_type="run",  # Not sprint - had to adjust
+                        intent="catch_and_run",
+                        reasoning=f"Adjusted catch, recovering momentum",
+                    )
+                elif dist_to_catch < 2.0:
+                    # Close - brake slightly to secure catch
+                    return BrainDecision(
+                        move_target=catch_point,
+                        move_type="run",  # Controlled speed
+                        intent="track_ball",
+                        reasoning=f"Adjusting to ball ({dist_to_catch:.1f}yd off path)",
+                    )
+                else:
+                    # Further out - sprint to ball location
+                    return BrainDecision(
+                        move_target=catch_point,
+                        move_type="sprint",
+                        intent="track_ball",
+                        reasoning=f"Chasing ball ({dist_to_catch:.1f}yd away)",
+                    )
         else:
             # Ball thrown elsewhere - block for RAC
             defender = _find_nearest_defender_to_block(world)
@@ -546,7 +767,7 @@ def receiver_brain(world: WorldState) -> BrainDecision:
             )
 
     # =========================================================================
-    # Check for QB scramble - enter scramble drill
+    # Check for QB scramble - find open space for completion
     # =========================================================================
     if _is_qb_scrambling(world):
         state.route_phase = RoutePhase.SCRAMBLE
@@ -558,7 +779,7 @@ def receiver_brain(world: WorldState) -> BrainDecision:
             move_target=open_space,
             move_type="run",
             intent="scramble_drill",
-            reasoning="QB scrambling, finding open space",
+            reasoning="Finding open space for scramble completion",
         )
 
     # =========================================================================
@@ -609,11 +830,11 @@ def receiver_brain(world: WorldState) -> BrainDecision:
     if not route_target:
         route_target = world.me.pos + Vec2(0, 5)
 
-    # Phase-specific behavior
+    # Phase-specific behavior - each phase creates/maintains separation
     if state.route_phase == RoutePhase.RELEASE:
-        # Release phase - get off LOS
+        # Release phase - create initial separation from LOS
         if defender and defender.distance < 2.0:
-            # Press coverage - select release technique
+            # Press - use technique to create separation
             state.release_type = _select_release_type(world, defender, world.assignment)
             release_target = _get_release_target(world, state.release_type, defender)
 
@@ -622,7 +843,7 @@ def receiver_brain(world: WorldState) -> BrainDecision:
                 move_type="sprint",
                 action=state.release_type.value,
                 intent="release",
-                reasoning=f"{state.release_type.value.upper()} release vs press",
+                reasoning=f"Creating separation with {state.release_type.value}",
             )
 
         state.release_type = ReleaseType.FREE
@@ -630,34 +851,34 @@ def receiver_brain(world: WorldState) -> BrainDecision:
             move_target=route_target,
             move_type="sprint",
             intent="release",
-            reasoning="Free release, getting into route",
+            reasoning="Clean release - building separation",
         )
 
     elif state.route_phase == RoutePhase.STEM:
-        # Stem - sell vertical, set up defender
+        # Stem - create vertical separation
         return BrainDecision(
             move_target=route_target,
             move_type="sprint",
             intent="stem",
-            reasoning=f"Selling vertical, sep: {state.separation:.1f}yd",
+            reasoning=f"Creating vertical separation ({state.separation:.1f}yd)",
         )
 
     elif state.route_phase == RoutePhase.BREAK:
-        # Break - execute the break
+        # Break - create lateral separation with cut
         return BrainDecision(
             move_target=route_target,
             move_type="sprint",
             intent="break",
-            reasoning=f"Executing break, sep: {state.separation:.1f}yd",
+            reasoning=f"Creating separation with break ({state.separation:.1f}yd)",
         )
 
     else:  # POST_BREAK
-        # Post-break - find window or continue route
+        # Post-break - maximize separation for completion
         sep_status = "OPEN" if state.separation > 2.5 else "WINDOW" if state.separation > 1.5 else "TIGHT"
 
         return BrainDecision(
             move_target=route_target,
             move_type="sprint",
             intent="post_break",
-            reasoning=f"Post-break, {sep_status} ({state.separation:.1f}yd sep)",
+            reasoning=f"{sep_status} for completion ({state.separation:.1f}yd separation)",
         )

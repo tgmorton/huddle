@@ -150,25 +150,25 @@ class PlayConcept:
 def _trips_right_alignments() -> List[ReceiverAlignment]:
     """Trips formation to the right."""
     return [
-        ReceiverAlignment(ReceiverPosition.X, x=-25, y=0, on_line=True),   # X split left
+        ReceiverAlignment(ReceiverPosition.X, x=-20, y=0, on_line=True),   # X split left (6.67yd from sideline)
         ReceiverAlignment(ReceiverPosition.SLOT_R, x=8, y=-1, on_line=False),  # Inside slot
         ReceiverAlignment(ReceiverPosition.Z, x=15, y=-1, on_line=False),      # Middle slot
-        ReceiverAlignment(ReceiverPosition.Y, x=22, y=0, on_line=True),        # Outside
+        ReceiverAlignment(ReceiverPosition.Y, x=20, y=0, on_line=True),        # Outside
     ]
 
 def _spread_alignments() -> List[ReceiverAlignment]:
     """2x2 spread formation."""
     return [
-        ReceiverAlignment(ReceiverPosition.X, x=-25, y=0, on_line=True),       # X far left
+        ReceiverAlignment(ReceiverPosition.X, x=-20, y=0, on_line=True),       # X far left (6.67yd from sideline)
         ReceiverAlignment(ReceiverPosition.SLOT_L, x=-8, y=-1, on_line=False), # Left slot
         ReceiverAlignment(ReceiverPosition.SLOT_R, x=8, y=-1, on_line=False),  # Right slot
-        ReceiverAlignment(ReceiverPosition.Z, x=25, y=0, on_line=True),        # Z far right
+        ReceiverAlignment(ReceiverPosition.Z, x=20, y=0, on_line=True),        # Z far right (6.67yd from sideline)
     ]
 
 def _bunch_right_alignments() -> List[ReceiverAlignment]:
     """Bunch formation to the right."""
     return [
-        ReceiverAlignment(ReceiverPosition.X, x=-25, y=0, on_line=True),   # X split left
+        ReceiverAlignment(ReceiverPosition.X, x=-20, y=0, on_line=True),   # X split left (6.67yd from sideline)
         ReceiverAlignment(ReceiverPosition.Y, x=6, y=0, on_line=True),     # Point (on line)
         ReceiverAlignment(ReceiverPosition.SLOT_R, x=8, y=-2, on_line=False),  # Wing
         ReceiverAlignment(ReceiverPosition.Z, x=10, y=-1, on_line=False),      # Back
@@ -418,11 +418,11 @@ def create_spacing() -> PlayConcept:
                     "QB reads where the void is and delivers quickly.",
         formation=Formation.EMPTY,
         alignments=[
-            ReceiverAlignment(ReceiverPosition.X, x=-25, y=0, on_line=True),
+            ReceiverAlignment(ReceiverPosition.X, x=-20, y=0, on_line=True),  # 6.67yd from sideline
             ReceiverAlignment(ReceiverPosition.SLOT_L, x=-10, y=-1, on_line=False),
             ReceiverAlignment(ReceiverPosition.Y, x=0, y=-1, on_line=False),  # Center
             ReceiverAlignment(ReceiverPosition.SLOT_R, x=10, y=-1, on_line=False),
-            ReceiverAlignment(ReceiverPosition.Z, x=25, y=0, on_line=True),
+            ReceiverAlignment(ReceiverPosition.Z, x=20, y=0, on_line=True),  # 6.67yd from sideline
         ],
         routes=[
             RouteAssignment(ReceiverPosition.X, RouteType.HITCH, read_order=3),

@@ -1,6 +1,5 @@
 """WebSocket router for real-time game updates."""
 
-import asyncio
 import json
 from uuid import UUID
 

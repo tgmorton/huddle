@@ -1,0 +1,193 @@
+{
+  "model_name": "defense_attribute_projection",
+  "description": "Maps DB/LB defensive attributes to NFL performance metrics",
+  "data_source": "NFL PBP 2019-2024 (team-level)",
+  "coverage_by_tier": {
+    "Elite": {
+      "completion_allowed": 0.5759999752044678,
+      "int_rate": 0.02669999934732914,
+      "sample": 31685
+    },
+    "Above Avg": {
+      "completion_allowed": 0.5964999794960022,
+      "int_rate": 0.02070000022649765,
+      "sample": 31052
+    },
+    "Below Avg": {
+      "completion_allowed": 0.6115000247955322,
+      "int_rate": 0.01940000057220459,
+      "sample": 30651
+    },
+    "Bad": {
+      "completion_allowed": 0.6287999749183655,
+      "int_rate": 0.017400000244379044,
+      "sample": 28833
+    }
+  },
+  "coverage_by_depth": {
+    "Elite": {
+      "short": {
+        "completion_allowed": 0.7099999785423279,
+        "sample": 19765
+      },
+      "medium": {
+        "completion_allowed": 0.5202999711036682,
+        "sample": 6033
+      },
+      "deep": {
+        "completion_allowed": 0.31940001249313354,
+        "sample": 3372
+      }
+    },
+    "Above Avg": {
+      "short": {
+        "completion_allowed": 0.7226999998092651,
+        "sample": 19513
+      },
+      "medium": {
+        "completion_allowed": 0.5414000153541565,
+        "sample": 5872
+      },
+      "deep": {
+        "completion_allowed": 0.3677999973297119,
+        "sample": 3369
+      }
+    },
+    "Below Avg": {
+      "short": {
+        "completion_allowed": 0.7340999841690063,
+        "sample": 19359
+      },
+      "medium": {
+        "completion_allowed": 0.5694000124931335,
+        "sample": 5890
+      },
+      "deep": {
+        "completion_allowed": 0.36320000886917114,
+        "sample": 3243
+      }
+    },
+    "Bad": {
+      "short": {
+        "completion_allowed": 0.7461000084877014,
+        "sample": 18038
+      },
+      "medium": {
+        "completion_allowed": 0.5723000168800354,
+        "sample": 5871
+      },
+      "deep": {
+        "completion_allowed": 0.4025999903678894,
+        "sample": 3256
+      }
+    }
+  },
+  "run_defense": {
+    "Elite": {
+      "ypc_allowed": 4.449999809265137,
+      "stuff_rate": 0.1738,
+      "explosive_allowed": 0.1146,
+      "sample": 21479
+    },
+    "Above Avg": {
+      "ypc_allowed": 4.429999828338623,
+      "stuff_rate": 0.1717,
+      "explosive_allowed": 0.1151,
+      "sample": 21573
+    },
+    "Below Avg": {
+      "ypc_allowed": 4.579999923706055,
+      "stuff_rate": 0.1744,
+      "explosive_allowed": 0.1203,
+      "sample": 22087
+    },
+    "Bad": {
+      "ypc_allowed": 4.639999866485596,
+      "stuff_rate": 0.1641,
+      "explosive_allowed": 0.1222,
+      "sample": 22005
+    }
+  },
+  "big_play_prevention": {
+    "Elite": {
+      "big_play_rate": 0.075,
+      "sample": 31685
+    },
+    "Above Avg": {
+      "big_play_rate": 0.0824,
+      "sample": 31052
+    },
+    "Below Avg": {
+      "big_play_rate": 0.0843,
+      "sample": 30651
+    },
+    "Bad": {
+      "big_play_rate": 0.0944,
+      "sample": 28833
+    }
+  },
+  "attribute_calibration": {
+    "coverage": {
+      "nfl_metric": "completion_rate_allowed",
+      "tier_data": {
+        "Elite": 0.5759999752044678,
+        "Above Avg": 0.5964999794960022,
+        "Below Avg": 0.6115000247955322,
+        "Bad": 0.6287999749183655
+      },
+      "spread_elite_to_bad": 0.052799999713897705,
+      "effect_per_10_points": -0.0096
+    },
+    "deep_coverage": {
+      "nfl_metric": "deep_completion_allowed",
+      "tier_data": {
+        "Elite": 0.31940001249313354,
+        "Above Avg": 0.3677999973297119,
+        "Below Avg": 0.36320000886917114,
+        "Bad": 0.4025999903678894
+      },
+      "spread_elite_to_bad": 0.08320000022649765,
+      "effect_per_10_points": -0.0151
+    },
+    "tackle": {
+      "nfl_metric": "run_ypc_allowed_and_stuff_rate",
+      "tier_data": {
+        "Elite": {
+          "ypc_allowed": 4.449999809265137,
+          "stuff_rate": 0.1738
+        },
+        "Above Avg": {
+          "ypc_allowed": 4.429999828338623,
+          "stuff_rate": 0.1717
+        },
+        "Below Avg": {
+          "ypc_allowed": 4.579999923706055,
+          "stuff_rate": 0.1744
+        },
+        "Bad": {
+          "ypc_allowed": 4.639999866485596,
+          "stuff_rate": 0.1641
+        }
+      },
+      "ypc_spread": 0.1899999976158142,
+      "effect_per_10_points": -0.035
+    },
+    "play_recognition": {
+      "nfl_metric": "big_play_rate_allowed",
+      "tier_data": {
+        "Elite": 0.075,
+        "Above Avg": 0.0824,
+        "Below Avg": 0.0843,
+        "Bad": 0.0944
+      },
+      "spread_elite_to_bad": 0.0194,
+      "effect_per_10_points": -0.0035
+    }
+  },
+  "attributes_covered": [
+    "coverage",
+    "deep_coverage",
+    "tackle",
+    "play_recognition"
+  ]
+}

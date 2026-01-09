@@ -79,6 +79,13 @@ interface PlayerState {
 
   // Ballcarrier direction
   goal_direction?: number;  // 1 or -1
+
+  // Tackle engagement fields (for ballcarrier)
+  in_tackle?: boolean;
+  tackle_leverage?: number;  // -1 (tackler winning) to +1 (BC winning)
+  tackle_ticks?: number;
+  tackle_yards_gained?: number;
+  primary_tackler_id?: string;
 }
 
 interface WaypointData {
@@ -213,6 +220,12 @@ const COLORS = {
   catchFlash: 0xFFD700,   // Gold - catch ring
   catchFlashInner: 0xFFFFFF,  // White - inner burst
   yardsPopup: 0x22c55e,   // Green - yards gained
+
+  // Tackle engagement
+  tackleOrange: 0xf97316,  // Orange - tackle line and label
+  tackleBCWinning: 0x22c55e,  // Green - BC has leverage
+  tackleTacklerWinning: 0xef4444,  // Red - tackler has leverage
+  tackleNeutral: 0xf97316,  // Orange - neutral
 
   text: 0xffffff,
   textDim: 0xaaaaaa,
@@ -742,6 +755,152 @@ export function V2SimCanvas({
     container.addChild(g);
   };
 
+  // Draw tackle engagement visualization
+  const drawTackleEngagement = (
+    container: Container,
+    ballcarrier: PlayerState,
+    allPlayers: PlayerState[]
+  ) => {
+    const bcScreen = yardToScreen(ballcarrier.x, ballcarrier.y);
+    const g = new Graphics();
+
+    // Find the primary tackler
+    const tackler = ballcarrier.primary_tackler_id
+      ? allPlayers.find(p => p.id === ballcarrier.primary_tackler_id)
+      : null;
+
+    // Draw connection line between BC and tackler
+    if (tackler) {
+      const tacklerScreen = yardToScreen(tackler.x, tackler.y);
+
+      // Pulsing tackle line
+      g.moveTo(bcScreen.x, bcScreen.y);
+      g.lineTo(tacklerScreen.x, tacklerScreen.y);
+      g.stroke({ color: COLORS.tackleOrange, width: 4, alpha: 0.8 });
+
+      // Draw struggle indicator at midpoint
+      const midX = (bcScreen.x + tacklerScreen.x) / 2;
+      const midY = (bcScreen.y + tacklerScreen.y) / 2;
+
+      // Leverage bar (centered, shows who's winning)
+      const barWidth = 50;
+      const barHeight = 10;
+      const leverage = ballcarrier.tackle_leverage ?? 0;
+
+      // Background
+      g.rect(midX - barWidth / 2, midY - barHeight / 2, barWidth, barHeight);
+      g.fill({ color: 0x000000, alpha: 0.7 });
+
+      // Center line (neutral point)
+      g.moveTo(midX, midY - barHeight / 2);
+      g.lineTo(midX, midY + barHeight / 2);
+      g.stroke({ color: 0xffffff, width: 1, alpha: 0.5 });
+
+      // Leverage fill - from center outward
+      // Positive leverage (BC winning) = fill right (green)
+      // Negative leverage (tackler winning) = fill left (red)
+      const fillWidth = Math.abs(leverage) * (barWidth / 2);
+      if (leverage > 0) {
+        // BC winning - green fill from center to right
+        g.rect(midX, midY - barHeight / 2, fillWidth, barHeight);
+        g.fill({ color: COLORS.tackleBCWinning, alpha: 0.9 });
+      } else if (leverage < 0) {
+        // Tackler winning - red fill from center to left
+        g.rect(midX - fillWidth, midY - barHeight / 2, fillWidth, barHeight);
+        g.fill({ color: COLORS.tackleTacklerWinning, alpha: 0.9 });
+      }
+
+      // Border
+      g.rect(midX - barWidth / 2, midY - barHeight / 2, barWidth, barHeight);
+      g.stroke({ color: 0xffffff, width: 1 });
+
+      // TACKLE label
+      const tackleLabel = new Text({
+        text: 'TACKLE',
+        style: new TextStyle({
+          fontSize: 10,
+          fill: COLORS.tackleOrange,
+          fontWeight: 'bold',
+          fontFamily: 'Berkeley Mono, SF Mono, monospace',
+        }),
+      });
+      tackleLabel.anchor.set(0.5);
+      tackleLabel.x = midX;
+      tackleLabel.y = midY - barHeight / 2 - 10;
+      container.addChild(tackleLabel);
+
+      // Yards gained during engagement (if any)
+      if (ballcarrier.tackle_yards_gained && ballcarrier.tackle_yards_gained > 0.1) {
+        const yacLabel = new Text({
+          text: `+${ballcarrier.tackle_yards_gained.toFixed(1)} YAC`,
+          style: new TextStyle({
+            fontSize: 9,
+            fill: COLORS.tackleBCWinning,
+            fontWeight: 'bold',
+            fontFamily: 'Berkeley Mono, SF Mono, monospace',
+          }),
+        });
+        yacLabel.anchor.set(0.5);
+        yacLabel.x = midX;
+        yacLabel.y = midY + barHeight / 2 + 10;
+        container.addChild(yacLabel);
+      }
+
+      // Highlight the primary tackler with an orange ring
+      g.circle(tacklerScreen.x, tacklerScreen.y, 18);
+      g.stroke({ color: COLORS.tackleOrange, width: 3, alpha: 0.8 });
+    }
+
+    // Draw struggle effect around ballcarrier (concentric rings based on leverage)
+    const ringRadius = 24;
+    const leverage = ballcarrier.tackle_leverage ?? 0;
+
+    // Inner ring - color based on who's winning
+    const ringColor = leverage > 0 ? COLORS.tackleBCWinning
+      : leverage < 0 ? COLORS.tackleTacklerWinning
+      : COLORS.tackleNeutral;
+    g.circle(bcScreen.x, bcScreen.y, ringRadius);
+    g.stroke({ color: ringColor, width: 3, alpha: 0.7 });
+
+    // Outer ring (faded)
+    g.circle(bcScreen.x, bcScreen.y, ringRadius + 6);
+    g.stroke({ color: ringColor, width: 2, alpha: 0.3 });
+
+    // "GOING DOWN" indicator when tackler is winning heavily
+    if (leverage < -0.6) {
+      const downLabel = new Text({
+        text: 'GOING DOWN',
+        style: new TextStyle({
+          fontSize: 11,
+          fill: COLORS.tackleTacklerWinning,
+          fontWeight: 'bold',
+          fontFamily: 'Berkeley Mono, SF Mono, monospace',
+        }),
+      });
+      downLabel.anchor.set(0.5);
+      downLabel.x = bcScreen.x;
+      downLabel.y = bcScreen.y + ringRadius + 16;
+      container.addChild(downLabel);
+    } else if (leverage > 0.6) {
+      // "BREAKING FREE" indicator when BC is about to escape
+      const freeLabel = new Text({
+        text: 'BREAKING FREE',
+        style: new TextStyle({
+          fontSize: 11,
+          fill: COLORS.tackleBCWinning,
+          fontWeight: 'bold',
+          fontFamily: 'Berkeley Mono, SF Mono, monospace',
+        }),
+      });
+      freeLabel.anchor.set(0.5);
+      freeLabel.x = bcScreen.x;
+      freeLabel.y = bcScreen.y + ringRadius + 16;
+      container.addChild(freeLabel);
+    }
+
+    container.addChild(g);
+  };
+
   // Update position history when we get new state
   useEffect(() => {
     if (!simState) return;
@@ -933,6 +1092,12 @@ export function V2SimCanvas({
         }
       }
     });
+
+    // Draw tackle engagement if ballcarrier is in tackle
+    const ballcarrierInTackle = simState.players.find(p => p.in_tackle);
+    if (ballcarrierInTackle) {
+      drawTackleEngagement(container, ballcarrierInTackle, simState.players);
+    }
 
     simState.players.forEach(player => {
       const playerContainer = new Container();

@@ -28,6 +28,8 @@ class EventCategory(Enum):
     PRACTICE = auto()  # Team practices
     MEETING = auto()  # Staff meetings, player meetings
     GAME = auto()  # Game day events
+    TEAM = auto()  # General team operations
+    PLAYER = auto()  # Player-related events (morale, meetings)
 
     # Draft
     SCOUTING = auto()  # Scouting events, workouts
@@ -35,6 +37,12 @@ class EventCategory(Enum):
 
     # Staff
     STAFF = auto()  # Staff hiring, firing, meetings
+
+    # Media & Communication
+    MEDIA = auto()  # Press conferences, interviews
+
+    # Health
+    INJURY = auto()  # Injury reports and updates
 
     # Administrative
     DEADLINE = auto()  # Important deadlines
@@ -67,6 +75,49 @@ class EventStatus(Enum):
     AUTO_RESOLVED = auto()  # System handled it (e.g., AI made the decision)
 
 
+class DisplayMode(Enum):
+    """How the event should be displayed in the UI."""
+
+    PANE = auto()      # Opens as workspace pane (most events)
+    MODAL = auto()     # Opens as blocking modal (critical decisions)
+    TICKER = auto()    # Just shows in ticker (informational only)
+
+
+class TriggerCondition(Enum):
+    """When an event trigger should fire."""
+
+    ON_COMPLETE = auto()   # When event is attended/completed
+    ON_DISMISS = auto()    # When event is dismissed
+    ON_EXPIRE = auto()     # When event expires without action
+    ON_CHOICE = auto()     # When a specific choice is made (uses payload.choice_id)
+
+
+@dataclass
+class EventTrigger:
+    """
+    Defines a follow-up event that can spawn when this event resolves.
+
+    Used for event arcs - e.g., player requests extension → negotiations start,
+    or trade rejected → rival makes bigger offer next week.
+    """
+
+    condition: TriggerCondition
+    spawn_event_type: str  # Type of event to spawn (matches factory function)
+    delay_days: int = 0    # Days after trigger to schedule spawned event
+    delay_hours: int = 0   # Hours after trigger
+    probability: float = 1.0  # Chance this trigger fires (0.0 - 1.0)
+
+    # Filter for ON_CHOICE - only fires if this choice was selected
+    choice_id: Optional[str] = None
+
+    # Extra data passed to spawned event's payload
+    spawn_payload: dict[str, Any] = field(default_factory=dict)
+
+    # Arc tracking
+    arc_id: Optional[UUID] = None  # Links spawned event to same arc
+    arc_stage: int = 0  # What stage in the arc this spawns
+
+
 @dataclass
 class ManagementEvent:
     """
@@ -88,12 +139,21 @@ class ManagementEvent:
     title: str = ""  # Short title for clipboard
     description: str = ""  # Longer description
     icon: str = ""  # Icon identifier for UI
+    display_mode: DisplayMode = DisplayMode.PANE  # How to show in UI
 
     # Timing
     created_at: datetime = field(default_factory=datetime.now)
     scheduled_for: Optional[datetime] = None  # When event becomes active
     deadline: Optional[datetime] = None  # When event expires
     duration_minutes: int = 0  # How long the event lasts once started
+
+    # Day-based scheduling (simpler alternative to datetime)
+    scheduled_week: Optional[int] = None  # Week number (1-17+)
+    scheduled_day: Optional[int] = None  # Day of week (0=Mon, 6=Sun)
+
+    # Event arcs - linking related events
+    arc_id: Optional[UUID] = None  # Links events in the same arc/storyline
+    triggers: list[EventTrigger] = field(default_factory=list)  # Follow-up events
 
     # Status
     status: EventStatus = EventStatus.SCHEDULED
@@ -209,10 +269,14 @@ class ManagementEvent:
             "title": self.title,
             "description": self.description,
             "icon": self.icon,
+            "display_mode": self.display_mode.name,
             "created_at": self.created_at.isoformat(),
             "scheduled_for": self.scheduled_for.isoformat() if self.scheduled_for else None,
             "deadline": self.deadline.isoformat() if self.deadline else None,
             "duration_minutes": self.duration_minutes,
+            "scheduled_week": self.scheduled_week,
+            "scheduled_day": self.scheduled_day,
+            "arc_id": str(self.arc_id) if self.arc_id else None,
             "status": self.status.name,
             "auto_pause": self.auto_pause,
             "requires_attention": self.requires_attention,
@@ -235,10 +299,14 @@ class ManagementEvent:
             title=data.get("title", ""),
             description=data.get("description", ""),
             icon=data.get("icon", ""),
+            display_mode=DisplayMode[data.get("display_mode", "PANE")],
             created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
             scheduled_for=datetime.fromisoformat(data["scheduled_for"]) if data.get("scheduled_for") else None,
             deadline=datetime.fromisoformat(data["deadline"]) if data.get("deadline") else None,
             duration_minutes=data.get("duration_minutes", 0),
+            scheduled_week=data.get("scheduled_week"),
+            scheduled_day=data.get("scheduled_day"),
+            arc_id=UUID(data["arc_id"]) if data.get("arc_id") else None,
             status=EventStatus[data.get("status", "SCHEDULED")],
             auto_pause=data.get("auto_pause", False),
             requires_attention=data.get("requires_attention", True),
@@ -451,6 +519,156 @@ def create_negotiation_event(
     )
 
 
+# =============================================================================
+# Contract Modal Events (urgent, blocking)
+# =============================================================================
+
+
+def create_holdout_modal(
+    player_id: UUID,
+    player_name: str,
+    position: str,
+    overall: int,
+    current_salary: int,
+    demanded_salary: int,
+    team_id: Optional[UUID] = None,
+) -> ManagementEvent:
+    """Create a holdout modal event - player refusing to play until demands are met."""
+    return ManagementEvent(
+        event_type="contract_holdout",
+        category=EventCategory.CONTRACT,
+        priority=EventPriority.CRITICAL,
+        title=f"HOLDOUT: {player_name}",
+        description=f"{position} {player_name} ({overall} OVR) is refusing to report. "
+        f"Demanding ${demanded_salary // 1000}M/yr (currently ${current_salary // 1000}M/yr).",
+        icon="holdout",
+        display_mode=DisplayMode.MODAL,
+        auto_pause=True,
+        requires_attention=True,
+        can_dismiss=False,  # Must address
+        can_delegate=True,
+        team_id=team_id,
+        player_ids=[player_id],
+        payload={
+            "player_name": player_name,
+            "position": position,
+            "overall": overall,
+            "current_salary": current_salary,
+            "demanded_salary": demanded_salary,
+            "subtype": "holdout",
+        },
+    )
+
+
+def create_extension_deadline_modal(
+    player_id: UUID,
+    player_name: str,
+    position: str,
+    overall: int,
+    years_remaining: int,
+    team_id: Optional[UUID] = None,
+    deadline: Optional[datetime] = None,
+) -> ManagementEvent:
+    """Create extension deadline modal - player wants answer by end of day."""
+    return ManagementEvent(
+        event_type="contract_extension_deadline",
+        category=EventCategory.CONTRACT,
+        priority=EventPriority.HIGH,
+        title=f"Extension Deadline: {player_name}",
+        description=f"{position} {player_name} ({overall} OVR) wants an answer on his extension today. "
+        f"{years_remaining} year(s) left on current deal.",
+        icon="deadline",
+        display_mode=DisplayMode.MODAL,
+        deadline=deadline,
+        auto_pause=True,
+        requires_attention=True,
+        can_dismiss=True,  # Can decline and let play out
+        can_delegate=True,
+        team_id=team_id,
+        player_ids=[player_id],
+        payload={
+            "player_name": player_name,
+            "position": position,
+            "overall": overall,
+            "years_remaining": years_remaining,
+            "subtype": "extension_deadline",
+        },
+    )
+
+
+def create_agent_demand_modal(
+    player_id: UUID,
+    player_name: str,
+    position: str,
+    overall: int,
+    demand_type: str,  # "new_deal", "trade_request", "restructure"
+    team_id: Optional[UUID] = None,
+) -> ManagementEvent:
+    """Create agent demand modal - agent making demands on behalf of player."""
+    demand_descriptions = {
+        "new_deal": f"{player_name}'s agent is demanding a new contract or the player will request a trade.",
+        "trade_request": f"{player_name}'s agent has informed you that the player wants to be traded.",
+        "restructure": f"{player_name}'s agent is requesting a restructure to increase guaranteed money.",
+    }
+    return ManagementEvent(
+        event_type=f"contract_agent_{demand_type}",
+        category=EventCategory.CONTRACT,
+        priority=EventPriority.HIGH,
+        title=f"Agent: {player_name}",
+        description=demand_descriptions.get(
+            demand_type, f"{player_name}'s agent has a request."
+        ),
+        icon="agent",
+        display_mode=DisplayMode.MODAL,
+        auto_pause=True,
+        requires_attention=True,
+        can_dismiss=True,
+        can_delegate=True,
+        team_id=team_id,
+        player_ids=[player_id],
+        payload={
+            "player_name": player_name,
+            "position": position,
+            "overall": overall,
+            "demand_type": demand_type,
+            "subtype": "agent_demand",
+        },
+    )
+
+
+def create_contract_signed_modal(
+    player_id: UUID,
+    player_name: str,
+    position: str,
+    years: int,
+    total_value: int,  # in thousands
+    team_id: Optional[UUID] = None,
+) -> ManagementEvent:
+    """Create contract signed modal - notification of completed signing."""
+    return ManagementEvent(
+        event_type="contract_signed",
+        category=EventCategory.CONTRACT,
+        priority=EventPriority.NORMAL,
+        title=f"Signed: {player_name}",
+        description=f"{position} {player_name} has signed a {years}-year, "
+        f"${total_value // 1000}M contract with your team.",
+        icon="signed",
+        display_mode=DisplayMode.MODAL,
+        auto_pause=False,
+        requires_attention=False,  # Just informational
+        can_dismiss=True,
+        team_id=team_id,
+        player_ids=[player_id],
+        payload={
+            "player_name": player_name,
+            "position": position,
+            "years": years,
+            "total_value": total_value,
+            "subtype": "signed",
+        },
+    )
+
+
 def create_bidding_war_event(
     player_id: UUID,
     player_name: str,
@@ -637,6 +855,94 @@ def create_deadline_event(
     )
 
 
+def create_scout_report_event(
+    opponent_name: str,
+    opponent_id: UUID,
+    week: int,
+    scheduled_week: int,
+    scheduled_day: int,
+    team_id: Optional[UUID] = None,
+) -> ManagementEvent:
+    """
+    Create a scout report event for upcoming opponent.
+
+    Generates procedural tendencies based on opponent_id seed.
+    """
+    import random
+
+    # Seed random with opponent_id for consistent procedural generation
+    seed = int(str(opponent_id).replace("-", "")[:8], 16)
+    rng = random.Random(seed)
+
+    # Generate procedural tendencies
+    defenses = ["4-3 Under", "3-4 Over", "4-3 Even", "Nickel", "4-2-5"]
+    coverages = ["Cover 2", "Cover 3", "Cover 1 Man", "Cover 4", "Cover 6"]
+    blitz_rates = [f"{rng.randint(25, 55)}%"]
+    red_zone_schemes = ["Man Heavy", "Zone Heavy", "Aggressive Blitz", "Conservative"]
+
+    # Rankings (1-32)
+    off_rank = rng.randint(1, 32)
+    def_rank = rng.randint(1, 32)
+
+    # Key threats by position
+    threat_positions = ["DE", "LB", "CB", "S", "DT"]
+    threats = []
+    for pos in rng.sample(threat_positions, 2):
+        stat_type = "sacks" if pos in ["DE", "DT", "LB"] else "INTs"
+        stat_val = rng.randint(2, 8)
+        threats.append({
+            "position": pos,
+            "stat_type": stat_type,
+            "stat_value": stat_val,
+        })
+
+    # Attack vectors
+    attack_vectors = [
+        ("Slot CB", "Weak vs quick routes"),
+        ("LB Coverage", "Middle open"),
+        ("DE Crash", "Bootleg opportunity"),
+        ("Safety Help", "Post routes viable"),
+        ("Nickel Back", "Struggles vs size"),
+        ("Run Fits", "Outside zone effective"),
+    ]
+    selected_vectors = rng.sample(attack_vectors, 3)
+
+    return ManagementEvent(
+        event_type="scout_report",
+        category=EventCategory.SCOUTING,
+        priority=EventPriority.HIGH,
+        title=f"Scout Report: {opponent_name}",
+        description=f"Review defensive tendencies for Week {week} opponent",
+        icon="scout",
+        display_mode=DisplayMode.PANE,
+        scheduled_week=scheduled_week,
+        scheduled_day=scheduled_day,
+        auto_pause=False,
+        requires_attention=True,
+        can_dismiss=True,
+        team_id=team_id,
+        payload={
+            "opponent_name": opponent_name,
+            "opponent_id": str(opponent_id),
+            "week": week,
+            "rankings": {
+                "offense": off_rank,
+                "defense": def_rank,
+            },
+            "tendencies": {
+                "base_defense": rng.choice(defenses),
+                "third_down": rng.choice(coverages),
+                "red_zone": rng.choice(red_zone_schemes),
+                "blitz_rate": blitz_rates[0],
+            },
+            "key_threats": threats,
+            "attack_vectors": [
+                {"area": v[0], "note": v[1]} for v in selected_vectors
+            ],
+        },
+    )
+
+
 @dataclass
 class EventQueue:
     """
@@ -722,6 +1028,72 @@ class EventQueue:
     def get_urgent(self) -> list[ManagementEvent]:
         """Get all urgent events."""
         return [e for e in self._events.values() if e.is_urgent and e.status == EventStatus.PENDING]
+
+    def get_events_for_day(self, week: int, day: int) -> list[ManagementEvent]:
+        """
+        Get all events scheduled for a specific day.
+
+        Args:
+            week: Week number (1-17+)
+            day: Day of week (0=Mon, 6=Sun)
+
+        Returns:
+            List of events for that day, sorted by priority
+        """
+        day_events = [
+            e for e in self._events.values()
+            if e.scheduled_week == week
+            and e.scheduled_day == day
+            and e.status in {EventStatus.SCHEDULED, EventStatus.PENDING}
+        ]
+        # Sort by priority (critical first)
+        priority_order = {
+            EventPriority.CRITICAL: 0,
+            EventPriority.HIGH: 1,
+            EventPriority.NORMAL: 2,
+            EventPriority.LOW: 3,
+        }
+        return sorted(day_events, key=lambda e: priority_order.get(e.priority, 2))
+
+    def activate_day_events(self, week: int, day: int) -> list[ManagementEvent]:
+        """
+        Activate all events scheduled for a specific day.
+
+        Moves events from SCHEDULED to PENDING and triggers callbacks.
+        Returns the activated events.
+        """
+        activated = []
+        for event in self.get_events_for_day(week, day):
+            if event.status == EventStatus.SCHEDULED:
+                event.status = EventStatus.PENDING
+                activated.append(event)
+                for callback in self._on_event_activated:
+                    callback(event)
+        return activated
+
+    def process_triggers(self, event: ManagementEvent, condition: "TriggerCondition") -> list[ManagementEvent]:
+        """
+        Process event triggers when an event completes/dismisses/expires.
+
+        Spawns follow-up events based on the trigger condition.
+        Returns list of newly spawned events.
+        """
+        spawned = []
+        for trigger in event.triggers:
+            if trigger.condition == condition:
+                # Check probability
+                import random
+                if random.random() > trigger.probability:
+                    continue
+
+                # Create the follow-up event
+                from huddle.management.generators import create_triggered_event
+                new_event = create_triggered_event(trigger, event)
+                if new_event:
+                    self.add(new_event)
+                    spawned.append(new_event)
+
+        return spawned
 
     def get_auto_pause_events(self) -> list[ManagementEvent]:
         """Get pending events that should trigger auto-pause."""

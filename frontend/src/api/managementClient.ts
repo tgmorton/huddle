@@ -347,6 +347,256 @@ export interface GameResult {
   mvp: GameMVP | null;
 }
 
+// Contract types
+export interface PlayerContractInfo {
+  player_id: string;
+  name: string;
+  position: string;
+  overall: number;
+  age: number;
+  salary: number;
+  signing_bonus: number;
+  years_total: number;
+  years_remaining: number;
+  dead_money_if_cut: number;
+}
+
+export interface ContractsResponse {
+  team_abbr: string;
+  total_salary: number;
+  contracts: PlayerContractInfo[];
+}
+
+// Contract action types
+export interface RestructureContractRequest {
+  amount_to_convert: number;
+}
+
+export interface RestructureContractResponse {
+  success: boolean;
+  player_id: string;
+  player_name: string;
+  amount_converted: number;
+  cap_savings: number;
+  new_base_salary: number;
+  new_signing_bonus: number;
+  restructure_count: number;
+}
+
+export interface CutPlayerRequest {
+  june_1_designation?: boolean;
+}
+
+export interface CutPlayerResponse {
+  success: boolean;
+  player_id: string;
+  player_name: string;
+  dead_money_this_year: number;
+  dead_money_next_year: number;
+  cap_savings: number;
+  was_june_1: boolean;
+}
+
+// Detailed contract info
+export interface ContractYearInfo {
+  year: number;
+  base_salary: number;
+  signing_bonus_proration: number;
+  roster_bonus: number;
+  incentives: number;
+  cap_hit: number;
+  guaranteed_salary: number;
+  is_current: boolean;
+}
+
+export interface ContractDetailInfo {
+  player_id: string;
+  name: string;
+  position: string;
+  overall: number;
+  age: number;
+  experience: number;
+  total_value: number;
+  total_guaranteed: number;
+  signing_bonus: number;
+  years_total: number;
+  years_remaining: number;
+  current_year: number;
+  years: ContractYearInfo[];
+  dead_money_if_cut: number;
+  dead_money_june1_this_year: number;
+  dead_money_june1_next_year: number;
+  cap_savings_if_cut: number;
+  is_restructured: boolean;
+  restructure_count: number;
+  can_restructure: boolean;
+}
+
+// Free agent types
+export interface FreeAgentInfo {
+  player_id: string;
+  name: string;
+  position: string;
+  overall: number;
+  age: number;
+  tier: 'ELITE' | 'STARTER' | 'DEPTH' | 'MINIMUM';
+  market_value: number;
+}
+
+export interface FreeAgentsResponse {
+  count: number;
+  free_agents: FreeAgentInfo[];
+}
+
+// Negotiation types
+export type NegotiationResult = 'ACCEPTED' | 'COUNTER_OFFER' | 'REJECTED' | 'WALK_AWAY';
+export type NegotiationTone = 'ENTHUSIASTIC' | 'PROFESSIONAL' | 'DEMANDING' | 'INSULTED';
+
+export interface ContractOffer {
+  years: number;
+  salary: number;
+  signing_bonus: number;
+  total_value: number;
+  guaranteed: number;
+}
+
+export interface MarketValue {
+  base_salary: number;
+  signing_bonus: number;
+  years: number;
+  total_value: number;
+  tier: 'ELITE' | 'STARTER' | 'DEPTH' | 'MINIMUM';
+}
+
+export interface StartNegotiationResponse {
+  negotiation_id: string;
+  player_id: string;
+  player_name: string;
+  player_position: string;
+  player_overall: number;
+  player_age: number;
+  market_value: MarketValue;
+  opening_demand: ContractOffer;
+  message: string;
+}
+
+export interface SubmitOfferRequest {
+  years: number;
+  salary: number;
+  signing_bonus: number;
+}
+
+export interface SubmitOfferResponse {
+  result: NegotiationResult;
+  tone: NegotiationTone;
+  message: string;
+  offer_pct_of_market: number;
+  walk_away_chance: number;
+  counter_offer: ContractOffer | null;
+  agreed_contract: ContractOffer | null;
+  rounds: number;
+  patience: number;
+}
+
+export interface ActiveNegotiationInfo {
+  negotiation_id: string;
+  player_id: string;
+  player_name: string;
+  player_position: string;
+  player_overall: number;
+  rounds: number;
+  last_offer: ContractOffer | null;
+  current_demand: ContractOffer | null;
+  patience: number;
+}
+
+export interface ActiveNegotiationsResponse {
+  negotiations: ActiveNegotiationInfo[];
+  count: number;
+}
+
+// Auction types
+export type AuctionPhase = 'BIDDING' | 'FINAL_CALL' | 'CLOSED';
+export type AuctionResult = 'WON' | 'OUTBID' | 'WITHDREW' | 'NO_BID';
+
+export interface CompetingTeamBid {
+  team_id: string;
+  team_name: string;
+  team_abbrev: string;
+  interest_level: 'HIGH' | 'MEDIUM' | 'LOW';
+  has_bid: boolean;
+  is_top_bid: boolean;
+  bid_range: string | null;
+}
+
+export interface AuctionBid {
+  years: number;
+  salary: number;
+  signing_bonus: number;
+  total_value: number;
+  guaranteed: number;
+}
+
+export interface StartAuctionResponse {
+  auction_id: string;
+  player_id: string;
+  player_name: string;
+  player_position: string;
+  player_overall: number;
+  player_age: number;
+  market_value: MarketValue;
+  phase: AuctionPhase;
+  round: number;
+  max_rounds: number;
+  competing_teams: CompetingTeamBid[];
+  floor_bid: AuctionBid;
+  message: string;
+}
+
+export interface SubmitAuctionBidRequest {
+  years: number;
+  salary: number;
+  signing_bonus: number;
+}
+
+export interface SubmitAuctionBidResponse {
+  success: boolean;
+  message: string;
+  phase: AuctionPhase;
+  round: number;
+  your_bid: AuctionBid | null;
+  is_top_bid: boolean;
+  competing_teams: CompetingTeamBid[];
+  top_bid_range: string | null;
+}
+
+export interface FinalizeAuctionResponse {
+  result: AuctionResult;
+  message: string;
+  winning_bid: AuctionBid | null;
+  winning_team: string | null;
+  winning_team_abbrev: string | null;
+}
+
+export interface ActiveAuctionInfo {
+  auction_id: string;
+  player_id: string;
+  player_name: string;
+  player_position: string;
+  player_overall: number;
+  phase: AuctionPhase;
+  round: number;
+  max_rounds: number;
+  your_bid: AuctionBid | null;
+  is_top_bid: boolean;
+  competing_teams_count: number;
+}
+
+export interface ActiveAuctionsResponse {
+  auctions: ActiveAuctionInfo[];
+  count: number;
+}
+
 export class ApiError extends Error {
   status: number;
   statusText: string;
@@ -541,4 +791,116 @@ export const managementApi = {
       method: 'POST',
       body: JSON.stringify({ event_id: eventId }),
     }),
+
+  // Contracts
+  getContracts: (franchiseId: string): Promise<ContractsResponse> =>
+    request(`/management/franchise/${franchiseId}/contracts`),
+
+  getPlayerContract: (franchiseId: string, playerId: string): Promise<ContractDetailInfo> =>
+    request(`/management/franchise/${franchiseId}/contracts/${playerId}`),
+
+  restructureContract: (franchiseId: string, playerId: string, amountToConvert: number): Promise<RestructureContractResponse> =>
+    request(`/management/franchise/${franchiseId}/contracts/${playerId}/restructure`, {
+      method: 'POST',
+      body: JSON.stringify({ amount_to_convert: amountToConvert }),
+    }),
+
+  cutPlayer: (franchiseId: string, playerId: string, june1Designation?: boolean): Promise<CutPlayerResponse> =>
+    request(`/management/franchise/${franchiseId}/contracts/${playerId}/cut`, {
+      method: 'POST',
+      body: JSON.stringify({ june_1_designation: june1Designation ?? false }),
+    }),
+
+  // Free Agents
+  getFreeAgents: (franchiseId: string): Promise<FreeAgentsResponse> =>
+    request(`/management/franchise/${franchiseId}/free-agents`),
+
+  // Negotiations
+  startNegotiation: (franchiseId: string, playerId: string): Promise<StartNegotiationResponse> =>
+    request(`/management/franchise/${franchiseId}/negotiations/start`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  submitOffer: (franchiseId: string, playerId: string, offer: SubmitOfferRequest): Promise<SubmitOfferResponse> =>
+    request(`/management/franchise/${franchiseId}/negotiations/${playerId}/offer`, {
+      method: 'POST',
+      body: JSON.stringify(offer),
+    }),
+
+  getActiveNegotiations: (franchiseId: string): Promise<ActiveNegotiationsResponse> =>
+    request(`/management/franchise/${franchiseId}/negotiations/active`),
+
+  cancelNegotiation: (franchiseId: string, playerId: string): Promise<{ success: boolean; message: string }> =>
+    request(`/management/franchise/${franchiseId}/negotiations/${playerId}`, {
+      method: 'DELETE',
+    }),
+
+  // Auctions
+  startAuction: (franchiseId: string, playerId: string): Promise<StartAuctionResponse> =>
+    request(`/management/franchise/${franchiseId}/free-agency/auction/start`, {
+      method: 'POST',
+      body: JSON.stringify({ player_id: playerId }),
+    }),
+
+  submitAuctionBid: (franchiseId: string, playerId: string, bid: SubmitAuctionBidRequest): Promise<SubmitAuctionBidResponse> =>
+    request(`/management/franchise/${franchiseId}/free-agency/auction/${playerId}/bid`, {
+      method: 'POST',
+      body: JSON.stringify(bid),
+    }),
+
+  advanceAuctionRound: (franchiseId: string, playerId: string): Promise<SubmitAuctionBidResponse> =>
+    request(`/management/franchise/${franchiseId}/free-agency/auction/${playerId}/advance`, {
+      method: 'POST',
+    }),
+
+  finalizeAuction: (franchiseId: string, playerId: string): Promise<FinalizeAuctionResponse> =>
+    request(`/management/franchise/${franchiseId}/free-agency/auction/${playerId}/finalize`, {
+      method: 'POST',
+    }),
+
+  getActiveAuctions: (franchiseId: string): Promise<ActiveAuctionsResponse> =>
+    request(`/management/franchise/${franchiseId}/free-agency/auctions/active`),
+
+  withdrawFromAuction: (franchiseId: string, playerId: string): Promise<{ success: boolean; message: string }> =>
+    request(`/management/franchise/${franchiseId}/free-agency/auction/${playerId}`, {
+      method: 'DELETE',
+    }),
+
+  // Franchise info (for team abbreviation, etc.)
+  getFranchiseInfo: (franchiseId: string): Promise<{
+    franchise_id: string;
+    team_id: string;
+    team_abbr: string;
+    league_id: string;
+  }> => request(`/management/franchise/${franchiseId}/info`),
+
+  // Schedule (uses admin API but needs team context)
+  getTeamSchedule: (teamAbbr: string): Promise<{
+    id: string;
+    week: number;
+    home_team: string;
+    away_team: string;
+    home_score: number | null;
+    away_score: number | null;
+    is_played: boolean;
+    winner: string | null;
+  }[]> => request(`/admin/schedule?team=${teamAbbr}`),
+
+  // Standings (for team record)
+  getTeamRecord: (teamAbbr: string): Promise<{
+    wins: number;
+    losses: number;
+    ties: number;
+  } | null> =>
+    request<{ division: string; teams: { abbreviation: string; wins: number; losses: number; ties: number }[] }[]>('/admin/standings')
+      .then(divisions => {
+        for (const div of divisions) {
+          const team = div.teams.find(t => t.abbreviation === teamAbbr);
+          if (team) {
+            return { wins: team.wins, losses: team.losses, ties: team.ties };
+          }
+        }
+        return null;
+      }),
 };

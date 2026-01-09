@@ -1,0 +1,158 @@
+{
+  "model_name": "draft_success",
+  "version": "1.0",
+  "description": "Draft pick value and success probability model",
+  "pick_value_formula": {
+    "description": "E[career_value] = exp(intercept + slope * ln(pick))",
+    "intercept": 5.1168,
+    "slope": -0.6133
+  },
+  "pick_value_examples": {
+    "1": 166.8,
+    "5": 62.17,
+    "10": 40.64,
+    "20": 26.57,
+    "32": 19.91,
+    "64": 13.02,
+    "100": 9.9,
+    "150": 7.72,
+    "200": 6.47,
+    "256": 5.56
+  },
+  "by_round": {
+    "1": {
+      "mean_value": 41.62,
+      "median_value": 38.0,
+      "bust_rate": 0.0313,
+      "starter_rate": 0.7712,
+      "star_rate": 0.5705,
+      "elite_rate": 0.2884
+    },
+    "2": {
+      "mean_value": 26.83,
+      "median_value": 22.0,
+      "bust_rate": 0.1199,
+      "starter_rate": 0.571,
+      "star_rate": 0.2902,
+      "elite_rate": 0.0978
+    },
+    "3": {
+      "mean_value": 20.93,
+      "median_value": 15.0,
+      "bust_rate": 0.2073,
+      "starter_rate": 0.4118,
+      "star_rate": 0.1877,
+      "elite_rate": 0.0784
+    },
+    "4": {
+      "mean_value": 14.35,
+      "median_value": 9.0,
+      "bust_rate": 0.3073,
+      "starter_rate": 0.2588,
+      "star_rate": 0.097,
+      "elite_rate": 0.035
+    },
+    "5": {
+      "mean_value": 12.35,
+      "median_value": 7.0,
+      "bust_rate": 0.377,
+      "starter_rate": 0.1995,
+      "star_rate": 0.0929,
+      "elite_rate": 0.041
+    },
+    "6": {
+      "mean_value": 8.46,
+      "median_value": 4.0,
+      "bust_rate": 0.4773,
+      "starter_rate": 0.1187,
+      "star_rate": 0.048,
+      "elite_rate": 0.0177
+    },
+    "7": {
+      "mean_value": 6.37,
+      "median_value": 2.0,
+      "bust_rate": 0.4737,
+      "starter_rate": 0.0742,
+      "star_rate": 0.0239,
+      "elite_rate": 0.0048
+    }
+  },
+  "by_position": {
+    "DB": {
+      "mean_value": 14.94,
+      "bust_rate": 0.334,
+      "star_rate": 0.1113
+    },
+    "DL": {
+      "mean_value": 21.27,
+      "bust_rate": 0.2612,
+      "star_rate": 0.192
+    },
+    "EDGE": {
+      "mean_value": 20.47,
+      "bust_rate": 0.2174,
+      "star_rate": 0.2464
+    },
+    "LB": {
+      "mean_value": 19.75,
+      "bust_rate": 0.2934,
+      "star_rate": 0.166
+    },
+    "OL": {
+      "mean_value": 24.01,
+      "bust_rate": 0.2094,
+      "star_rate": 0.2217
+    },
+    "QB": {
+      "mean_value": 25.93,
+      "bust_rate": 0.3333,
+      "star_rate": 0.265
+    },
+    "RB": {
+      "mean_value": 15.2,
+      "bust_rate": 0.3262,
+      "star_rate": 0.1502
+    },
+    "TE": {
+      "mean_value": 11.32,
+      "bust_rate": 0.3931,
+      "star_rate": 0.131
+    },
+    "WR": {
+      "mean_value": 16.54,
+      "bust_rate": 0.3694,
+      "star_rate": 0.172
+    }
+  },
+  "success_definitions": {
+    "bust": "Career AV < 5",
+    "starter": "Career AV >= 20",
+    "star": "Pro Bowl or Career AV >= 40",
+    "elite": "3+ Pro Bowls or All-Pro"
+  },
+  "factor_mapping": {
+    "pick_number": {
+      "huddle_factor": "draft.pick",
+      "available": true
+    },
+    "round": {
+      "huddle_factor": "draft.round",
+      "available": true
+    },
+    "position": {
+      "huddle_factor": "player.position",
+      "available": true
+    },
+    "career_value": {
+      "huddle_factor": "player.career_av",
+      "available": false,
+      "note": "Simulate over career"
+    }
+  },
+  "implementation_notes": [
+    "Use pick value curve to generate prospect quality",
+    "Higher picks should have higher attribute means AND lower variance",
+    "Bust probability increases with later picks",
+    "Position-specific success rates can modify expectations"
+  ]
+}

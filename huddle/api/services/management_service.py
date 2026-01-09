@@ -35,6 +35,7 @@ from huddle.api.schemas.management import (
     EventStatusSchema,
     ClipboardTabSchema,
     TickerCategorySchema,
+    DisplayModeSchema,
 )
 
 
@@ -58,9 +59,13 @@ def _event_to_response(event: ManagementEvent) -> ManagementEventResponse:
         title=event.title,
         description=event.description,
         icon=event.icon,
+        display_mode=DisplayModeSchema(event.display_mode.name),
         created_at=event.created_at,
         scheduled_for=event.scheduled_for,
         deadline=event.deadline,
+        scheduled_week=event.scheduled_week,
+        scheduled_day=event.scheduled_day,
+        arc_id=event.arc_id,
         status=EventStatusSchema(event.status.name),
         auto_pause=event.auto_pause,
         requires_attention=event.requires_attention,
@@ -91,6 +96,21 @@ class ManagementService:
         # Callbacks for WebSocket updates
         self._update_callbacks: list[Callable] = []
 
+        # Drawer storage: list of drawer items (pointers to entities)
+        self._drawer_items: list[dict] = []
+
+        # Week journal: accumulated effects for the current week
+        self._journal_entries: list[dict] = []
+        self._journal_week: int = state.calendar.current_week
+
+        # Weekly development gains: per-player attribute improvements this week
+        self._weekly_gains: list[dict] = []
+        self._weekly_gains_week: int = state.calendar.current_week
+
+        # Draft board: user's personal prospect rankings
+        from huddle.management.draft_board import DraftBoard
+        self._draft_board = DraftBoard()
+
         # Event generator
         self._generator = EventGenerator(
             calendar=state.calendar,
@@ -99,11 +119,23 @@ class ManagementService:
             player_team_id=state.player_team_id,
         )
 
+        # Generate initial day's events (practice, etc.)
+        initial_week = state.calendar.current_week
+        initial_day = state.calendar.current_date.weekday()
+        initial_events = self._generator.generate_random_day_events(
+            initial_week, initial_day, state.calendar.phase
+        )
+        for event in initial_events:
+            state.events.add(event)
+
         # Build schedule from core league
         from huddle.management.generators import ScheduledGame as MgmtScheduledGame
         from datetime import datetime, timedelta
         mgmt_schedule = []
-        player_team_abbr = "PHI"  # TODO: get from state
+
+        # Get player team abbreviation from state
+        player_team = league.get_team_by_id(state.player_team_id) if state.player_team_id else None
+        player_team_abbr = player_team.abbreviation if player_team else "PHI"
 
         # NFL season typically starts first Sunday in September
         season_start = datetime(state.season_year, 9, 1)
@@ -298,13 +330,20 @@ class ManagementService:
         """Dismiss an event."""
         return self.state.dismiss_event(event_id)
 
+    @property
+    def team(self):
+        """Get the player's team from the league."""
+        if self.state.player_team_id:
+            return self.league.get_team_by_id(self.state.player_team_id)
+        return None
+
     def run_practice(
         self,
         event_id: UUID,
         playbook: int = 34,
         development: int = 33,
         game_prep: int = 33,
-    ) -> bool:
+    ) -> dict:
         """
         Run a practice session with the given allocation.
 
@@ -315,9 +354,54 @@ class ManagementService:
             game_prep: Percentage of time on game preparation (0-100)
 
         Returns:
-            True if practice was run successfully
+            Dict with success status and practice results
         """
-        return self.state.run_practice(event_id, playbook, development, game_prep)
+        # Get player's team for practice effects
+        team = self.team
+
+        # Run practice with team to apply actual effects
+        result = self.state.run_practice(event_id, playbook, development, game_prep, team=team)
+
+        if result.get("success"):
+            # Determine the focus area for the journal entry
+            focus_areas = []
+            if playbook >= 40:
+                focus_areas.append("Playbook")
+            if development >= 40:
+                focus_areas.append("Development")
+            if game_prep >= 40:
+                focus_areas.append("Game Prep")
+
+            focus = " & ".join(focus_areas) if focus_areas else "Balanced"
+
+            # Build effect string from results
+            playbook_stats = result.get("playbook_stats", {})
+            dev_stats = result.get("development_stats", {})
+
+            effects = []
+            tier_advancements = playbook_stats.get("tier_advancements", 0)
+            if tier_advancements > 0:
+                effects.append(f"{tier_advancements} mastery advancement{'s' if tier_advancements > 1 else ''}")
+
+            players_developed = dev_stats.get("players_developed", 0)
+            if players_developed > 0:
+                effects.append(f"{players_developed} player{'s' if players_developed > 1 else ''} developed")
+
+            effect_str = ", ".join(effects) if effects else "+XP to focus areas"
+
+            self.add_journal_entry(
+                category="practice",
+                title=f"{focus} Focus",
+                effect=effect_str,
+                detail=self.state.calendar.day_name[:3],
+            )
+
+            # Track per-player development gains for weekly summary
+            per_player_gains = dev_stats.get("per_player_gains", [])
+            for player_gain in per_player_gains:
+                self._add_weekly_gain(player_gain)
+
+        return result
 
     def sim_game(self, event_id: UUID) -> bool:
         """
@@ -329,7 +413,18 @@ class ManagementService:
         Returns:
             True if game was simulated successfully
         """
-        return self.state.sim_game(event_id, self.league)
+        result = self.state.sim_game(event_id, self.league)
+
+        if result:
+            # TODO: Get actual game result when available
+            self.add_journal_entry(
+                category="transaction",  # Using transaction for now, could add "game" category
+                title="Game Played",
+                effect="Result recorded",
+                detail=self.state.calendar.day_name[:3],
+            )
+
+        return result
 
     def go_back(self) -> bool:
         """Go back in panel navigation."""
@@ -356,8 +451,10 @@ class ManagementService:
     def _get_events_response(self) -> EventQueueResponse:
         """Get event queue response."""
         pending = self.state.get_pending_events()
+        upcoming = self.state.get_upcoming_events(days=7)
         return EventQueueResponse(
             pending=[_event_to_response(e) for e in pending],
+            upcoming=[_event_to_response(e) for e in upcoming],
             urgent_count=len(self.state.get_urgent_events()),
             total_count=self.state.events.count,
         )
@@ -407,12 +504,381 @@ class ManagementService:
         """Get complete league state response."""
         return LeagueStateResponse(
             id=self.state.id,
+            league_id=self.league.id,
             player_team_id=self.state.player_team_id,
             calendar=self._get_calendar_response(),
             events=self._get_events_response(),
             clipboard=self._get_clipboard_response(),
             ticker=self._get_ticker_response(),
         )
+
+    # === Drawer Methods ===
+
+    def get_drawer_items(self) -> list[dict]:
+        """Get all drawer items with resolved display data."""
+        resolved = []
+        for item in self._drawer_items:
+            display = self._resolve_drawer_item(item)
+            if display:
+                resolved.append(display)
+        return resolved
+
+    def _resolve_drawer_item(self, item: dict) -> Optional[dict]:
+        """Resolve a drawer item's display fields from its reference."""
+        item_type = item.get("type")
+        ref_id = item.get("ref_id")
+
+        title = "Unknown"
+        subtitle = None
+
+        if item_type == "player":
+            # Find player in team rosters
+            player = self._find_player(ref_id)
+            if player:
+                title = player.full_name
+                subtitle = f"{player.position.value if player.position else 'UNK'} • {player.overall or 0} OVR"
+            else:
+                return None  # Player no longer exists
+
+        elif item_type == "prospect":
+            # Find prospect in draft class
+            prospect = self._find_prospect(ref_id)
+            if prospect:
+                title = prospect.full_name
+                subtitle = f"{prospect.position.value if prospect.position else 'UNK'} • {prospect.college or 'Unknown'}"
+            else:
+                return None  # Prospect no longer exists
+
+        elif item_type == "news":
+            # News items store their content in the item itself since they're ephemeral
+            title = item.get("title") or "News"
+            subtitle = item.get("subtitle")
+
+        elif item_type == "game":
+            # Find game in schedule
+            title = item.get("title") or "Game"
+            subtitle = item.get("subtitle")
+
+        return {
+            "id": item["id"],
+            "type": item_type,
+            "ref_id": ref_id,
+            "note": item.get("note"),
+            "archived_at": item.get("archived_at"),
+            "title": title or "Unknown",  # Ensure never None
+            "subtitle": subtitle,
+        }
+
+    def _find_player(self, player_id: str) -> Optional[any]:
+        """Find a player by ID in team rosters."""
+        from uuid import UUID as PyUUID
+        try:
+            pid = PyUUID(player_id)
+        except (ValueError, TypeError):
+            return None
+
+        for team in self.league.teams.values():
+            if pid in team.roster.players:
+                return team.roster.players[pid]
+        return None
+
+    def _find_prospect(self, player_id: str) -> Optional[any]:
+        """Find a prospect by ID in draft class."""
+        from uuid import UUID as PyUUID
+        try:
+            pid = PyUUID(player_id)
+        except (ValueError, TypeError):
+            return None
+
+        for prospect in self.league.draft_class:
+            if prospect.id == pid:
+                return prospect
+        return None
+
+    def add_drawer_item(self, item_type: str, ref_id: str, note: Optional[str] = None,
+                        title: Optional[str] = None, subtitle: Optional[str] = None) -> dict:
+        """Add an item to the drawer."""
+        import uuid
+        item = {
+            "id": str(uuid.uuid4()),
+            "type": item_type,
+            "ref_id": ref_id,
+            "note": note,
+            "archived_at": datetime.now().isoformat(),
+            # Store title/subtitle for ephemeral items like news
+            "title": title,
+            "subtitle": subtitle,
+        }
+        self._drawer_items.append(item)
+        return self._resolve_drawer_item(item)
+
+    def delete_drawer_item(self, item_id: str) -> bool:
+        """Delete an item from the drawer."""
+        for i, item in enumerate(self._drawer_items):
+            if item["id"] == item_id:
+                self._drawer_items.pop(i)
+                return True
+        return False
+
+    def update_drawer_item_note(self, item_id: str, note: Optional[str]) -> Optional[dict]:
+        """Update the note on a drawer item."""
+        for item in self._drawer_items:
+            if item["id"] == item_id:
+                item["note"] = note
+                return self._resolve_drawer_item(item)
+        return None
+
+    # === Draft Board Methods ===
+
+    def get_draft_board(self) -> list[dict]:
+        """Get the user's draft board with resolved prospect info."""
+        resolved = []
+        for entry in self._draft_board.entries:
+            prospect = self._find_prospect(str(entry.prospect_id))
+            if prospect:
+                resolved.append({
+                    "prospect_id": str(entry.prospect_id),
+                    "rank": entry.rank,
+                    "tier": entry.tier,
+                    "notes": entry.notes,
+                    "name": prospect.full_name,
+                    "position": prospect.position.value if hasattr(prospect.position, 'value') else str(prospect.position),
+                    "college": prospect.college if hasattr(prospect, 'college') else None,
+                    "overall": prospect.overall,
+                })
+        return resolved
+
+    def add_to_draft_board(self, prospect_id: str, tier: int = 3) -> Optional[dict]:
+        """Add a prospect to the draft board."""
+        from uuid import UUID as PyUUID
+        try:
+            pid = PyUUID(prospect_id)
+        except (ValueError, TypeError):
+            return None
+
+        # Verify prospect exists
+        prospect = self._find_prospect(prospect_id)
+        if not prospect:
+            return None
+
+        # Add to board
+        try:
+            entry = self._draft_board.add_prospect(pid, tier=tier)
+        except ValueError:
+            # Already on board
+            return None
+
+        return {
+            "prospect_id": str(entry.prospect_id),
+            "rank": entry.rank,
+            "tier": entry.tier,
+            "notes": entry.notes,
+            "name": prospect.full_name,
+            "position": prospect.position.value if hasattr(prospect.position, 'value') else str(prospect.position),
+            "college": prospect.college if hasattr(prospect, 'college') else None,
+            "overall": prospect.overall,
+        }
+
+    def remove_from_draft_board(self, prospect_id: str) -> bool:
+        """Remove a prospect from the draft board."""
+        from uuid import UUID as PyUUID
+        try:
+            pid = PyUUID(prospect_id)
+        except (ValueError, TypeError):
+            return False
+        return self._draft_board.remove_prospect(pid)
+
+    def update_board_entry(self, prospect_id: str, tier: Optional[int] = None, notes: Optional[str] = None) -> Optional[dict]:
+        """Update a prospect's tier or notes on the board."""
+        from uuid import UUID as PyUUID
+        try:
+            pid = PyUUID(prospect_id)
+        except (ValueError, TypeError):
+            return None
+
+        entry = self._draft_board.get_entry(pid)
+        if not entry:
+            return None
+
+        if tier is not None:
+            self._draft_board.set_tier(pid, tier)
+        if notes is not None:
+            self._draft_board.set_notes(pid, notes)
+
+        # Return updated entry
+        prospect = self._find_prospect(prospect_id)
+        if not prospect:
+            return None
+
+        entry = self._draft_board.get_entry(pid)
+        return {
+            "prospect_id": str(entry.prospect_id),
+            "rank": entry.rank,
+            "tier": entry.tier,
+            "notes": entry.notes,
+            "name": prospect.full_name,
+            "position": prospect.position.value if hasattr(prospect.position, 'value') else str(prospect.position),
+            "college": prospect.college if hasattr(prospect, 'college') else None,
+            "overall": prospect.overall,
+        }
+
+    def reorder_board_entry(self, prospect_id: str, new_rank: int) -> bool:
+        """Reorder a prospect on the board."""
+        from uuid import UUID as PyUUID
+        try:
+            pid = PyUUID(prospect_id)
+        except (ValueError, TypeError):
+            return False
+        return self._draft_board.reorder(pid, new_rank)
+
+    def is_on_draft_board(self, prospect_id: str) -> bool:
+        """Check if a prospect is on the user's draft board."""
+        from uuid import UUID as PyUUID
+        try:
+            pid = PyUUID(prospect_id)
+        except (ValueError, TypeError):
+            return False
+        return self._draft_board.has_prospect(pid)
+
+    # === Week Journal Methods ===
+
+    def get_week_journal(self) -> dict:
+        """Get the journal for the current week."""
+        current_week = self.state.calendar.current_week
+
+        # Reset journal if week changed
+        if current_week != self._journal_week:
+            self._journal_entries = []
+            self._journal_week = current_week
+
+        return {
+            "week": current_week,
+            "entries": self._journal_entries,
+        }
+
+    def add_journal_entry(
+        self,
+        category: str,
+        title: str,
+        effect: str,
+        detail: Optional[str] = None,
+        player: Optional[dict] = None,
+    ) -> dict:
+        """
+        Add an entry to the week journal.
+
+        Called by other systems when events occur:
+        - Practice completes → category: "practice"
+        - Player conversation → category: "conversation"
+        - Scout report → category: "intel"
+        - Injury update → category: "injury"
+        - Transaction → category: "transaction"
+
+        Args:
+            category: One of practice, conversation, intel, injury, transaction
+            title: Short title for the entry
+            effect: Description of the effect/result
+            detail: Optional detail (usually day abbreviation)
+            player: Optional player info dict with name, position, number
+        """
+        import uuid
+
+        current_week = self.state.calendar.current_week
+
+        # Reset journal if week changed
+        if current_week != self._journal_week:
+            self._journal_entries = []
+            self._journal_week = current_week
+
+        # Calculate day of week (0=Mon, 6=Sun)
+        day = self.state.calendar.current_date.weekday()
+
+        entry = {
+            "id": str(uuid.uuid4()),
+            "day": day,
+            "category": category,
+            "title": title,
+            "effect": effect,
+            "detail": detail,
+        }
+
+        if player:
+            entry["player"] = player
+
+        self._journal_entries.append(entry)
+        return entry
+
+    def clear_week_journal(self) -> None:
+        """Clear the journal (called on week reset)."""
+        self._journal_entries = []
+        self._journal_week = self.state.calendar.current_week
+
+    # === Weekly Development Methods ===
+
+    def _add_weekly_gain(self, player_gain: dict) -> None:
+        """
+        Add a player's development gain to the weekly tracker.
+
+        Accumulates gains for the same player across multiple practice sessions.
+
+        Args:
+            player_gain: Dict with player_id, name, position, gains
+        """
+        current_week = self.state.calendar.current_week
+
+        # Reset if week changed
+        if current_week != self._weekly_gains_week:
+            self._weekly_gains = []
+            self._weekly_gains_week = current_week
+
+        player_id = player_gain.get("player_id")
+
+        # Check if player already has gains this week
+        existing = None
+        for entry in self._weekly_gains:
+            if entry["player_id"] == player_id:
+                existing = entry
+                break
+
+        if existing:
+            # Accumulate gains for this player
+            for attr, gain in player_gain.get("gains", {}).items():
+                if attr in existing["gains"]:
+                    existing["gains"][attr] += gain
+                else:
+                    existing["gains"][attr] = gain
+        else:
+            # Add new player entry
+            self._weekly_gains.append({
+                "player_id": player_id,
+                "name": player_gain.get("name", "Unknown"),
+                "position": player_gain.get("position", "UNK"),
+                "gains": dict(player_gain.get("gains", {})),
+            })
+
+    def get_weekly_development(self) -> dict:
+        """
+        Get accumulated development gains for the current week.
+
+        Returns:
+            Dict with week number and list of players with gains
+        """
+        current_week = self.state.calendar.current_week
+
+        # Reset if week changed
+        if current_week != self._weekly_gains_week:
+            self._weekly_gains = []
+            self._weekly_gains_week = current_week
+
+        return {
+            "week": current_week,
+            "players": self._weekly_gains,
+        }
+
+    def clear_weekly_development(self) -> None:
+        """Clear the weekly development tracker (called on week reset)."""
+        self._weekly_gains = []
+        self._weekly_gains_week = self.state.calendar.current_week
 
 
 @dataclass
@@ -423,6 +889,11 @@ class ManagementSession:
     service: ManagementService
     websocket: Optional[WebSocket] = None
     created_at: datetime = field(default_factory=datetime.now)
+
+    @property
+    def team(self):
+        """Get the player's team from the service."""
+        return self.service.team
 
     async def start(self) -> None:
         """Start the session."""

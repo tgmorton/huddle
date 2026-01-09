@@ -1,29 +1,19 @@
 // DraftBoardContent.tsx - User's draft board (empty by default, add prospects from Prospects tab)
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GripVertical, Trash2, Plus, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { GripVertical, Trash2, Plus, ChevronDown, ChevronRight, Loader2, Maximize2 } from 'lucide-react';
 import { managementApi } from '../../../api/managementClient';
 import type { BoardEntry } from '../../../api/managementClient';
 import { useManagementStore, selectFranchiseId } from '../../../stores/managementStore';
 
 // === Types ===
 
-interface PositionNeed {
-  position: string;
-  priority: 'high' | 'medium' | 'low';
-}
-
 type BoardView = 'ranked' | 'tiered';
 
-// === Demo Data ===
+// === Constants ===
 
-const DEMO_POSITION_NEEDS: PositionNeed[] = [
-  { position: 'CB', priority: 'high' },
-  { position: 'WR', priority: 'high' },
-  { position: 'OT', priority: 'medium' },
-  { position: 'EDGE', priority: 'medium' },
-  { position: 'RB', priority: 'low' },
-];
+// Position filter chips
+const POSITION_FILTERS = ['All', 'QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'DB'] as const;
 
 const TIER_LABELS: Record<number, string> = {
   1: 'Elite',
@@ -50,22 +40,27 @@ const getOvrColor = (ovr: number): string => {
   return 'var(--text-muted)';
 };
 
-const getPriorityColor = (priority: 'high' | 'medium' | 'low'): string => {
-  switch (priority) {
-    case 'high': return 'var(--danger)';
-    case 'medium': return 'var(--warning)';
-    case 'low': return 'var(--text-muted)';
-  }
+// Position group mapping for filters
+const POSITION_GROUPS: Record<string, string[]> = {
+  'OL': ['LT', 'LG', 'C', 'RG', 'RT', 'OT', 'OG'],
+  'DL': ['DE', 'DT', 'NT', 'EDGE'],
+  'LB': ['MLB', 'ILB', 'OLB', 'LB'],
+  'DB': ['CB', 'FS', 'SS', 'S'],
 };
 
 // === Main Component ===
 
-export const DraftBoardContent: React.FC = () => {
+interface DraftBoardContentProps {
+  onPopoutProspect?: (prospect: { id: string; name: string; position: string; overall: number }) => void;
+}
+
+export const DraftBoardContent: React.FC<DraftBoardContentProps> = ({ onPopoutProspect }) => {
   const franchiseId = useManagementStore(selectFranchiseId);
 
   const [board, setBoard] = useState<BoardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<BoardView>('ranked');
+  const [positionFilter, setPositionFilter] = useState<string>('All');
   const [expandedTiers, setExpandedTiers] = useState<Set<number>>(new Set([1, 2, 3]));
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const draggedIdRef = useRef<string | null>(null);
@@ -198,10 +193,21 @@ export const DraftBoardContent: React.FC = () => {
     setDropTargetId(null);
   };
 
+  // Filter board by position
+  const filteredBoard = positionFilter === 'All'
+    ? board
+    : board.filter(entry => {
+        const groupPositions = POSITION_GROUPS[positionFilter];
+        if (groupPositions) {
+          return groupPositions.includes(entry.position);
+        }
+        return entry.position === positionFilter;
+      });
+
   // Group by tier for tiered view
   const tierGroups = [1, 2, 3, 4, 5].map(tier => ({
     tier,
-    prospects: board.filter(p => p.tier === tier),
+    prospects: filteredBoard.filter(p => p.tier === tier),
   }));
 
   // Render a single row
@@ -221,22 +227,26 @@ export const DraftBoardContent: React.FC = () => {
       <td className="board-row__name">{entry.name}</td>
       <td className="board-row__college">{entry.college || '-'}</td>
       <td className="board-row__ovr" style={{ color: getOvrColor(entry.overall) }}>{entry.overall}</td>
-      <td className="board-row__tier">
-        <select
-          value={entry.tier}
-          onChange={(e) => handleTierChange(entry.prospect_id, Number(e.target.value))}
-          className="board-row__tier-select"
-          style={{ color: TIER_COLORS[entry.tier] }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {[1, 2, 3, 4, 5].map(t => (
-            <option key={t} value={t}>{TIER_LABELS[t]}</option>
-          ))}
-        </select>
-      </td>
       <td className="board-row__actions">
+        {onPopoutProspect && (
+          <button
+            className="board-row__action-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPopoutProspect({
+                id: entry.prospect_id,
+                name: entry.name,
+                position: entry.position,
+                overall: entry.overall,
+              });
+            }}
+            title="Open in workspace"
+          >
+            <Maximize2 size={14} />
+          </button>
+        )}
         <button
-          className="board-row__remove"
+          className="board-row__action-btn board-row__action-btn--danger"
           onClick={() => handleRemove(entry.prospect_id)}
           title="Remove from board"
         >
@@ -260,35 +270,41 @@ export const DraftBoardContent: React.FC = () => {
   return (
     <div className="board-content">
       {/* Header */}
-      <div className="board-toolbar">
-        <div className="board-toolbar__left">
-          <span className="board-toolbar__count">{board.length} prospects</span>
-          <div className="board-toolbar__needs">
-            {DEMO_POSITION_NEEDS.map(need => (
-              <span
-                key={need.position}
-                className="board-toolbar__need"
-                style={{ borderColor: getPriorityColor(need.priority) }}
-              >
-                {need.position}
-              </span>
-            ))}
+      <div className="board-header">
+        <div className="board-header__top">
+          <span className="board-header__count">
+            <strong>{filteredBoard.length}</strong>
+            {positionFilter !== 'All' && ` of ${board.length}`}
+            {' '}prospect{board.length !== 1 ? 's' : ''}
+          </span>
+          <div className="board-header__views">
+            <button
+              className={`board-header__view-btn ${view === 'ranked' ? 'board-header__view-btn--active' : ''}`}
+              onClick={() => setView('ranked')}
+            >
+              Ranked
+            </button>
+            <button
+              className={`board-header__view-btn ${view === 'tiered' ? 'board-header__view-btn--active' : ''}`}
+              onClick={() => setView('tiered')}
+            >
+              Tiered
+            </button>
           </div>
         </div>
-        <div className="board-toolbar__views">
-          <button
-            className={`board-toolbar__btn ${view === 'ranked' ? 'board-toolbar__btn--active' : ''}`}
-            onClick={() => setView('ranked')}
-          >
-            Ranked
-          </button>
-          <button
-            className={`board-toolbar__btn ${view === 'tiered' ? 'board-toolbar__btn--active' : ''}`}
-            onClick={() => setView('tiered')}
-          >
-            Tiered
-          </button>
-        </div>
+        {board.length > 0 && (
+          <div className="board-header__filters">
+            {POSITION_FILTERS.map(pos => (
+              <button
+                key={pos}
+                className={`board-header__filter ${positionFilter === pos ? 'board-header__filter--active' : ''}`}
+                onClick={() => setPositionFilter(pos)}
+              >
+                {pos}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -297,6 +313,10 @@ export const DraftBoardContent: React.FC = () => {
           <Plus size={32} />
           <p>Your draft board is empty</p>
           <span>Add prospects from the Prospects tab</span>
+        </div>
+      ) : filteredBoard.length === 0 ? (
+        <div className="board-empty board-empty--filtered">
+          <p>No {positionFilter} prospects on your board</p>
         </div>
       ) : view === 'ranked' ? (
         <table className="board-table">
@@ -308,12 +328,11 @@ export const DraftBoardContent: React.FC = () => {
               <th>Name</th>
               <th>School</th>
               <th>OVR</th>
-              <th>Tier</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {board.map((entry, idx) => renderRow(entry, idx + 1))}
+            {filteredBoard.map((entry, idx) => renderRow(entry, idx + 1))}
           </tbody>
         </table>
       ) : (

@@ -1,0 +1,430 @@
+{
+  "qb": {
+    "tier_definitions": {
+      "Elite": {
+        "epa_range": [
+          0.102,
+          0.327
+        ],
+        "count": 69,
+        "example_players": [
+          "T.Brady",
+          "P.Mahomes",
+          "M.Stafford"
+        ]
+      },
+      "Above Avg": {
+        "epa_range": [
+          0.007,
+          0.1
+        ],
+        "count": 68,
+        "example_players": [
+          "T.Brady",
+          "J.Herbert",
+          "P.Mahomes"
+        ]
+      },
+      "Below Avg": {
+        "epa_range": [
+          -0.097,
+          0.006
+        ],
+        "count": 69,
+        "example_players": [
+          "B.Roethlisberger",
+          "C.Stroud",
+          "C.Williams"
+        ]
+      },
+      "Bad": {
+        "epa_range": [
+          -0.565,
+          -0.098
+        ],
+        "count": 69,
+        "example_players": [
+          "S.Howell",
+          "T.Lawrence",
+          "B.Young"
+        ]
+      }
+    },
+    "completion_by_tier": {
+      "Elite": {
+        "completion_rate": 0.6354,
+        "sample": 37984
+      },
+      "Above Avg": {
+        "completion_rate": 0.6159,
+        "sample": 34033
+      },
+      "Below Avg": {
+        "completion_rate": 0.5862,
+        "sample": 25951
+      },
+      "Bad": {
+        "completion_rate": 0.5551,
+        "sample": 18821
+      }
+    },
+    "int_rate_by_tier": {
+      "Elite": 0.0174,
+      "Above Avg": 0.0193,
+      "Below Avg": 0.0217,
+      "Bad": 0.0269
+    },
+    "sack_rate_by_tier": {
+      "Elite": 0.0541,
+      "Above Avg": 0.0607,
+      "Below Avg": 0.0726,
+      "Bad": 0.0832
+    },
+    "pressure_performance": {
+      "Elite": {
+        "clean_completion": 0.7304,
+        "pressure_completion": 0.4815,
+        "pressure_penalty": 0.2489
+      },
+      "Above Avg": {
+        "clean_completion": 0.7165,
+        "pressure_completion": 0.468,
+        "pressure_penalty": 0.2485
+      },
+      "Below Avg": {
+        "clean_completion": 0.6894,
+        "pressure_completion": 0.4423,
+        "pressure_penalty": 0.2472
+      },
+      "Bad": {
+        "clean_completion": 0.6689,
+        "pressure_completion": 0.3985,
+        "pressure_penalty": 0.2704
+      }
+    },
+    "deep_ball_by_tier": {
+      "Elite": {
+        "completion_rate": 0.4056,
+        "int_rate": 0.0526,
+        "sample": 4142
+      },
+      "Above Avg": {
+        "completion_rate": 0.3726,
+        "int_rate": 0.0544,
+        "sample": 3747
+      },
+      "Below Avg": {
+        "completion_rate": 0.3457,
+        "int_rate": 0.0642,
+        "sample": 2771
+      },
+      "Bad": {
+        "completion_rate": 0.3009,
+        "int_rate": 0.0788,
+        "sample": 2017
+      }
+    }
+  },
+  "rb": {
+    "tier_definitions": {
+      "Elite": {
+        "ypc_range": [
+          4.92,
+          8.59
+        ],
+        "count": 126,
+        "example_players": [
+          "S.Barkley",
+          "D.Henry",
+          "D.Henry"
+        ]
+      },
+      "Above Avg": {
+        "ypc_range": [
+          4.36,
+          4.92
+        ],
+        "count": 125,
+        "example_players": [
+          "D.Henry",
+          "J.Jacobs",
+          "J.Jacobs"
+        ]
+      },
+      "Below Avg": {
+        "ypc_range": [
+          3.88,
+          4.36
+        ],
+        "count": 126,
+        "example_players": [
+          "J.Mixon",
+          "K.Williams",
+          "J.Mixon"
+        ]
+      },
+      "Bad": {
+        "ypc_range": [
+          1.82,
+          3.87
+        ],
+        "count": 126,
+        "example_players": [
+          "N.Harris",
+          "R.White",
+          "N.Harris"
+        ]
+      }
+    },
+    "ypc_by_tier": {
+      "Elite": {
+        "mean": 5.65,
+        "median": 4.0,
+        "sample": 16785
+      },
+      "Above Avg": {
+        "mean": 4.61,
+        "median": 3.0,
+        "sample": 20185
+      },
+      "Below Avg": {
+        "mean": 4.14,
+        "median": 3.0,
+        "sample": 19537
+      },
+      "Bad": {
+        "mean": 3.54,
+        "median": 3.0,
+        "sample": 15346
+      }
+    },
+    "stuff_rate_by_tier": {
+      "Elite": 0.1443,
+      "Above Avg": 0.1668,
+      "Below Avg": 0.1756,
+      "Bad": 0.1939
+    },
+    "explosive_rate_by_tier": {
+      "Elite": 0.1666,
+      "Above Avg": 0.1153,
+      "Below Avg": 0.0987,
+      "Bad": 0.071
+    },
+    "yards_distribution": {
+      "Elite": {
+        "p10": 0.0,
+        "p25": 2.0,
+        "p50": 4.0,
+        "p75": 7.0,
+        "p90": 13.0
+      },
+      "Above Avg": {
+        "p10": 0.0,
+        "p25": 1.0,
+        "p50": 3.0,
+        "p75": 6.0,
+        "p90": 10.0
+      },
+      "Below Avg": {
+        "p10": 0.0,
+        "p25": 1.0,
+        "p50": 3.0,
+        "p75": 6.0,
+        "p90": 9.0
+      },
+      "Bad": {
+        "p10": 0.0,
+        "p25": 1.0,
+        "p50": 3.0,
+        "p75": 5.0,
+        "p90": 8.0
+      }
+    }
+  },
+  "wr": {
+    "tier_definitions": {
+      "Elite": {
+        "yards_per_target_range": [
+          8.44,
+          14.35
+        ],
+        "count": 311,
+        "example_players": [
+          "C.Kupp",
+          "C.Lamb",
+          "A.St. Brown"
+        ]
+      },
+      "Above Avg": {
+        "yards_per_target_range": [
+          7.32,
+          8.44
+        ],
+        "count": 311,
+        "example_players": [
+          "T.Hill",
+          "D.Adams",
+          "S.Diggs"
+        ]
+      },
+      "Below Avg": {
+        "yards_per_target_range": [
+          6.14,
+          7.32
+        ],
+        "count": 311,
+        "example_players": [
+          "D.Johnson",
+          "S.Diggs",
+          "D.Adams"
+        ]
+      },
+      "Bad": {
+        "yards_per_target_range": [
+          2.56,
+          6.12
+        ],
+        "count": 311,
+        "example_players": [
+          "D.Johnson",
+          "W.Robinson",
+          "A.Ekeler"
+        ]
+      }
+    },
+    "catch_rate_by_tier": {
+      "Elite": {
+        "catch_rate": 0.6687,
+        "sample": 27469
+      },
+      "Above Avg": {
+        "catch_rate": 0.6579,
+        "sample": 25041
+      },
+      "Below Avg": {
+        "catch_rate": 0.6714,
+        "sample": 22799
+      },
+      "Bad": {
+        "catch_rate": 0.6862,
+        "sample": 16819
+      }
+    },
+    "yac_by_tier": {
+      "Elite": 5.05,
+      "Above Avg": 4.57,
+      "Below Avg": 5.04,
+      "Bad": 5.86
+    },
+    "separation_by_tier": {},
+    "contested_catch_by_tier": {}
+  },
+  "pass_rush": {
+    "by_rusher_count": {
+      "Elite": {
+        "pressure_rate": 0.3325,
+        "sack_rate": 0.0728,
+        "comp_allowed": 0.5857
+      },
+      "Above Avg": {
+        "pressure_rate": 0.301,
+        "sack_rate": 0.0666,
+        "comp_allowed": 0.6038
+      },
+      "Below Avg": {
+        "pressure_rate": 0.2785,
+        "sack_rate": 0.0639,
+        "comp_allowed": 0.6062
+      },
+      "Bad": {
+        "pressure_rate": 0.2492,
+        "sack_rate": 0.0594,
+        "comp_allowed": 0.6161
+      }
+    },
+    "pressure_to_sack": {}
+  },
+  "coverage": {
+    "comp_allowed_by_tier": {
+      "Elite": {
+        "completion_allowed": 0.5749,
+        "int_rate": 0.0268
+      },
+      "Above Avg": {
+        "completion_allowed": 0.5965,
+        "int_rate": 0.0207
+      },
+      "Below Avg": {
+        "completion_allowed": 0.6116,
+        "int_rate": 0.0195
+      },
+      "Bad": {
+        "completion_allowed": 0.6289,
+        "int_rate": 0.0175
+      }
+    },
+    "deep_allowed_by_tier": {
+      "Elite": {
+        "completion_rate": 0.3194,
+        "sample": 3372
+      },
+      "Above Avg": {
+        "completion_rate": 0.3678,
+        "sample": 3369
+      },
+      "Below Avg": {
+        "completion_rate": 0.3632,
+        "sample": 3243
+      },
+      "Bad": {
+        "completion_rate": 0.4026,
+        "sample": 3256
+      }
+    }
+  },
+  "impact": {
+    "qb_accuracy_by_tier": {
+      "elite": 0.6354,
+      "average": 0.63,
+      "bad": 0.5551,
+      "spread": 0.0803
+    },
+    "rb_yards_by_tier": {
+      "elite": 5.65,
+      "average": 4.3,
+      "bad": 3.54,
+      "spread": 2.11
+    },
+    "wr_catch_by_tier": {
+      "elite": 0.6687,
+      "average": 0.65,
+      "bad": 0.6862,
+      "spread": -0.0175
+    },
+    "dl_pressure_by_tier": {
+      "elite": 0.3325,
+      "bad": 0.2492,
+      "spread": 0.0833
+    },
+    "db_coverage_by_tier": {
+      "elite": 0.5749,
+      "bad": 0.6289,
+      "spread": 0.054
+    },
+    "rating_formulas": {
+      "qb_accuracy": {
+        "formula": "base_comp + (rating - 40) / 55 * spread",
+        "base": 0.5551,
+        "spread": 0.0803,
+        "example_40": 0.5551,
+        "example_70": 0.5989,
+        "example_95": 0.6354
+      },
+      "rb_stuff_rate": {
+        "elite": 0.1443,
+        "bad": 0.1939,
+        "spread": 0.0496
+      }
+    }
+  }
+}

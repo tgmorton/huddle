@@ -182,6 +182,7 @@ class Player:
     # Debug/logging state
     _last_decision: str = ""
     _last_decision_reason: str = ""
+    _explicit_facing: bool = False  # Set by brain to prevent velocity-based override
 
     def __post_init__(self):
         if not self.name:

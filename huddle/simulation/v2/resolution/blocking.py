@@ -16,6 +16,8 @@ from typing import Optional, List, Tuple, TYPE_CHECKING
 
 from ..core.vec2 import Vec2
 from ..core.events import EventBus, EventType
+from ..core.entities import Position
+from ..core.variance import sigmoid_matchup_probability
 
 if TYPE_CHECKING:
     from ..core.entities import Player
@@ -92,6 +94,34 @@ PUSH_RATE_NEUTRAL = 0.0     # Stalemate - both hold position
 # Higher = faster visual feedback for attribute differences
 LEVERAGE_SHIFT_RATE = 0.12  # Needs to be high enough to break out of neutral zone
 
+# Run blocking gets faster leverage shifts - OL fires off the ball with purpose
+# and the battle is decided quicker than pass protection
+RUN_BLOCKING_LEVERAGE_MULTIPLIER = 1.5
+
+# =============================================================================
+# NFL Win Rate Calibration (based on real data)
+# =============================================================================
+# Pass blocking: OL wins 92-99% of reps. Elite DT PRWR is only 9-20%.
+# Run blocking: OL wins 70-86% of reps. Elite DT RSWR is 38-46%.
+#
+# Initial leverage determines who "wins" most reps.
+# Leverage of 0.5+ = OL wins, -0.5+ = DL wins
+# To get 90%+ OL win rate in pass pro, start leverage high
+# To get 75% OL win rate in run blocking, start leverage moderate
+
+# Pass protection - OL should win 90%+ of reps
+# Elite pass rushers only win 15-25% of the time
+PASS_BLOCK_CHARGE_BONUS = 0.55  # OL starts with big advantage in pass pro
+
+# Run blocking - OL should win 70-85% of reps
+# DTs are BETTER at run stopping (38-46%) than pass rushing (9-20%)
+RUN_BLOCKING_CHARGE_BONUS = 0.30  # More competitive in run game
+
+# Position-specific adjustments
+# DTs win fewer pass rush reps but more run stop reps than edge
+DT_PASS_RUSH_PENALTY = 0.08   # DTs are worse pass rushers (9-20% vs 15-26%)
+DT_RUN_STOP_BONUS = 0.10      # DTs are better run stoppers (38-46% vs 29-39%)
+
 # Momentum decay - leverage momentum decays each tick
 # 1.0 = no decay, 0.5 = halves each tick
 MOMENTUM_DECAY = 0.85
@@ -119,6 +149,57 @@ DRIVE_LEVERAGE_BONUS = 0.03
 
 # Random variance added each tick (small)
 VARIANCE_PER_TICK = 0.02
+
+# =============================================================================
+# Play-Level Blocking Quality System
+# =============================================================================
+# NFL blocking is correlated - sometimes the whole OL fires off well,
+# sometimes they all struggle. This creates the variance in run outcomes.
+#
+# On any given play:
+# - 15% chance OL executes GREAT → all get bonus → explosive run potential
+# - 20% chance OL executes POOR → all get penalty → stuff potential
+# - 65% chance AVERAGE → normal outcomes → 3-4 yard run
+
+PLAY_QUALITY_GREAT_CHANCE = 0.18  # 18% of plays OL dominates (fills 7-9 yard bucket)
+PLAY_QUALITY_POOR_CHANCE = 0.17   # 17% of plays DL wins up front
+# 65% average
+
+GREAT_BLOCKING_LEVERAGE_BONUS = 0.25   # OL gets big initial leverage boost
+POOR_BLOCKING_LEVERAGE_PENALTY = 0.30  # DL gets leverage advantage
+
+# Track current play quality (set at snap)
+_current_play_quality: str = "average"  # "great", "average", "poor"
+
+
+def roll_play_blocking_quality() -> str:
+    """Roll for this play's blocking quality. Call at snap.
+
+    Returns:
+        "great", "average", or "poor"
+    """
+    global _current_play_quality
+
+    roll = random.random()
+    if roll < PLAY_QUALITY_GREAT_CHANCE:
+        _current_play_quality = "great"
+    elif roll < PLAY_QUALITY_GREAT_CHANCE + PLAY_QUALITY_POOR_CHANCE:
+        _current_play_quality = "poor"
+    else:
+        _current_play_quality = "average"
+
+    return _current_play_quality
+
+
+def get_play_blocking_quality() -> str:
+    """Get current play's blocking quality."""
+    return _current_play_quality
+
+
+def reset_play_blocking_quality() -> None:
+    """Reset to average (for new play)."""
+    global _current_play_quality
+    _current_play_quality = "average"
 
 
 # =============================================================================
@@ -401,10 +482,36 @@ class BlockResolver:
         # Get or create engagement state
         key = self.get_engagement_key(ol.id, dl.id)
         if key not in self._engagements:
+            # Initial leverage based on block type
+            # Calibrated to NFL win rates:
+            # - Pass blocking: OL wins 90%+ (PBWR 92-99%)
+            # - Run blocking: OL wins 70-85% (RBWR 70-86%)
+            if block_type == BlockType.RUN_BLOCK:
+                initial_leverage = RUN_BLOCKING_CHARGE_BONUS
+                # DTs are BETTER at run stopping than edge rushers
+                # DT RSWR: 38-46% vs Edge RSWR: 29-39%
+                if dl.position in (Position.DT, Position.NT):
+                    initial_leverage -= DT_RUN_STOP_BONUS  # DT gets bonus (reduces OL advantage)
+
+                # Apply play-level blocking quality (creates run game variance)
+                # This is the key to explosive plays and stuffs
+                play_quality = get_play_blocking_quality()
+                if play_quality == "great":
+                    initial_leverage += GREAT_BLOCKING_LEVERAGE_BONUS  # OL dominates → big play potential
+                elif play_quality == "poor":
+                    initial_leverage -= POOR_BLOCKING_LEVERAGE_PENALTY  # DL wins → stuff potential
+            else:
+                initial_leverage = PASS_BLOCK_CHARGE_BONUS
+                # DTs are WORSE at pass rushing than edge rushers
+                # DT PRWR: 9-20% vs Edge PRWR: 15-26%
+                if dl.position in (Position.DT, Position.NT):
+                    initial_leverage += DT_PASS_RUSH_PENALTY  # DT gets penalty (increases OL advantage)
+
             self._engagements[key] = EngagementState(
                 ol_id=ol.id,
                 dl_id=dl.id,
                 block_type=block_type,
+                leverage=initial_leverage,
             )
 
         state = self._engagements[key]
@@ -418,6 +525,10 @@ class BlockResolver:
         leverage_shift = self._calculate_leverage_shift(
             ol, dl, ol_action, dl_action, block_type
         )
+
+        # Run blocking has faster leverage shifts - battles resolve quicker
+        if block_type == BlockType.RUN_BLOCK:
+            leverage_shift *= RUN_BLOCKING_LEVERAGE_MULTIPLIER
 
         # 2. Handle stagger state - staggered player gives up leverage faster
         if state.stagger_ticks > 0:
@@ -479,6 +590,35 @@ class BlockResolver:
         # Shed progress only advances when DL has leverage advantage
         # Use different rates for pass protection vs run blocking
         is_pass_pro = block_type == BlockType.PASS_PRO
+
+        # === PASS RUSH "QUICK BEAT" MECHANIC ===
+        # DL can occasionally execute a successful pass rush move
+        # that dramatically accelerates shed progress.
+        # This creates the variability needed for ~6.5% sack rate.
+        #
+        # Calibration for ~6.5% sack rate:
+        # - 4 DL rushing for ~50 ticks (2.5 seconds before typical throw)
+        # - Need ~8-10% of plays to have a DL get free early
+        # - ~65% of "free" DL convert to sack (some QB escapes, some don't reach)
+        # - Target: ~6% base chance per tick per DL for quick beat attempt
+        if is_pass_pro:
+            # Quick beat chance - based on DL pass rush skill vs OL block power
+            dl_pass_rush = getattr(dl.attributes, 'pass_rush', 75)
+            ol_block_power = getattr(ol.attributes, 'block_power', 75)
+
+            # Base 2% chance per tick, modified by skill differential
+            # Calibrated to balance sack rate (~6.5%) vs completion rate (~60%)
+            # Reduced base from 3% to 2% - sack rate was 12%, target 6.5%
+            # Too high = too many incomplete/sacks, too low = no pass rush
+            skill_diff = (dl_pass_rush - ol_block_power) / 100
+            quick_beat_chance = 0.02 + skill_diff * 0.02  # 1.0% to 4.0%
+            quick_beat_chance = max(0.01, min(0.04, quick_beat_chance))
+
+            if random.random() < quick_beat_chance:
+                # Successful pass rush move! Instant shed
+                state.shed_progress = 1.0  # Instant shed
+                # Shift leverage toward DL
+                state.leverage = -0.6
 
         if state.leverage < -0.5:
             shed_delta = PASS_PRO_SHED_RATE_DOMINANT if is_pass_pro else SHED_RATE_DOMINANT
@@ -587,12 +727,13 @@ class BlockResolver:
     ) -> float:
         """Calculate probability that OL wins this tick.
 
+        Uses sigmoid curve for attribute matchups to provide better
+        differentiation at rating extremes. Elite players are in a
+        class of their own - a 95 vs 70 is almost automatic.
+
         Returns:
             Float from 0.0 (DL always wins) to 1.0 (OL always wins)
         """
-        # Start with base rate
-        prob = BASE_OL_WIN_RATE
-
         # Get attribute weights based on block type
         if block_type == BlockType.PASS_PRO:
             ol_weights = PASS_BLOCK_WEIGHTS
@@ -605,14 +746,22 @@ class BlockResolver:
         ol_score = self._calculate_attribute_score(ol, ol_weights)
         dl_score = self._calculate_attribute_score(dl, dl_weights)
 
-        # Attribute difference modifier
-        # +10 attribute advantage = +10% win rate
-        attr_diff = (ol_score - dl_score) / 100
-        prob += attr_diff
+        # Use sigmoid curve for attribute matchup
+        # This provides better differentiation at extremes:
+        # - Elite OL (95) vs avg DL (75) = ~0.75 OL win rate
+        # - Avg OL (75) vs elite DL (95) = ~0.25 OL win rate
+        # - Even matchup (75 vs 75) = ~0.55 (slight OL advantage)
+        base_prob = sigmoid_matchup_probability(
+            int(ol_score), int(dl_score),
+            base_advantage=0.05,  # Slight OL advantage (pass sets, knowing count)
+            steepness=0.05,       # Gradual curve - blocking is sustained effort
+            min_prob=0.20,
+            max_prob=0.80,
+        )
 
-        # Action matchup modifier
+        # Action matchup modifier (still linear - represents technique choices)
         matchup_mod = self._get_action_matchup(dl_action, ol_action)
-        prob -= matchup_mod  # Subtract because positive = DL advantage
+        prob = base_prob - matchup_mod * 0.15  # Scale matchup modifier
 
         # Clamp to valid range
         return max(0.15, min(0.85, prob))
@@ -693,32 +842,50 @@ class BlockResolver:
         # For pass pro: slide direction walls off that side
         wash_dir = Vec2(0, 0)
         WASH_RATE = 0.8  # Yards per second of wash movement when OL winning
+        RUN_WASH_RATE = 1.5  # Stronger wash for run blocking - need to move DL
+        is_run_block = block_type == BlockType.RUN_BLOCK
+        effective_wash_rate = RUN_WASH_RATE if is_run_block else WASH_RATE
+
         if block_direction == "right":
             # Push DL right and back (positive y = toward defense backfield)
             wash_dir = Vec2(1, 1).normalized()
         elif block_direction == "left":
             # Push DL left and back
             wash_dir = Vec2(-1, 1).normalized()
-        # "straight" or empty = no lateral wash, just drive back
+        elif is_run_block:
+            # Run blocking with no lateral direction - just drive straight back
+            wash_dir = Vec2(0, 1)  # Straight back toward defense
+        # "straight" or empty for pass = no wash
 
         # Determine push rate and direction based on outcome
         # DL always applies pressure toward backfield, outcome determines if OL can counter it
         if outcome == BlockOutcome.OL_DOMINANT:
             # OL DOMINATES - drives DL in blocking direction
             # In run blocking, this creates the "wash" that opens lanes
-            push_rate = PUSH_RATE_DOMINANT * drive_bonus * 0.3
-            # Strong wash: OL drives DL at angle (playside + downfield)
-            wash_movement = wash_dir * WASH_RATE * dt * 1.2
-            dl_new = dl_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1 + wash_movement
-            ol_new = ol_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1 + wash_movement * 0.8
+            # DL gets NO forward progress when dominated
+            wash_movement = wash_dir * effective_wash_rate * dt * 1.5
+            if is_run_block:
+                # Run blocking: OL drives DL back, no DL pressure allowed
+                dl_new = dl_pos + wash_movement
+                ol_new = ol_pos + wash_movement * 0.7
+            else:
+                # Pass pro: DL still applies slight pressure even when dominated
+                push_rate = PUSH_RATE_DOMINANT * drive_bonus * 0.3
+                dl_new = dl_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1 + wash_movement
+                ol_new = ol_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1 + wash_movement * 0.8
 
         elif outcome == BlockOutcome.OL_WINNING:
             # OL winning - sustains block with moderate wash
-            drift_rate = DL_PRESSURE_RATE * 0.25
-            # Moderate wash: OL drives DL at angle
-            wash_movement = wash_dir * WASH_RATE * dt * 0.7
-            dl_new = dl_pos + target_dir * drift_rate * dt + wash_movement
-            ol_new = ol_pos + target_dir * drift_rate * dt * 0.8 + wash_movement * 0.8
+            wash_movement = wash_dir * effective_wash_rate * dt * 0.8
+            if is_run_block:
+                # Run blocking: OL drives DL back moderately
+                dl_new = dl_pos + wash_movement
+                ol_new = ol_pos + wash_movement * 0.6
+            else:
+                # Pass pro: slight drift toward backfield
+                drift_rate = DL_PRESSURE_RATE * 0.25
+                dl_new = dl_pos + target_dir * drift_rate * dt + wash_movement
+                ol_new = ol_pos + target_dir * drift_rate * dt * 0.8 + wash_movement * 0.8
 
         elif outcome == BlockOutcome.DL_DOMINANT:
             # DL pressure overwhelms OL, drives through
@@ -756,9 +923,16 @@ class BlockResolver:
                     ol_new = ol_pos + target_dir * abs(drift) * 0.3
                     dl_new = dl_pos + target_dir * abs(drift) * 0.5
             else:
-                # True stalemate - tiny oscillation to show tension
-                dl_new = dl_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1
-                ol_new = ol_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1
+                # True stalemate
+                if is_run_block:
+                    # Run blocking: true neutral = nobody moves
+                    # OL has charge advantage, so neutral means DL can't advance
+                    dl_new = dl_pos
+                    ol_new = ol_pos
+                else:
+                    # Pass pro: tiny oscillation to show tension
+                    dl_new = dl_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1
+                    ol_new = ol_pos + target_dir * DL_PRESSURE_RATE * dt * 0.1
 
         # Enforce minimum separation - prevent clipping through each other
         ol_new, dl_new = self._enforce_separation(ol_new, dl_new, MIN_SEPARATION)

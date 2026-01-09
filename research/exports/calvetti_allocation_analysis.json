@@ -1,0 +1,473 @@
+{
+  "offense": {
+    "regressions": {
+      "QB_rookie": {
+        "alpha0": 32.92658088660554,
+        "alpha1": 50.15064352277385,
+        "r_squared": 0.023781708870907026,
+        "n_obs": 623,
+        "position": "QB",
+        "contract_type": "rookie"
+      },
+      "QB_veteran": {
+        "alpha0": -76.34251202050848,
+        "alpha1": 98.38125457235435,
+        "r_squared": 0.023056974391100438,
+        "n_obs": 607,
+        "position": "QB",
+        "contract_type": "veteran"
+      },
+      "RB_rookie": {
+        "alpha0": -239.9631653277987,
+        "alpha1": 259.2178789984684,
+        "r_squared": 0.11682202020995991,
+        "n_obs": 623,
+        "position": "RB",
+        "contract_type": "rookie"
+      },
+      "RB_veteran": {
+        "alpha0": 18.120623861590712,
+        "alpha1": 83.05496211927476,
+        "r_squared": 0.02698220789944461,
+        "n_obs": 450,
+        "position": "RB",
+        "contract_type": "veteran"
+      },
+      "WR_rookie": {
+        "alpha0": -333.7659527880536,
+        "alpha1": 263.62197135183527,
+        "r_squared": 0.13688799462697565,
+        "n_obs": 651,
+        "position": "WR",
+        "contract_type": "rookie"
+      },
+      "WR_veteran": {
+        "alpha0": -302.4167257571461,
+        "alpha1": 184.93342769603353,
+        "r_squared": 0.07462651963103006,
+        "n_obs": 538,
+        "position": "WR",
+        "contract_type": "veteran"
+      },
+      "TE_rookie": {
+        "alpha0": -85.28132833249435,
+        "alpha1": 101.30467065812176,
+        "r_squared": 0.11005778452909387,
+        "n_obs": 578,
+        "position": "TE",
+        "contract_type": "rookie"
+      },
+      "TE_veteran": {
+        "alpha0": -53.19937475678544,
+        "alpha1": 69.95239395541626,
+        "r_squared": 0.05151100423078603,
+        "n_obs": 426,
+        "position": "TE",
+        "contract_type": "veteran"
+      },
+      "OL_rookie": {
+        "alpha0": -0.4706810818775673,
+        "alpha1": 0.2921095728861659,
+        "r_squared": 0.0048330159115935745,
+        "n_obs": 712,
+        "position": "OL",
+        "contract_type": "rookie"
+      },
+      "OL_veteran": {
+        "alpha0": -2.5096928829381264,
+        "alpha1": 0.9928223387601242,
+        "r_squared": 0.0034984436187219803,
+        "n_obs": 609,
+        "position": "OL",
+        "contract_type": "veteran"
+      }
+    },
+    "effective_salary_params": {
+      "QB": {
+        "position": "QB",
+        "multiplier": 3.0363916294642093,
+        "exponent": 0.5097581215117625,
+        "rookie_alpha0": 32.92658088660554,
+        "rookie_alpha1": 50.15064352277385,
+        "veteran_alpha0": -76.34251202050848,
+        "veteran_alpha1": 98.38125457235435
+      },
+      "RB": {
+        "position": "RB",
+        "multiplier": 0.04471771484866071,
+        "exponent": 3.121040241114156,
+        "rookie_alpha0": -239.9631653277987,
+        "rookie_alpha1": 259.2178789984684,
+        "veteran_alpha0": 18.120623861590712,
+        "veteran_alpha1": 83.05496211927476
+      },
+      "WR": {
+        "position": "WR",
+        "multiplier": 0.8440730113982771,
+        "exponent": 1.4254965942941284,
+        "rookie_alpha0": -333.7659527880536,
+        "rookie_alpha1": 263.62197135183527,
+        "veteran_alpha0": -302.4167257571461,
+        "veteran_alpha1": 184.93342769603353
+      },
+      "TE": {
+        "position": "TE",
+        "multiplier": 0.6321519241111087,
+        "exponent": 1.4481944781287641,
+        "rookie_alpha0": -85.28132833249435,
+        "rookie_alpha1": 101.30467065812176,
+        "veteran_alpha0": -53.19937475678544,
+        "veteran_alpha1": 69.95239395541626
+      },
+      "OL": {
+        "position": "OL",
+        "multiplier": 7.797108376209302,
+        "exponent": 0.29422139438458234,
+        "rookie_alpha0": -0.4706810818775673,
+        "rookie_alpha1": 0.2921095728861659,
+        "veteran_alpha0": -2.5096928829381264,
+        "veteran_alpha1": 0.9928223387601242
+      }
+    },
+    "models": {
+      "G0": {
+        "coefficients": {
+          "intercept": 18.76646738858752,
+          "QB": 0.0004707418125946656,
+          "RB": 0.0008298638049593367,
+          "WR": 0.0004302535418744674,
+          "TE": 0.0019205486965967432,
+          "OL": 0.02894932349324817
+        },
+        "r_squared": 0.13296243604223368,
+        "r_squared_adj": 0.10965497464551954,
+        "n_obs": 192,
+        "positions": [
+          "QB",
+          "RB",
+          "WR",
+          "TE",
+          "OL"
+        ],
+        "interactions": [],
+        "target": "ppg"
+      },
+      "G1": {
+        "coefficients": {
+          "intercept": 18.826135979513182,
+          "QB": -0.0024218364352035318,
+          "RB": 0.000855569691720957,
+          "WR": -0.0015779548644610777,
+          "TE": 0.0017577251845972198,
+          "OL": 0.041115698590060465,
+          "QB_WR_interaction": 0.005047567077387877,
+          "RB_OL_interaction": -0.00378743037879644
+        },
+        "r_squared": 0.14493445879345213,
+        "r_squared_adj": 0.11240479146494209,
+        "n_obs": 192,
+        "positions": [
+          "QB",
+          "RB",
+          "WR",
+          "TE",
+          "OL"
+        ],
+        "interactions": [
+          [
+            "QB",
+            "WR"
+          ],
+          [
+            "RB",
+            "OL"
+          ]
+        ],
+        "target": "ppg"
+      },
+      "G2": {
+        "coefficients": {
+          "intercept": 18.824261088439847,
+          "QB": -0.0022671804321581085,
+          "RB": 0.0008619061647095539,
+          "WR": -0.00158341572359798,
+          "TE": 0.0021139154311346497,
+          "OL": 0.04107908438995023,
+          "QB_WR_interaction": 0.005059989372242028,
+          "RB_OL_interaction": -0.0037646361929624395,
+          "QB_TE_interaction": -0.0005173974535274961
+        },
+        "r_squared": 0.14498306175066578,
+        "r_squared_adj": 0.10760527210042159,
+        "n_obs": 192,
+        "positions": [
+          "QB",
+          "RB",
+          "WR",
+          "TE",
+          "OL"
+        ],
+        "interactions": [
+          [
+            "QB",
+            "WR"
+          ],
+          [
+            "RB",
+            "OL"
+          ],
+          [
+            "QB",
+            "TE"
+          ]
+        ],
+        "target": "ppg"
+      }
+    },
+    "optimal_allocation": {
+      "QB": 10.4,
+      "RB": 10.4,
+      "WR": 10.4,
+      "TE": 10.4,
+      "OL": 10.4
+    }
+  },
+  "defense": {
+    "regressions": {
+      "CB_rookie": {
+        "alpha0": -163.73870579738593,
+        "alpha1": 130.2489873344812,
+        "r_squared": 0.14274205440203735,
+        "n_obs": 647,
+        "position": "CB",
+        "contract_type": "rookie"
+      },
+      "CB_veteran": {
+        "alpha0": -42.22980976458395,
+        "alpha1": 56.512020730840455,
+        "r_squared": 0.04317892667831824,
+        "n_obs": 516,
+        "position": "CB",
+        "contract_type": "veteran"
+      },
+      "S_rookie": {
+        "alpha0": -81.52619732449125,
+        "alpha1": 88.66367840584634,
+        "r_squared": 0.11820585211836432,
+        "n_obs": 603,
+        "position": "S",
+        "contract_type": "rookie"
+      },
+      "S_veteran": {
+        "alpha0": -81.2646590558528,
+        "alpha1": 76.30386777127282,
+        "r_squared": 0.08659947978231208,
+        "n_obs": 481,
+        "position": "S",
+        "contract_type": "veteran"
+      },
+      "LB_rookie": {
+        "alpha0": -120.76365258091386,
+        "alpha1": 111.50191321706643,
+        "r_squared": 0.15414370031490154,
+        "n_obs": 633,
+        "position": "LB",
+        "contract_type": "rookie"
+      },
+      "LB_veteran": {
+        "alpha0": -52.977953662778816,
+        "alpha1": 65.49645299483075,
+        "r_squared": 0.060595859904521654,
+        "n_obs": 500,
+        "position": "LB",
+        "contract_type": "veteran"
+      },
+      "EDGE_rookie": {
+        "alpha0": -61.50618732502822,
+        "alpha1": 73.567712386338,
+        "r_squared": 0.08409615502841084,
+        "n_obs": 661,
+        "position": "EDGE",
+        "contract_type": "rookie"
+      },
+      "EDGE_veteran": {
+        "alpha0": -104.66177879809882,
+        "alpha1": 80.06409364649483,
+        "r_squared": 0.06065333673559259,
+        "n_obs": 544,
+        "position": "EDGE",
+        "contract_type": "veteran"
+      },
+      "DL_rookie": {
+        "alpha0": -38.69431977206865,
+        "alpha1": 54.17518146499163,
+        "r_squared": 0.08700931184454597,
+        "n_obs": 654,
+        "position": "DL",
+        "contract_type": "rookie"
+      },
+      "DL_veteran": {
+        "alpha0": -98.92384267971659,
+        "alpha1": 72.80059586287821,
+        "r_squared": 0.06577001891000978,
+        "n_obs": 541,
+        "position": "DL",
+        "contract_type": "veteran"
+      }
+    },
+    "effective_salary_params": {
+      "CB": {
+        "position": "CB",
+        "multiplier": 0.11646756305804493,
+        "exponent": 2.304801450205444,
+        "rookie_alpha0": -163.73870579738593,
+        "rookie_alpha1": 130.2489873344812,
+        "veteran_alpha0": -42.22980976458395,
+        "veteran_alpha1": 56.512020730840455
+      },
+      "S": {
+        "position": "S",
+        "multiplier": 0.9965782788587593,
+        "exponent": 1.161981443347316,
+        "rookie_alpha0": -81.52619732449125,
+        "rookie_alpha1": 88.66367840584634,
+        "veteran_alpha0": -81.2646590558528,
+        "veteran_alpha1": 76.30386777127282
+      },
+      "LB": {
+        "position": "LB",
+        "multiplier": 0.35524335681845687,
+        "exponent": 1.7024114760209477,
+        "rookie_alpha0": -120.76365258091386,
+        "rookie_alpha1": 111.50191321706643,
+        "veteran_alpha0": -52.977953662778816,
+        "veteran_alpha1": 65.49645299483075
+      },
+      "EDGE": {
+        "position": "EDGE",
+        "multiplier": 1.7143140881443213,
+        "exponent": 0.9188602410358863,
+        "rookie_alpha0": -61.50618732502822,
+        "rookie_alpha1": 73.567712386338,
+        "veteran_alpha0": -104.66177879809882,
+        "veteran_alpha1": 80.06409364649483
+      },
+      "DL": {
+        "position": "DL",
+        "multiplier": 2.287185082408245,
+        "exponent": 0.7441584896781885,
+        "rookie_alpha0": -38.69431977206865,
+        "rookie_alpha1": 54.17518146499163,
+        "veteran_alpha0": -98.92384267971659,
+        "veteran_alpha1": 72.80059586287821
+      }
+    },
+    "models": {
+      "G0": {
+        "coefficients": {
+          "intercept": 23.49096639644627,
+          "CB": 0.00037115225721696564,
+          "S": -0.0011122265850267731,
+          "LB": 0.003335426930058002,
+          "EDGE": -0.0015343633070321319,
+          "DL": -0.0020228257331775853
+        },
+        "r_squared": 0.15815870641534668,
+        "r_squared_adj": 0.13552856411468395,
+        "n_obs": 192,
+        "positions": [
+          "CB",
+          "S",
+          "LB",
+          "EDGE",
+          "DL"
+        ],
+        "interactions": [],
+        "target": "papg"
+      },
+      "G1": {
+        "coefficients": {
+          "intercept": 23.39768427952624,
+          "CB": 0.00145464133062145,
+          "S": 0.00027195441840860944,
+          "LB": 0.003387234984654286,
+          "EDGE": -0.00011453519618563656,
+          "DL": -0.00028175051635281976,
+          "CB_S_interaction": -0.002423136866274692,
+          "EDGE_DL_interaction": -0.0032766843807861094
+        },
+        "r_squared": 0.1601181027137496,
+        "r_squared_adj": 0.12816607401264224,
+        "n_obs": 192,
+        "positions": [
+          "CB",
+          "S",
+          "LB",
+          "EDGE",
+          "DL"
+        ],
+        "interactions": [
+          [
+            "CB",
+            "S"
+          ],
+          [
+            "EDGE",
+            "DL"
+          ]
+        ],
+        "target": "papg"
+      },
+      "G2": {
+        "coefficients": {
+          "intercept": 23.7580334269523,
+          "CB": 0.00518476381198767,
+          "S": -0.0016186688656363649,
+          "LB": 0.003489869781145542,
+          "EDGE": 0.0031487379686624874,
+          "DL": -0.002366046378556433,
+          "CB_S_interaction": 0.0013113437651400325,
+          "EDGE_DL_interaction": 0.0014813030149739594,
+          "CB_EDGE_interaction": -0.011275056749556811,
+          "LB_DL_interaction": -0.0009468453040395314
+        },
+        "r_squared": 0.17957636610127525,
+        "r_squared_adj": 0.13900596662276687,
+        "n_obs": 192,
+        "positions": [
+          "CB",
+          "S",
+          "LB",
+          "EDGE",
+          "DL"
+        ],
+        "interactions": [
+          [
+            "CB",
+            "S"
+          ],
+          [
+            "EDGE",
+            "DL"
+          ],
+          [
+            "CB",
+            "EDGE"
+          ],
+          [
+            "LB",
+            "DL"
+          ]
+        ],
+        "target": "papg"
+      }
+    },
+    "optimal_allocation": {
+      "CB": 9.6,
+      "S": 9.6,
+      "LB": 9.6,
+      "EDGE": 9.6,
+      "DL": 9.6
+    }
+  }
+}

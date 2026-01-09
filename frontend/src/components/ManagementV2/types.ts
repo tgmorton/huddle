@@ -1,7 +1,7 @@
 // ManagementV2 Types
 
 export type WeekPhase = 'recovery' | 'practice' | 'prep' | 'gameday';
-export type ItemType = 'practice' | 'game' | 'meeting' | 'deadline' | 'decision' | 'scout' | 'player' | 'prospect' | 'news';
+export type ItemType = 'practice' | 'game' | 'meeting' | 'deadline' | 'decision' | 'scout' | 'player' | 'prospect' | 'contract' | 'negotiation' | 'auction' | 'news' | 'stats';
 export type EventType = 'injury' | 'trade_offer' | 'media' | 'contract_demand' | 'morale';
 export type PaneSize = 'small' | 'medium' | 'large';
 
@@ -12,6 +12,7 @@ export type LeftPanelView =
   | 'draft'          // Board, Scouts, Prospects
   | 'season'         // Schedule, Standings, Playoffs
   | 'team'           // Strategy, Chemistry, Front Office
+  | 'league'         // League stats, leaders
   | 'drawer'         // Archived workspace items
   | 'week'           // Weekly gameplay loop view
   | null;

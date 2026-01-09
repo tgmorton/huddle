@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Play, FastForward, Star } from 'lucide-react';
 import { managementApi } from '../../../api/managementClient';
 import type { WeekJournalEntry, JournalCategory } from '../../../api/managementClient';
-import { useManagementStore, selectJournalVersion } from '../../../stores/managementStore';
+import { useManagementStore, selectJournalVersion, selectNextGame } from '../../../stores/managementStore';
 import type { ManagementEvent } from '../../../types/management';
 
 interface WeekPanelProps {
@@ -52,6 +52,7 @@ export const WeekPanel: React.FC<WeekPanelProps> = ({ franchiseId }) => {
   const journalVersion = useManagementStore(selectJournalVersion);
   const updateCalendar = useManagementStore(state => state.updateCalendar);
   const setEvents = useManagementStore(state => state.setEvents);
+  const nextGame = useManagementStore(selectNextGame);
 
   // Extract current day from calendar (0-6, where 0=Monday)
   const currentWeek = weekNumber ?? calendar?.current_week ?? 1;
@@ -64,12 +65,12 @@ export const WeekPanel: React.FC<WeekPanelProps> = ({ franchiseId }) => {
   // Convert JS day (0=Sun) to our day (0=Mon)
   const dayIndex = currentDayIndex === 0 ? 6 : currentDayIndex - 1;
 
-  // Opponent info (will be populated when we have schedule data)
-  const opponent = calendar ? {
-    name: 'TBD',
-    abbr: 'TBD',
-    isHome: true,
-    record: '',
+  // Opponent info from schedule data
+  const opponent = nextGame ? {
+    name: nextGame.opponent,
+    abbr: nextGame.opponent,
+    isHome: nextGame.is_home,
+    record: '',  // TODO: Could fetch opponent record from standings
   } : null;
 
   // Fetch week journal data

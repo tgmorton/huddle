@@ -350,6 +350,11 @@
   background: var(--bg-surface);
 }
 
+.data-table tr.selected-row {
+  background: rgba(212, 165, 116, 0.15);
+  border-left: 3px solid var(--accent);
+}
+
 /* Overall Rating Colors */
 .overall {
   font-weight: 600;
@@ -394,8 +399,1001 @@
 .overview-view h3,
 .standings-view h3,
 .draft-view h3,
-.transactions-view h3 {
+.transactions-view h3,
+.profile-view h3,
+.strategy-view h3 {
   margin: 0 0 1rem 0;
   color: var(--accent);
   font-size: 1rem;
 }
+
+/* =============================================================================
+   GM Archetype Badges
+   ============================================================================= */
+
+.gm-badge {
+  font-size: 0.6rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gm-analytics { background: #3b82f6; color: white; }
+.gm-old_school { background: #92400e; color: white; }
+.gm-cap_wizard { background: #059669; color: white; }
+.gm-win_now { background: #dc2626; color: white; }
+.gm-balanced { background: #6b7280; color: white; }
+
+/* =============================================================================
+   Team Profile View
+   ============================================================================= */
+
+.profile-view {
+  max-width: 900px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.profile-header h2 {
+  margin: 0;
+  color: var(--accent);
+}
+
+.gm-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.profile-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.profile-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.profile-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.profile-item:last-child {
+  border-bottom: none;
+}
+
+.profile-item label {
+  color: var(--text-secondary);
+}
+
+.profile-item span {
+  font-weight: 600;
+}
+
+/* Position Preferences Grid */
+.position-prefs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.position-pref {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--bg-surface);
+  border-radius: 4px;
+}
+
+.position-pref .pos {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.position-pref .value {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.pref-high { color: var(--success); }
+.pref-low { color: var(--danger); }
+.pref-neutral { color: var(--text-primary); }
+
+/* =============================================================================
+   Cap Allocation View
+   ============================================================================= */
+
+.allocation-view h3 {
+  margin: 0 0 1rem 0;
+  color: var(--accent);
+}
+
+.allocation-summary {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+}
+
+.allocation-summary .item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.allocation-summary .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.allocation-summary .value {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.allocation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.allocation-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.allocation-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.allocation-bar-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 70px 60px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.allocation-bar-row .pos {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.allocation-bar-container {
+  height: 16px;
+  background: var(--bg-surface);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.allocation-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.allocation-bar.under { background: #f87171; }
+.allocation-bar.over { background: #4ade80; }
+.allocation-bar.optimal { background: var(--accent); }
+
+.allocation-target {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background: white;
+}
+
+.allocation-bar-row .pct {
+  text-align: right;
+  font-size: 0.85rem;
+}
+
+.allocation-bar-row .gap {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.gap-positive { color: var(--danger); }
+.gap-negative { color: var(--success); }
+
+/* =============================================================================
+   FA Strategy View
+   ============================================================================= */
+
+.strategy-view {
+  max-width: 1000px;
+}
+
+.strategy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.strategy-header h3 {
+  margin: 0;
+}
+
+.strategy-success {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.success-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.success-pct {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.success-high { color: var(--success); }
+.success-mid { color: var(--warning); }
+.success-low { color: var(--danger); }
+
+.strategy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.strategy-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.strategy-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+.target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.target-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--bg-surface);
+  border-radius: 4px;
+}
+
+.target-item .position {
+  font-weight: 600;
+}
+
+.target-item .priority {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.target-item .reason {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  flex: 1;
+  text-align: right;
+}
+
+.avoid-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.avoid-tag {
+  padding: 0.25rem 0.5rem;
+  background: rgba(248, 113, 113, 0.2);
+  color: var(--danger);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.cap-comparison {
+  display: flex;
+  gap: 2rem;
+}
+
+.cap-comparison .item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cap-comparison .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.cap-comparison .value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* FA Signings Table */
+.signings-section {
+  margin-top: 1.5rem;
+}
+
+.signings-section h4 {
+  margin: 0 0 1rem 0;
+  color: var(--accent);
+}
+
+.signing-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 50px 40px 80px 80px 100px;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+}
+
+.signing-row.header {
+  background: var(--bg-elevated);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.signing-row .name {
+  font-weight: 500;
+}
+
+.signing-row .was-target {
+  text-align: center;
+}
+
+.target-yes { color: var(--success); }
+.target-no { color: var(--text-secondary); }
+
+.signing-row .value-vs-market {
+  text-align: right;
+  font-weight: 600;
+}
+
+.value-good { color: var(--success); }
+.value-bad { color: var(--danger); }
+
+/* =============================================================================
+   GM Comparison View
+   ============================================================================= */
+
+.gm-comparison-view {
+  max-width: 900px;
+}
+
+.gm-comparison-view h3 {
+  margin: 0 0 1.5rem 0;
+  color: var(--accent);
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.comparison-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.comparison-card .archetype {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.comparison-card .stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comparison-card .stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.comparison-card .stat-row label {
+  color: var(--text-secondary);
+}
+
+.comparison-card .stat-row span {
+  font-weight: 600;
+}
+
+/* Draft reasoning columns */
+.draft-reasoning {
+  font-size: 0.75rem;
+}
+
+.pos-value { color: #60a5fa; }
+.gm-adj-positive { color: var(--success); }
+.gm-adj-negative { color: var(--danger); }
+.draft-yes { color: var(--success); }
+.draft-no { color: var(--text-secondary); }
+
+/* =============================================================================
+   Additional Profile View Styles
+   ============================================================================= */
+
+.gm-badge-large {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 600;
+  color: white;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.profile-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--bg-surface);
+  border-radius: 4px;
+}
+
+.profile-stats .stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.profile-stats .stat-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.section-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.pref-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  margin: 0.25rem;
+  background: var(--bg-surface);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.pref-badge.pref-high { color: var(--success); }
+.pref-badge.pref-low { color: var(--danger); }
+
+/* Allocation view improvements */
+.allocation-side {
+  padding: 0.5rem;
+}
+
+.allocation-side h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.allocation-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 60px;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.allocation-row .pos-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.allocation-bar.actual {
+  background: var(--accent);
+  position: absolute;
+  height: 8px;
+  top: 0;
+}
+
+.allocation-bar.target {
+  background: rgba(255, 255, 255, 0.3);
+  position: absolute;
+  height: 8px;
+  top: 8px;
+}
+
+.gap.gap-under { color: var(--danger); }
+.gap.gap-over { color: var(--success); }
+
+.allocation-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.legend-actual,
+.legend-target {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 0.5rem;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.legend-actual { background: var(--accent); }
+.legend-target { background: rgba(255, 255, 255, 0.3); }
+
+/* =============================================================================
+   Strategy View Additional Styles
+   ============================================================================= */
+
+.plan-section,
+.results-section {
+  min-height: 300px;
+}
+
+.plan-targets,
+.plan-avoid {
+  margin-bottom: 1.5rem;
+}
+
+.plan-targets h5,
+.plan-avoid h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.plan-targets ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.plan-targets li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background: var(--bg-surface);
+  margin-bottom: 0.25rem;
+  border-radius: 4px;
+}
+
+.target-pos {
+  font-weight: 600;
+}
+
+.target-reason {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.avoid-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.avoid-badge {
+  padding: 0.25rem 0.5rem;
+  background: rgba(248, 113, 113, 0.2);
+  color: var(--danger);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.results-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.result-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--bg-surface);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.result-stat .stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.result-stat .stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.result-stat .stat-value.success { color: var(--success); }
+.result-stat .stat-value.fail { color: var(--danger); }
+
+.signings-list {
+  margin-bottom: 1.5rem;
+}
+
+.signings-list h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.target-hit { color: var(--success); font-weight: 600; }
+.target-miss { color: var(--text-secondary); }
+
+.positions-status {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.positions-status h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.pos-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.filled-badge {
+  padding: 0.2rem 0.4rem;
+  background: rgba(74, 222, 128, 0.2);
+  color: var(--success);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.missed-badge {
+  padding: 0.2rem 0.4rem;
+  background: rgba(248, 113, 113, 0.2);
+  color: var(--danger);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* =============================================================================
+   Draft View Additional Styles
+   ============================================================================= */
+
+.view-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.value-high { color: var(--success); }
+.value-low { color: var(--text-secondary); }
+
+.adj-positive { color: var(--success); }
+.adj-negative { color: var(--danger); }
+
+.priority-yes { color: var(--success); font-weight: 600; }
+.priority-no { color: var(--text-secondary); }
+
+/* GM Comparison Table */
+.comparison-table {
+  margin-top: 1rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  text-align: center;
+}
+
+.comparison-table td:first-child {
+  text-align: left;
+}
+
+/* =============================================================================
+   Roster Plan View (Position-by-Position Planning)
+   ============================================================================= */
+
+.roster-plan-view {
+  max-width: 1200px;
+}
+
+.roster-plan-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+}
+
+.roster-plan-summary .summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.roster-plan-summary .stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.roster-plan-summary .stat-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.draft-picks-info {
+  margin-bottom: 1.5rem;
+}
+
+.draft-picks-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.picks-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pick-badge {
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.position-plans-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.plans-column h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.no-needs {
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 1rem;
+}
+
+.position-plan {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.position-plan-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.position-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.need-level {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.need-high { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
+.need-medium { background: rgba(251, 191, 36, 0.2); color: var(--warning); }
+.need-low { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+
+.research-rec {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.rec-draft { background: #3b82f6; color: white; }
+.rec-fa { background: #10b981; color: white; }
+
+.position-plan-reason {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.current-starter {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-surface);
+  border-radius: 4px;
+}
+
+.current-starter .contract-years {
+  margin-left: 0.5rem;
+  color: var(--accent);
+}
+
+.position-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.option-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 50px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-surface);
+  border-radius: 4px;
+  border-left: 3px solid transparent;
+}
+
+.option-row.option-fa { border-left-color: #10b981; }
+.option-row.option-draft { border-left-color: #3b82f6; }
+.option-row.option-keep { border-left-color: var(--accent); }
+
+.option-prob {
+  position: relative;
+  height: 20px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prob-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.3;
+  border-radius: 3px;
+}
+
+.prob-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.option-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.option-details {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.option-type {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.15rem 0.3rem;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.type-fa { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.type-draft { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.type-keep { background: rgba(212, 165, 116, 0.2); color: var(--accent); }

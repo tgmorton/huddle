@@ -1,10 +1,14 @@
 """Defensive Back Brain - Decision-making for CBs and Safeties.
 
-The DB brain handles:
-- Press vs off coverage
-- Man and zone coverage execution
-- Ball-hawking decisions
-- Run support
+PREVENTION-FIRST PHILOSOPHY:
+The goal is to PREVENT COMPLETIONS and PREVENT YARDS. We don't "cover"
+receivers - we take away throws. Position between receiver and where
+the ball will be, not between receiver and QB.
+
+- Coverage = prevent the catch by taking away the throw
+- Ball reaction = make a play (breakup or INT)
+- Run support = prevent yards (fill gap, make tackle)
+- Receivers are threats to prevent, not players to beat
 
 Coverage Types: PRESS → TRAIL or ZONE_DROP → BALL_REACTION → TACKLE
 """
@@ -18,6 +22,18 @@ from typing import Optional, Tuple
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
+from ..core.trace import get_trace_system, TraceCategory
+from ..core.variance import recognition_delay as apply_recognition_variance
+
+
+# =============================================================================
+# Trace Helper
+# =============================================================================
+
+def _trace(world: WorldState, msg: str, category: TraceCategory = TraceCategory.DECISION):
+    """Add a trace for this DB."""
+    trace = get_trace_system()
+    trace.trace(world.me.id, world.me.name, category, msg)
 
 
 # =============================================================================
@@ -32,16 +48,19 @@ class CoverageTechnique(str, Enum):
 
 
 class DBPhase(str, Enum):
-    """Current phase of DB coverage."""
+    """Current phase of DB coverage.
+
+    PREVENTION-FIRST: Each phase is about taking away the throw.
+    """
     PRE_SNAP = "pre_snap"
-    JAM = "jam"
-    BACKPEDAL = "backpedal"
+    JAM = "jam"               # Disrupt timing to prevent quick throw
+    BACKPEDAL = "backpedal"   # Maintain leverage to prevent deep throw
     TRANSITION = "transition"
-    TRAIL = "trail"
-    ZONE_DROP = "zone_drop"
-    BALL_TRACKING = "ball_tracking"
-    RUN_SUPPORT = "run_support"
-    RALLY = "rally"
+    TRAIL = "trail"           # Stay between receiver and where ball goes
+    ZONE_DROP = "zone_drop"   # Take away zone, prevent completion
+    BALL_TRACKING = "ball_tracking"  # Prevent catch or create turnover
+    RUN_SUPPORT = "run_support"      # Prevent yards
+    RALLY = "rally"           # Prevent more yards after catch
 
 
 class BallReaction(str, Enum):
@@ -170,6 +189,7 @@ def _get_break_recognition_delay(world: WorldState, route_type: str) -> float:
     Based on:
     - DB's play_recognition attribute (higher = faster recognition)
     - Route difficulty (some breaks are harder to read)
+    - Variance from human factors (attention, fatigue, pressure)
 
     Returns delay in seconds.
     """
@@ -178,6 +198,7 @@ def _get_break_recognition_delay(world: WorldState, route_type: str) -> float:
     # Play recognition affects how quickly they read the break
     # 75 = average, 95 = elite, 60 = poor
     play_rec = getattr(world.me.attributes, 'play_recognition', 75)
+    awareness = getattr(world.me.attributes, 'awareness', play_rec)
 
     # Higher play_rec = less delay
     # Range: 95 play_rec -> 0.0 extra delay, 60 play_rec -> 0.28 extra delay
@@ -187,7 +208,12 @@ def _get_break_recognition_delay(world: WorldState, route_type: str) -> float:
     # Route difficulty
     route_mod = ROUTE_RECOGNITION_DIFFICULTY.get(route_type.lower(), 0.06)
 
-    return base_delay + recognition_modifier + route_mod
+    # Calculate deterministic base
+    deterministic_delay = base_delay + recognition_modifier + route_mod
+
+    # Apply variance based on awareness (adds human unpredictability)
+    # Higher awareness = tighter variance around the base delay
+    return apply_recognition_variance(deterministic_delay, awareness)
 
 
 def _detect_receiver_break(world: WorldState, receiver: PlayerView) -> bool:
@@ -500,6 +526,7 @@ def db_brain(world: WorldState) -> BrainDecision:
         state.receiver_id = receiver.id
         state.separation = _calculate_coverage_separation(world.me.pos, receiver)
         state.in_phase = _am_in_phase(world, receiver)
+        _trace(world, f"Coverage: {state.coverage_type.value}, sep={state.separation:.1f}yd, {'in-phase' if state.in_phase else 'trailing'}", TraceCategory.PERCEPTION)
 
     # =========================================================================
     # Ball In Air - React (with cognitive delay)
@@ -534,10 +561,12 @@ def db_brain(world: WorldState) -> BrainDecision:
         # DB has reacted - now track the ball
         state.phase = DBPhase.BALL_TRACKING
         my_dist = world.me.pos.distance_to(target)
+        _trace(world, f"Ball tracking: {my_dist:.1f}yd to target", TraceCategory.PERCEPTION)
 
         # Is this coming to my receiver?
         if receiver and world.ball.intended_receiver_id == receiver.id:
             reaction, reasoning = _decide_ball_reaction(world, receiver, target)
+            _trace(world, f"Ball reaction: {reaction.value} - {reasoning}")
 
             if reaction == BallReaction.PLAY_BALL:
                 return BrainDecision(
@@ -573,67 +602,64 @@ def db_brain(world: WorldState) -> BrainDecision:
         )
 
     # =========================================================================
-    # Run Support
+    # Run Support - PREVENT YARDS
     # =========================================================================
     if _detect_run(world):
         state.phase = DBPhase.RUN_SUPPORT
+        _trace(world, "Run detected - preventing yards", TraceCategory.PERCEPTION)
 
         ballcarrier = _find_ballcarrier(world)
         if ballcarrier:
             dist = world.me.pos.distance_to(ballcarrier.pos)
 
-            # Calculate pursuit angle - predict where ballcarrier will be
-            # Use velocity to intercept rather than chase directly behind
+            # Calculate intercept point to PREVENT MORE YARDS
             bc_speed = ballcarrier.velocity.length()
             if bc_speed > 0.1:
-                # Estimate time to reach based on distance
-                time_to_reach = dist / 8.0  # Assume ~8 yd/s closing speed
-                # Target ahead of ballcarrier - slight over-lead ensures gap closes
-                # 1.1 factor means we target 10% beyond predicted position
+                time_to_reach = dist / 8.0
                 intercept = ballcarrier.pos + ballcarrier.velocity * time_to_reach * 1.1
             else:
                 intercept = ballcarrier.pos
 
-            # Safety or CB in run support - all use pursuit angles now
+            # All DBs pursue to prevent yards
             if world.me.position in (Position.SS, Position.CB):
                 if dist < 3:
-                    # Close enough to tackle directly
+                    # Tackle to prevent more yards
                     return BrainDecision(
                         move_target=ballcarrier.pos,
                         move_type="sprint",
                         action="tackle",
                         target_id=ballcarrier.id,
                         intent="tackle",
-                        reasoning=f"In tackle range ({dist:.1f}yd)",
+                        reasoning=f"Tackle to prevent yards ({dist:.1f}yd)",
                     )
                 else:
-                    # Pursuit angle to intercept
+                    # Intercept path to prevent more yards
                     return BrainDecision(
                         move_target=intercept,
                         move_type="sprint",
                         action="pursue",
                         target_id=ballcarrier.id,
                         intent="pursuit",
-                        reasoning=f"Pursuit angle, closing ({dist:.1f}yd)",
+                        reasoning=f"Closing to prevent yards ({dist:.1f}yd)",
                     )
 
-            # FS - deep pursuit with same logic
+            # FS - deep pursuit to prevent big gain
             else:
                 return BrainDecision(
                     move_target=intercept,
                     move_type="sprint",
                     intent="pursuit",
-                    reasoning=f"Deep pursuit angle ({dist:.1f}yd)",
+                    reasoning=f"Preventing big gain ({dist:.1f}yd)",
                 )
 
     # =========================================================================
-    # Man Coverage
+    # Man Coverage - TAKE AWAY THE THROW
     # =========================================================================
     if state.coverage_type in (CoverageTechnique.PRESS, CoverageTechnique.OFF_MAN):
         if not receiver:
-            return BrainDecision(intent="scan", reasoning="No receiver assigned")
+            return BrainDecision(intent="scan", reasoning="No threat to prevent")
 
-        # Press coverage (at LOS)
+        # Press coverage - disrupt timing to prevent quick throw
         if state.coverage_type == CoverageTechnique.PRESS and world.time_since_snap < 0.5:
             state.phase = DBPhase.JAM
 
@@ -645,14 +671,14 @@ def db_brain(world: WorldState) -> BrainDecision:
                     action="jam",
                     target_id=receiver.id,
                     intent="press",
-                    reasoning="Jamming receiver at LOS",
+                    reasoning="Disrupting release to prevent quick throw",
                 )
 
-        # Backpedal phase (early)
+        # Backpedal phase - maintain leverage to prevent deep throw
         if world.time_since_snap < 1.0:
             state.phase = DBPhase.BACKPEDAL
 
-            # Maintain cushion while reading - stay AHEAD of receiver (higher Y)
+            # Stay between receiver and where deep throw would go
             cushion_target = receiver.pos + Vec2(0, state.cushion)
 
             return BrainDecision(
@@ -660,24 +686,19 @@ def db_brain(world: WorldState) -> BrainDecision:
                 move_type="backpedal",
                 intent="backpedal",
                 target_id=receiver.id,
-                reasoning=f"Backpedaling, cushion: {state.cushion:.1f}yd",
+                reasoning=f"Taking away deep throw (cushion: {state.cushion:.1f}yd)",
             )
 
-        # Trail/Mirror phase
+        # Trail phase - stay between receiver and where ball would go
         state.phase = DBPhase.TRAIL
 
         # =================================================================
         # Break Recognition System
-        # DB doesn't instantly know when receiver breaks - cognitive delay
         # =================================================================
-
-        # Check if receiver has started their break
         receiver_breaking = _detect_receiver_break(world, receiver)
 
         if receiver_breaking and not state.has_recognized_break:
-            # Break started but not yet recognized - accumulate recognition time
             if state.break_recognition_delay == 0.0:
-                # First time seeing break - calculate delay
                 route_type = _estimate_route_type_from_movement(receiver)
                 state.break_recognition_delay = _get_break_recognition_delay(world, route_type)
 
@@ -685,28 +706,26 @@ def db_brain(world: WorldState) -> BrainDecision:
 
             if state.recognition_timer >= state.break_recognition_delay:
                 state.has_recognized_break = True
+                _trace(world, f"Break recognized after {state.recognition_timer:.2f}s delay")
 
-        # Determine tracking target based on recognition state
+        # Position to PREVENT the completion
         if state.has_recognized_break:
-            # After recognition: use predictive tracking (lookahead)
-            lookahead = 0.15  # Look 150ms ahead
+            lookahead = 0.15
             predicted_pos = receiver.pos + receiver.velocity * lookahead
 
             if state.in_phase:
-                target = predicted_pos + Vec2(0, 0.5)  # Slightly behind predicted
-                reasoning = f"Recognized break, tracking ({state.separation:.1f}yd)"
+                target = predicted_pos + Vec2(0, 0.5)
+                reasoning = f"In position to prevent completion ({state.separation:.1f}yd)"
             else:
                 target = predicted_pos
-                reasoning = f"Recognized break, closing ({state.separation:.1f}yd)"
+                reasoning = f"Closing to take away throw ({state.separation:.1f}yd)"
         else:
-            # Before recognition: track current position only (no lookahead)
-            # This creates the separation window timing routes exploit
             if state.in_phase:
-                target = receiver.pos + Vec2(0, 1)  # Slightly behind current
-                reasoning = f"Reading route ({state.separation:.1f}yd)"
+                target = receiver.pos + Vec2(0, 1)
+                reasoning = f"Reading to prevent completion ({state.separation:.1f}yd)"
             else:
                 target = receiver.pos
-                reasoning = f"Reacting to break ({state.recognition_timer:.2f}s)"
+                reasoning = f"Reacting to prevent completion ({state.recognition_timer:.2f}s)"
 
         return BrainDecision(
             move_target=target,
@@ -717,14 +736,14 @@ def db_brain(world: WorldState) -> BrainDecision:
         )
 
     # =========================================================================
-    # Zone Coverage
+    # Zone Coverage - TAKE AWAY THE ZONE
     # =========================================================================
     if state.coverage_type == CoverageTechnique.ZONE and state.zone_assignment:
         state.phase = DBPhase.ZONE_DROP
 
         zone_pos = _get_zone_position(world, state.zone_assignment)
 
-        # Check for receiver in zone
+        # Check for threat entering zone
         zone_threat = None
         for opp in world.opponents:
             if opp.position in (Position.WR, Position.TE):
@@ -738,15 +757,15 @@ def db_brain(world: WorldState) -> BrainDecision:
                 move_type="run",
                 intent="zone_match",
                 target_id=zone_threat.id,
-                reasoning=f"Receiver in {state.zone_assignment.value} zone",
+                reasoning=f"Taking away throw to {state.zone_assignment.value}",
             )
 
-        # Read QB eyes
+        # Position to take away the zone
         return BrainDecision(
             move_target=zone_pos,
             move_type="run",
             intent="zone_drop",
-            reasoning=f"Dropping to {state.zone_assignment.value}",
+            reasoning=f"Taking away {state.zone_assignment.value}",
         )
 
     # Default

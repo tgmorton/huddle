@@ -8,6 +8,7 @@ Provides endpoints for viewing and exploring league data:
 - Standings and schedule
 """
 
+from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
@@ -30,6 +31,12 @@ from huddle.simulation.draft import (
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+# Data directory for saved leagues
+# admin.py is at huddle/huddle/api/routers/admin.py
+# Project root is 4 parents up
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+LEAGUES_DATA_DIR = PROJECT_ROOT / "data" / "leagues"
 
 # In-memory storage (for demo purposes)
 # In production, this would be a database
@@ -113,6 +120,9 @@ class PlayerSummary(BaseModel):
     experience: int
     jersey_number: int
     team_abbr: Optional[str] = None
+    # Contract fields for roster display
+    salary: Optional[int] = None
+    contract_year_remaining: Optional[int] = None
 
 
 class PlayerDetail(PlayerSummary):
@@ -127,6 +137,10 @@ class PlayerDetail(PlayerSummary):
     is_rookie: bool
     is_veteran: bool
     attributes: dict = Field(default_factory=dict)
+    # Contract fields
+    contract_years: Optional[int] = None
+    contract_year_remaining: Optional[int] = None
+    salary: Optional[int] = None
 
 
 class StandingEntry(BaseModel):
@@ -159,6 +173,14 @@ class GenerateLeagueRequest(BaseModel):
     include_schedule: bool = True
     parity_mode: bool = False
     fantasy_draft: bool = False  # If True, start with empty rosters and run fantasy draft
+
+
+class SavedLeagueInfo(BaseModel):
+    """Info about a saved league on disk."""
+    id: str
+    name: str
+    season: int
+    created_at: str  # ISO timestamp from file modification time
 
 
 class SimulateWeekRequest(BaseModel):
@@ -328,6 +350,57 @@ class PlayoffBracketResponse(BaseModel):
     champion: Optional[str]
 
 
+# === Salary Cap Models ===
+
+class CapProjection(BaseModel):
+    """Cap projection for a single year."""
+    year: int
+    committed: int
+    projected_cap: int
+    cap_space: int
+
+
+class TeamCapSummary(BaseModel):
+    """Team salary cap summary with 6-year projections."""
+    team_abbr: str
+    season: int
+    salary_cap: int
+    cap_committed: int
+    cap_space: int
+    dead_money: int
+    projections: list[CapProjection]
+
+
+class ContractYear(BaseModel):
+    """Single year of a contract."""
+    year: int
+    base_salary: int
+    signing_bonus: int
+    cap_hit: int
+
+
+class PlayerCapData(BaseModel):
+    """Player salary cap data."""
+    player_id: str
+    full_name: str
+    position: str
+    overall: int
+    age: int
+    cap_hit: int
+    years_remaining: int
+    dead_money: int
+    cut_savings: int
+    contract_years: list[ContractYear]
+
+
+class TeamCapPlayers(BaseModel):
+    """Team player cap data categorized."""
+    team_abbr: str
+    top_earners: list[PlayerCapData]
+    expiring: list[PlayerCapData]
+    cuttable: list[PlayerCapData]
+
+
 # =============================================================================
 # Endpoints
 # =============================================================================
@@ -350,6 +423,10 @@ async def generate_new_league(request: GenerateLeagueRequest) -> LeagueSummary:
             name=request.name,
             parity_mode=request.parity_mode,
         )
+
+    # Always auto-fill depth charts for normal generation
+    for team in _active_league.teams.values():
+        team.roster.auto_fill_depth_chart()
 
     # If fantasy draft mode, clear rosters and run fantasy draft
     if request.fantasy_draft:
@@ -381,6 +458,11 @@ async def generate_new_league(request: GenerateLeagueRequest) -> LeagueSummary:
         _active_league.draft_class = []
         _active_league.free_agents = []
 
+    # Auto-save the league to disk
+    league_dir = LEAGUES_DATA_DIR / str(_active_league.id)
+    league_dir.mkdir(parents=True, exist_ok=True)
+    _active_league.save(league_dir / "league.json")
+
     return _league_to_summary(_active_league)
 
 
@@ -389,6 +471,67 @@ async def get_league() -> LeagueSummary:
     """Get current league summary."""
     if _active_league is None:
         raise HTTPException(status_code=404, detail="No league loaded. Generate one first.")
+    return _league_to_summary(_active_league)
+
+
+@router.get("/leagues", response_model=list[SavedLeagueInfo])
+async def list_saved_leagues() -> list[SavedLeagueInfo]:
+    """List all saved leagues on disk."""
+    import json
+    from datetime import datetime
+
+    saved_leagues = []
+
+    if not LEAGUES_DATA_DIR.exists():
+        return saved_leagues
+
+    for league_dir in LEAGUES_DATA_DIR.iterdir():
+        if not league_dir.is_dir():
+            continue
+
+        league_file = league_dir / "league.json"
+        if not league_file.exists():
+            continue
+
+        try:
+            # Read just enough to get name and season
+            with open(league_file) as f:
+                data = json.load(f)
+
+            # Get file modification time as created_at
+            mtime = league_file.stat().st_mtime
+            created_at = datetime.fromtimestamp(mtime).isoformat()
+
+            saved_leagues.append(SavedLeagueInfo(
+                id=league_dir.name,
+                name=data.get("name", "Unknown"),
+                season=data.get("current_season", 0),
+                created_at=created_at,
+            ))
+        except (json.JSONDecodeError, KeyError):
+            # Skip invalid league files
+            continue
+
+    # Sort by creation time, newest first
+    saved_leagues.sort(key=lambda x: x.created_at, reverse=True)
+    return saved_leagues
+
+
+@router.post("/league/load/{league_id}", response_model=LeagueSummary)
+async def load_saved_league(league_id: str) -> LeagueSummary:
+    """Load a previously saved league from disk."""
+    global _active_league
+
+    league_file = LEAGUES_DATA_DIR / league_id / "league.json"
+
+    if not league_file.exists():
+        raise HTTPException(status_code=404, detail=f"League {league_id} not found")
+
+    try:
+        _active_league = League.load(league_file)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load league: {e}")
+
     return _league_to_summary(_active_league)
 
 
@@ -1106,6 +1249,135 @@ async def get_team_depth_chart(abbreviation: str) -> DepthChartResponse:
 
 
 # =============================================================================
+# Salary Cap Endpoints
+# =============================================================================
+
+# League-wide salary cap constant (in thousands)
+SALARY_CAP = 225000  # $225M
+CAP_GROWTH_RATE = 0.05  # 5% annual growth
+
+
+@router.get("/teams/{abbreviation}/cap-summary", response_model=TeamCapSummary)
+async def get_team_cap_summary(abbreviation: str) -> TeamCapSummary:
+    """Get team's salary cap summary with 6-year projections."""
+    if _active_league is None:
+        raise HTTPException(status_code=404, detail="No league loaded")
+
+    team = _active_league.get_team(abbreviation.upper())
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    season = _active_league.current_season
+
+    # Calculate current cap committed (sum of all player salaries)
+    cap_committed = sum(p.salary or 0 for p in team.roster.players.values())
+    dead_money = 0  # TODO: Track dead money from cuts/trades
+
+    # Generate 6-year projections
+    projections = []
+    for year_offset in range(6):
+        year = season + year_offset
+        projected_cap = int(SALARY_CAP * ((1 + CAP_GROWTH_RATE) ** year_offset))
+
+        # Calculate committed salary for this year
+        # (only count players whose contracts extend to this year)
+        year_committed = 0
+        for player in team.roster.players.values():
+            years_remaining = player.contract_year_remaining or 0
+            if years_remaining > year_offset:
+                year_committed += player.salary or 0
+
+        projections.append(CapProjection(
+            year=year,
+            committed=year_committed,
+            projected_cap=projected_cap,
+            cap_space=projected_cap - year_committed,
+        ))
+
+    return TeamCapSummary(
+        team_abbr=abbreviation.upper(),
+        season=season,
+        salary_cap=SALARY_CAP,
+        cap_committed=cap_committed,
+        cap_space=SALARY_CAP - cap_committed,
+        dead_money=dead_money,
+        projections=projections,
+    )
+
+
+@router.get("/teams/{abbreviation}/cap-players", response_model=TeamCapPlayers)
+async def get_team_cap_players(abbreviation: str) -> TeamCapPlayers:
+    """Get team's players categorized by cap situation."""
+    if _active_league is None:
+        raise HTTPException(status_code=404, detail="No league loaded")
+
+    team = _active_league.get_team(abbreviation.upper())
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    season = _active_league.current_season
+    players = list(team.roster.players.values())
+
+    def player_to_cap_data(player) -> PlayerCapData:
+        salary = player.salary or 0
+        years_remaining = player.contract_year_remaining or 0
+        # Simplified dead money calculation: remaining signing bonus proration
+        # In reality this would be more complex
+        signing_bonus = getattr(player, 'signing_bonus', 0) or 0
+        dead_money = int(signing_bonus * years_remaining / max(player.contract_years or 1, 1))
+        cut_savings = max(0, salary - dead_money)
+
+        # Generate contract year breakdown
+        contract_years = []
+        for i in range(years_remaining):
+            contract_years.append(ContractYear(
+                year=season + i,
+                base_salary=salary,
+                signing_bonus=int(signing_bonus / max(player.contract_years or 1, 1)),
+                cap_hit=salary,
+            ))
+
+        return PlayerCapData(
+            player_id=str(player.id),
+            full_name=player.full_name,
+            position=player.position.value,
+            overall=player.overall,
+            age=player.age,
+            cap_hit=salary,
+            years_remaining=years_remaining,
+            dead_money=dead_money,
+            cut_savings=cut_savings,
+            contract_years=contract_years,
+        )
+
+    # Top earners: highest cap hits
+    top_earners = sorted(players, key=lambda p: p.salary or 0, reverse=True)[:5]
+
+    # Expiring: contract_year_remaining == 1
+    expiring = [p for p in players if (p.contract_year_remaining or 0) == 1]
+    expiring = sorted(expiring, key=lambda p: p.salary or 0, reverse=True)
+
+    # Cuttable: players where cut_savings > 0 (i.e., cutting them saves money)
+    cuttable = []
+    for p in players:
+        salary = p.salary or 0
+        signing_bonus = getattr(p, 'signing_bonus', 0) or 0
+        years_remaining = p.contract_year_remaining or 0
+        dead_money = int(signing_bonus * years_remaining / max(p.contract_years or 1, 1))
+        cut_savings = max(0, salary - dead_money)
+        if cut_savings > 0:
+            cuttable.append(p)
+    cuttable = sorted(cuttable, key=lambda p: (p.salary or 0) - (getattr(p, 'signing_bonus', 0) or 0), reverse=True)
+
+    return TeamCapPlayers(
+        team_abbr=abbreviation.upper(),
+        top_earners=[player_to_cap_data(p) for p in top_earners],
+        expiring=[player_to_cap_data(p) for p in expiring],
+        cuttable=[player_to_cap_data(p) for p in cuttable],
+    )
+
+
+# =============================================================================
 # Playoff Simulation Endpoints
 # =============================================================================
 
@@ -1282,6 +1554,8 @@ def _player_to_summary(player, team_abbr: Optional[str]) -> PlayerSummary:
         experience=player.experience_years,
         jersey_number=player.jersey_number,
         team_abbr=team_abbr,
+        salary=player.salary,
+        contract_year_remaining=player.contract_year_remaining,
     )
 
 
@@ -1309,6 +1583,10 @@ def _player_to_detail(player, team_abbr: Optional[str]) -> PlayerDetail:
         is_rookie=player.is_rookie,
         is_veteran=player.is_veteran,
         attributes=player.attributes.to_dict(),
+        # Contract fields
+        contract_years=player.contract_years,
+        contract_year_remaining=player.contract_year_remaining,
+        salary=player.salary,
     )
 
 

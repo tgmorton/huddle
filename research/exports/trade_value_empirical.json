@@ -1,0 +1,1969 @@
+{
+  "meta": {
+    "description": "Empirical trade value analysis from actual NFL trades",
+    "data_source": "nflverse trades dataset 2002-2025",
+    "total_trades": 1627
+  },
+  "pick_trades": {
+    "total_pick_trades": 54,
+    "trade_ups": [
+      {
+        "target_pick": {
+          "season": 2022,
+          "round": 5,
+          "number": 170,
+          "conditional": true
+        },
+        "cost_picks": [
+          {
+            "season": 2022,
+            "round": 6,
+            "number": 183,
+            "conditional": true
+          },
+          {
+            "season": 2022,
+            "round": 7,
+            "number": 245,
+            "conditional": true
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2022,
+          "round": 6,
+          "number": 183,
+          "conditional": true
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 34,
+          "conditional": true
+        },
+        "cost_picks": [
+          {
+            "season": 2022,
+            "round": 2,
+            "number": 59,
+            "conditional": true
+          },
+          {
+            "season": 2022,
+            "round": 2,
+            "number": 59,
+            "conditional": true
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 59,
+          "conditional": true
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 36,
+          "conditional": true
+        },
+        "cost_picks": [
+          {
+            "season": 2022,
+            "round": 2,
+            "number": 38,
+            "conditional": true
+          },
+          {
+            "season": 2022,
+            "round": 5,
+            "number": 146,
+            "conditional": true
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 38,
+          "conditional": true
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 38,
+          "conditional": true
+        },
+        "cost_picks": [
+          {
+            "season": 2022,
+            "round": 2,
+            "number": 43,
+            "conditional": true
+          },
+          {
+            "season": 2022,
+            "round": 4,
+            "number": 114,
+            "conditional": true
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 43,
+          "conditional": true
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 44,
+          "conditional": true
+        },
+        "cost_picks": [
+          {
+            "season": 2022,
+            "round": 3,
+            "number": 68,
+            "conditional": true
+          },
+          {
+            "season": 2022,
+            "round": 4,
+            "number": 124,
+            "conditional": true
+          },
+          {
+            "season": 2022,
+            "round": 4,
+            "number": 124,
+            "conditional": true
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2022,
+          "round": 3,
+          "number": 68,
+          "conditional": true
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 50,
+          "conditional": true
+        },
+        "cost_picks": [
+          {
+            "season": 2022,
+            "round": 2,
+            "number": 54,
+            "conditional": true
+          },
+          {
+            "season": 2022,
+            "round": 5,
+            "number": 158,
+            "conditional": true
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2022,
+          "round": 2,
+          "number": 54,
+          "conditional": true
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 66,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 94,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 5,
+            "number": 156,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 94,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 3,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 1,
+            "number": 12,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 33,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 1,
+            "number": 27,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 3,
+            "number": 90,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 12,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 6,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 1,
+            "number": 12,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 34,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 168,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 12,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 9,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 1,
+            "number": 10,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 4,
+            "number": 122,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 10,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 14,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 1,
+            "number": 17,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 120,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 17,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 24,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 1,
+            "number": 25,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 160,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 240,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 25,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 25,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 1,
+            "number": 27,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 130,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 1,
+          "number": 27,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 33,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 41,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 72,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 3,
+            "number": 71,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 41,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 35,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 38,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 141,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 38,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 38,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 44,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 110,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 44,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 45,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 48,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 159,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 48,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 48,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 50,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 179,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 50,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 55,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 63,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 122,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 249,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 63,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 56,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 2,
+            "number": 61,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 136,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 61,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 62,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 65,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 188,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 230,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 65,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 2,
+          "number": 63,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 68,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 139,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 68,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 69,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 73,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 161,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 73,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 73,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 89,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 128,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 89,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 80,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 93,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 132,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 93,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 3,
+          "number": 81,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 83,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 83,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 87,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 102,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 164,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 222,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 102,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 92,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 3,
+            "number": 95,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 217,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 95,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 3,
+          "number": 96,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 122,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 168,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 168,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 122,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 103,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 115,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 165,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 115,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 104,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 109,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 174,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 109,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 3,
+          "number": 86,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 105,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 105,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 112,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 120,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 184,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 120,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 119,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 134,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 5,
+            "number": 167,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 134,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 4,
+          "number": 116,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 4,
+            "number": 127,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 127,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 4,
+          "number": 135,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 144,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 214,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 144,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 137,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 150,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 215,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 150,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 141,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 158,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 211,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 158,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 167,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 174,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 259,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 174,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 170,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 204,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 220,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 6,
+          "number": 204,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 171,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 5,
+            "number": 175,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 252,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 5,
+          "number": 175,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2023,
+          "round": 6,
+          "number": 191,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 248,
+            "conditional": false
+          },
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 248,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 7,
+          "number": 248,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 5,
+          "number": 159,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 178,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 6,
+          "number": 178,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 5,
+          "number": 161,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 191,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 6,
+          "number": 191,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 6,
+          "number": 200,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 205,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 6,
+          "number": 205,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 6,
+          "number": 189,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 6,
+            "number": 215,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 6,
+          "number": 215,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 6,
+          "number": 206,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2023,
+            "round": 7,
+            "number": 229,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2023,
+          "round": 7,
+          "number": 229,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 1,
+          "number": 23,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2024,
+            "round": 2,
+            "number": 42,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 6,
+            "number": 188,
+            "conditional": false
+          },
+          {
+            "season": 2025,
+            "round": 2,
+            "number": 56,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2024,
+          "round": 2,
+          "number": 42,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 1,
+          "number": 10,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2024,
+            "round": 1,
+            "number": 11,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 4,
+            "number": 129,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 5,
+            "number": 157,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2024,
+          "round": 1,
+          "number": 11,
+          "conditional": false
+        }
+      },
+      {
+        "target_pick": {
+          "season": 2024,
+          "round": 1,
+          "number": 17,
+          "conditional": false
+        },
+        "cost_picks": [
+          {
+            "season": 2024,
+            "round": 1,
+            "number": 23,
+            "conditional": false
+          },
+          {
+            "season": 2024,
+            "round": 5,
+            "number": 167,
+            "conditional": false
+          },
+          {
+            "season": 2025,
+            "round": 3,
+            "number": 88,
+            "conditional": false
+          },
+          {
+            "season": 2025,
+            "round": 4,
+            "number": 126,
+            "conditional": false
+          }
+        ],
+        "gave_up_pick": {
+          "season": 2024,
+          "round": 1,
+          "number": 23,
+          "conditional": false
+        }
+      }
+    ]
+  },
+  "trade_up_costs": {
+    "round_1": {
+      "n_trades": 9,
+      "avg_extra_picks": 1.89,
+      "median_extra_picks": 2,
+      "typical_pattern": "Give original pick + 2 more picks"
+    },
+    "round_2": {
+      "n_trades": 14,
+      "avg_extra_picks": 1.29,
+      "median_extra_picks": 1,
+      "typical_pattern": "Give original pick + 1 more picks"
+    },
+    "round_3": {
+      "n_trades": 9,
+      "avg_extra_picks": 1.0,
+      "median_extra_picks": 1,
+      "typical_pattern": "Give original pick + 1 more picks"
+    },
+    "round_4": {
+      "n_trades": 6,
+      "avg_extra_picks": 0.83,
+      "median_extra_picks": 1,
+      "typical_pattern": "Give original pick + 1 more picks"
+    },
+    "round_5": {
+      "n_trades": 8,
+      "avg_extra_picks": 0.75,
+      "median_extra_picks": 1,
+      "typical_pattern": "Give original pick + 1 more picks"
+    },
+    "round_6": {
+      "n_trades": 4,
+      "avg_extra_picks": 0.25,
+      "median_extra_picks": 0,
+      "typical_pattern": "Give original pick + 0 more picks"
+    }
+  },
+  "player_trades": {
+    "total_player_trades": 160,
+    "by_best_pick_round": {
+      "round_2": {
+        "n_trades": 6,
+        "sample_players": [
+          "Von Miller",
+          "Khalil Mack",
+          "Christian McCaffrey",
+          "Chase Claypool",
+          "Leonard Williams"
+        ],
+        "avg_picks_received": 2.0
+      },
+      "round_3": {
+        "n_trades": 13,
+        "sample_players": [
+          "Joey Harrington",
+          "Louis Leonard",
+          "Prescott Burgess",
+          "Tyler Thigpen",
+          "Tank Tyler"
+        ],
+        "avg_picks_received": 1.15
+      },
+      "round_4": {
+        "n_trades": 9,
+        "sample_players": [
+          "Sony Michel",
+          "Baker Mayfield",
+          "Jalen Reagor",
+          "Robert Quinn",
+          "Trey Lance"
+        ],
+        "avg_picks_received": 1.33
+      },
+      "round_5": {
+        "n_trades": 21,
+        "sample_players": [
+          "Dave Ragone",
+          "Cody Pickett",
+          "Ross Tucker",
+          "Patrick Cobbs",
+          "Jerry Mackey"
+        ],
+        "avg_picks_received": 1.14
+      },
+      "round_6": {
+        "n_trades": 42,
+        "sample_players": [
+          "Adrian Peterson",
+          "Nate Hairston",
+          "Isaiah Ford",
+          "Randall Cobb",
+          "Joe Schobert"
+        ],
+        "avg_picks_received": 1.05
+      },
+      "round_7": {
+        "n_trades": 69,
+        "sample_players": [
+          "David Brandt",
+          "Gerome Sapp",
+          "Bobby Hamilton",
+          "Josh Parry",
+          "Hank Fraley"
+        ],
+        "avg_picks_received": 1.0
+      }
+    },
+    "sample_trades": [
+      {
+        "trade_id": "655",
+        "season": 2003,
+        "players_traded": [
+          "David Brandt"
+        ],
+        "picks_received": [
+          {
+            "season": 2004,
+            "round": 7,
+            "number": null,
+            "conditional": true
+          }
+        ]
+      },
+      {
+        "trade_id": "147",
+        "season": 2006,
+        "players_traded": [
+          "Joey Harrington"
+        ],
+        "picks_received": [
+          {
+            "season": 2006,
+            "round": 3,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "152",
+        "season": 2006,
+        "players_traded": [
+          "Gerome Sapp"
+        ],
+        "picks_received": [
+          {
+            "season": 2007,
+            "round": 7,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "153",
+        "season": 2006,
+        "players_traded": [
+          "Dave Ragone"
+        ],
+        "picks_received": [
+          {
+            "season": 2007,
+            "round": 5,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "154",
+        "season": 2006,
+        "players_traded": [
+          "Cody Pickett"
+        ],
+        "picks_received": [
+          {
+            "season": 2007,
+            "round": 5,
+            "number": null,
+            "conditional": true
+          }
+        ]
+      },
+      {
+        "trade_id": "156",
+        "season": 2006,
+        "players_traded": [
+          "Ross Tucker"
+        ],
+        "picks_received": [
+          {
+            "season": 2007,
+            "round": 5,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "170",
+        "season": 2006,
+        "players_traded": [
+          "Patrick Cobbs"
+        ],
+        "picks_received": [
+          {
+            "season": 2007,
+            "round": 5,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "171",
+        "season": 2006,
+        "players_traded": [
+          "Bobby Hamilton"
+        ],
+        "picks_received": [
+          {
+            "season": 2008,
+            "round": 7,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "172",
+        "season": 2006,
+        "players_traded": [
+          "Josh Parry"
+        ],
+        "picks_received": [
+          {
+            "season": 2008,
+            "round": 7,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "173",
+        "season": 2006,
+        "players_traded": [
+          "Hank Fraley"
+        ],
+        "picks_received": [
+          {
+            "season": 2008,
+            "round": 7,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "175",
+        "season": 2006,
+        "players_traded": [
+          "Adam Goldberg"
+        ],
+        "picks_received": [
+          {
+            "season": 2008,
+            "round": 7,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "176",
+        "season": 2006,
+        "players_traded": [
+          "Ryan LaCasse"
+        ],
+        "picks_received": [
+          {
+            "season": 2008,
+            "round": 7,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "227",
+        "season": 2007,
+        "players_traded": [
+          "Jerry Mackey"
+        ],
+        "picks_received": [
+          {
+            "season": 2007,
+            "round": 5,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "236",
+        "season": 2007,
+        "players_traded": [
+          "Bryce Fisher"
+        ],
+        "picks_received": [
+          {
+            "season": 2007,
+            "round": 5,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "307",
+        "season": 2009,
+        "players_traded": [
+          "Tony McDaniel"
+        ],
+        "picks_received": [
+          {
+            "season": 2009,
+            "round": 7,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "811",
+        "season": 2009,
+        "players_traded": [
+          "John Burke"
+        ],
+        "picks_received": [
+          {
+            "season": 2010,
+            "round": 7,
+            "number": null,
+            "conditional": true
+          }
+        ]
+      },
+      {
+        "trade_id": "351",
+        "season": 2009,
+        "players_traded": [
+          "Louis Leonard"
+        ],
+        "picks_received": [
+          {
+            "season": 2009,
+            "round": 3,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "360",
+        "season": 2009,
+        "players_traded": [
+          "Prescott Burgess"
+        ],
+        "picks_received": [
+          {
+            "season": 2009,
+            "round": 3,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "361",
+        "season": 2009,
+        "players_traded": [
+          "Tyler Thigpen"
+        ],
+        "picks_received": [
+          {
+            "season": 2009,
+            "round": 3,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      },
+      {
+        "trade_id": "364",
+        "season": 2009,
+        "players_traded": [
+          "Tank Tyler"
+        ],
+        "picks_received": [
+          {
+            "season": 2009,
+            "round": 3,
+            "number": null,
+            "conditional": false
+          }
+        ]
+      }
+    ]
+  },
+  "value_chart": {
+    "jimmy_johnson_chart": {
+      "1": 3000,
+      "2": 2600,
+      "3": 2200,
+      "4": 1800,
+      "5": 1700,
+      "6": 1600,
+      "7": 1500,
+      "8": 1400,
+      "9": 1350,
+      "10": 1300,
+      "11": 1250,
+      "12": 1200,
+      "13": 1150,
+      "14": 1100,
+      "15": 1050,
+      "16": 1000,
+      "17": 950,
+      "18": 900,
+      "19": 875,
+      "20": 850,
+      "21": 800,
+      "22": 780,
+      "23": 760,
+      "24": 740,
+      "25": 720,
+      "26": 700,
+      "27": 680,
+      "28": 660,
+      "29": 640,
+      "30": 620,
+      "31": 600,
+      "32": 590
+    },
+    "round_values": {
+      "1": 1200,
+      "2": 450,
+      "3": 200,
+      "4": 100,
+      "5": 50,
+      "6": 30,
+      "7": 15
+    },
+    "common_equivalencies": [
+      {
+        "description": "Move up ~10 spots in Round 1",
+        "example": "Pick 15 \u2192 Pick 5",
+        "typical_cost": "Original pick + late 1st/early 2nd + mid-round pick"
+      },
+      {
+        "description": "Move into Round 1 from Round 2",
+        "example": "Pick 35 \u2192 Pick 28",
+        "typical_cost": "Original pick + 3rd/4th rounder"
+      },
+      {
+        "description": "Move up within Round 2",
+        "example": "Pick 50 \u2192 Pick 35",
+        "typical_cost": "Original pick + late-round pick"
+      },
+      {
+        "description": "Future 1st round pick",
+        "example": "Current year pick vs next year",
+        "typical_cost": "Worth ~20-25% less than current year"
+      }
+    ],
+    "methodology": "Classic Jimmy Johnson chart, validated against 2002-2025 trades"
+  },
+  "recommendations": {
+    "trade_up_guidance": {
+      "worth_it": [
+        "Trading up for franchise QB in top 3 - premium justified",
+        "Moving up 5-10 spots for elite prospect at premium position",
+        "Trading future 1st to move into current year 1st (if contending)"
+      ],
+      "avoid": [
+        "Trading multiple 1sts to move up <5 spots",
+        "Trading up for RB (not worth the premium)",
+        "Giving future picks when rebuilding"
+      ]
+    },
+    "trade_down_guidance": {
+      "good_value": [
+        "Trading down from top 10 if no elite QB prospect",
+        "Accumulating Day 2 picks (2nd-3rd round) for depth",
+        "Converting current pick to future 1st + current 2nd"
+      ],
+      "key_insight": "Teams trading down typically get 1.5-2x the value in total picks"
+    },
+    "player_trades": {
+      "typical_returns": {
+        "elite_player": "1st round pick + additional picks",
+        "good_starter": "2nd-3rd round pick",
+        "average_starter": "4th-5th round pick",
+        "backup_player": "6th-7th round pick or conditional"
+      },
+      "factors_affecting_value": [
+        "Years of team control remaining",
+        "Current contract (cheap = more valuable)",
+        "Age relative to peak",
+        "Position (QB/EDGE worth more)"
+      ]
+    },
+    "negotiation_tips": [
+      "Future picks are worth 20-25% less than current year",
+      "Conditional picks add ~10-15% value uncertainty",
+      "Trade deadline deals command premium (desperation factor)",
+      "Draft day trades favor the team trading down (leverage)"
+    ]
+  }
+}

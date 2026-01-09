@@ -1,0 +1,288 @@
+{
+  "model_name": "contract_value",
+  "version": "1.0",
+  "description": "Position and tier based contract value model",
+  "overall_stats": {
+    "mean_apy": 2.0,
+    "median_apy": 1.0,
+    "mean_years": 2.0,
+    "mean_gtd_pct": 0.126
+  },
+  "by_position": {
+    "QB": {
+      "mean_apy": 4.0,
+      "median_apy": 1.0,
+      "std_apy": 9.0,
+      "mean_years": 1.9,
+      "mean_gtd_pct": 0.222
+    },
+    "EDGE": {
+      "mean_apy": 3.0,
+      "median_apy": 1.0,
+      "std_apy": 5.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.179
+    },
+    "OT": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 4.0,
+      "mean_years": 2.1,
+      "mean_gtd_pct": 0.142
+    },
+    "DL": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 3.0,
+      "mean_years": 1.9,
+      "mean_gtd_pct": 0.129
+    },
+    "C": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 3.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.128
+    },
+    "WR": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 4.0,
+      "mean_years": 1.9,
+      "mean_gtd_pct": 0.102
+    },
+    "OG": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 3.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.126
+    },
+    "S": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 3.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.135
+    },
+    "CB": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 3.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.107
+    },
+    "LB": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 2.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.118
+    },
+    "TE": {
+      "mean_apy": 2.0,
+      "median_apy": 1.0,
+      "std_apy": 2.0,
+      "mean_years": 1.9,
+      "mean_gtd_pct": 0.104
+    },
+    "K": {
+      "mean_apy": 1.0,
+      "median_apy": 1.0,
+      "std_apy": 1.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.104
+    },
+    "RB": {
+      "mean_apy": 1.0,
+      "median_apy": 1.0,
+      "std_apy": 2.0,
+      "mean_years": 1.9,
+      "mean_gtd_pct": 0.105
+    },
+    "P": {
+      "mean_apy": 1.0,
+      "median_apy": 1.0,
+      "std_apy": 1.0,
+      "mean_years": 2.0,
+      "mean_gtd_pct": 0.121
+    },
+    "LS": {
+      "mean_apy": 1.0,
+      "median_apy": 1.0,
+      "std_apy": 0.0,
+      "mean_years": 1.9,
+      "mean_gtd_pct": 0.113
+    }
+  },
+  "position_tiers_millions": {
+    "QB": {
+      "top_1": 52.15,
+      "top_5": 25.0,
+      "top_10": 8.27,
+      "top_20": 3.02,
+      "average": 1.01,
+      "depth": 0.81,
+      "minimum": 0.57
+    },
+    "EDGE": {
+      "top_1": 24.01,
+      "top_5": 13.32,
+      "top_10": 6.31,
+      "top_20": 2.5,
+      "average": 0.96,
+      "depth": 0.8,
+      "minimum": 0.57
+    },
+    "OT": {
+      "top_1": 22.0,
+      "top_5": 11.5,
+      "top_10": 4.59,
+      "top_20": 1.65,
+      "average": 0.92,
+      "depth": 0.75,
+      "minimum": 0.56
+    },
+    "DL": {
+      "top_1": 20.3,
+      "top_5": 8.0,
+      "top_10": 4.0,
+      "top_20": 1.44,
+      "average": 0.94,
+      "depth": 0.76,
+      "minimum": 0.57
+    },
+    "C": {
+      "top_1": 12.89,
+      "top_5": 7.48,
+      "top_10": 4.3,
+      "top_20": 1.75,
+      "average": 0.95,
+      "depth": 0.76,
+      "minimum": 0.57
+    },
+    "WR": {
+      "top_1": 22.09,
+      "top_5": 6.5,
+      "top_10": 2.52,
+      "top_20": 1.18,
+      "average": 0.9,
+      "depth": 0.74,
+      "minimum": 0.54
+    },
+    "OG": {
+      "top_1": 17.5,
+      "top_5": 6.23,
+      "top_10": 3.18,
+      "top_20": 1.39,
+      "average": 0.92,
+      "depth": 0.75,
+      "minimum": 0.57
+    },
+    "S": {
+      "top_1": 14.72,
+      "top_5": 6.5,
+      "top_10": 3.0,
+      "top_20": 1.39,
+      "average": 0.94,
+      "depth": 0.77,
+      "minimum": 0.57
+    },
+    "CB": {
+      "top_1": 17.25,
+      "top_5": 5.5,
+      "top_10": 2.82,
+      "top_20": 1.23,
+      "average": 0.93,
+      "depth": 0.76,
+      "minimum": 0.56
+    },
+    "LB": {
+      "top_1": 12.82,
+      "top_5": 6.0,
+      "top_10": 3.0,
+      "top_20": 1.28,
+      "average": 0.93,
+      "depth": 0.76,
+      "minimum": 0.57
+    },
+    "TE": {
+      "top_1": 12.5,
+      "top_5": 6.0,
+      "top_10": 2.77,
+      "top_20": 1.21,
+      "average": 0.9,
+      "depth": 0.74,
+      "minimum": 0.56
+    },
+    "K": {
+      "top_1": 5.51,
+      "top_5": 4.41,
+      "top_10": 3.79,
+      "top_20": 2.0,
+      "average": 0.92,
+      "depth": 0.76,
+      "minimum": 0.57
+    },
+    "RB": {
+      "top_1": 12.0,
+      "top_5": 4.0,
+      "top_10": 2.06,
+      "top_20": 1.21,
+      "average": 0.92,
+      "depth": 0.75,
+      "minimum": 0.57
+    },
+    "P": {
+      "top_1": 3.91,
+      "top_5": 3.0,
+      "top_10": 2.65,
+      "top_20": 1.75,
+      "average": 0.94,
+      "depth": 0.75,
+      "minimum": 0.57
+    },
+    "LS": {
+      "top_1": 1.61,
+      "top_5": 1.42,
+      "top_10": 1.37,
+      "top_20": 1.25,
+      "average": 0.99,
+      "depth": 0.76,
+      "minimum": 0.57
+    }
+  },
+  "tier_definitions": {
+    "top_1": "99th percentile (elite, top ~5 at position)",
+    "top_5": "95th percentile (top ~15 at position)",
+    "top_10": "90th percentile (top ~30 at position)",
+    "top_20": "80th percentile (solid starter)",
+    "average": "50th percentile (average starter)",
+    "depth": "25th percentile (backup/rotational)",
+    "minimum": "5th percentile (veteran minimum types)"
+  },
+  "factor_mapping": {
+    "position": {
+      "huddle_factor": "player.position",
+      "available": true
+    },
+    "overall": {
+      "huddle_factor": "player.overall",
+      "available": true
+    },
+    "age": {
+      "huddle_factor": "player.age",
+      "available": true
+    },
+    "experience": {
+      "huddle_factor": "player.years_pro",
+      "available": true
+    }
+  },
+  "implementation_notes": [
+    "Use position_tiers to determine APY based on player tier",
+    "Apply age curve adjustments for players past peak",
+    "Guaranteed % varies by position - QBs get highest",
+    "Contract length correlates with age and position"
+  ]
+}

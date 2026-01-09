@@ -1642,41 +1642,44 @@
   font-family: var(--font-mono);
 }
 
-/* Drive Result Overlay */
+/* Drive Result Overlay - Below scoreboard (doesn't obstruct field) */
 .drive-result-overlay {
   position: absolute;
-  top: 50%;
+  top: 80px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   text-align: center;
-  padding: 32px 48px;
+  padding: var(--unit-quarter) var(--unit-half);
   background: var(--bg-panel);
   z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: var(--unit-half);
 }
 
 .drive-result-overlay__yards {
-  font-size: 2rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--accent);
   font-family: var(--font-mono);
-  margin-bottom: 4px;
+  margin: 0;
 }
 
 .drive-result-overlay__outcome {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 2px;
-  margin-bottom: 20px;
   font-family: var(--font-mono);
+  margin: 0;
 }
 
 .drive-result-overlay__btn {
-  padding: 12px 28px;
+  padding: 8px 16px;
   background: var(--accent);
   border: none;
   color: #000;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 1px;
   cursor: pointer;

@@ -1,0 +1,220 @@
+{
+  "model_name": "blocking_attribute_projection",
+  "description": "Maps OL/DL blocking attributes to NFL performance metrics",
+  "data_source": "NFL PBP 2019-2024 (team-level)",
+  "note": "Individual OL/DL stats not available in PBP; using team-level proxies",
+  "ol_pass_block": {
+    "Elite": {
+      "pressure_allowed": 0.113,
+      "sack_rate_allowed": 0.05260000005364418,
+      "sample": 48
+    },
+    "Above Avg": {
+      "pressure_allowed": 0.1389,
+      "sack_rate_allowed": 0.06030000001192093,
+      "sample": 48
+    },
+    "Below Avg": {
+      "pressure_allowed": 0.1603,
+      "sack_rate_allowed": 0.06759999692440033,
+      "sample": 48
+    },
+    "Bad": {
+      "pressure_allowed": 0.1969,
+      "sack_rate_allowed": 0.08609999716281891,
+      "sample": 48
+    }
+  },
+  "ol_run_block": {
+    "Elite": {
+      "ypc": 5.099999904632568,
+      "stuff_rate": 0.1567,
+      "explosive_rate": 0.1419,
+      "sample": 48
+    },
+    "Above Avg": {
+      "ypc": 4.599999904632568,
+      "stuff_rate": 0.1675,
+      "explosive_rate": 0.1198,
+      "sample": 48
+    },
+    "Below Avg": {
+      "ypc": 4.320000171661377,
+      "stuff_rate": 0.174,
+      "explosive_rate": 0.1117,
+      "sample": 48
+    },
+    "Bad": {
+      "ypc": 3.940000057220459,
+      "stuff_rate": 0.1902,
+      "explosive_rate": 0.0937,
+      "sample": 48
+    }
+  },
+  "dl_pass_rush": {
+    "Elite": {
+      "pressure_generated": 0.1811,
+      "sack_rate": 0.07599999755620956,
+      "sample": 48
+    },
+    "Above Avg": {
+      "pressure_generated": 0.1602,
+      "sack_rate": 0.06930000334978104,
+      "sample": 48
+    },
+    "Below Avg": {
+      "pressure_generated": 0.1413,
+      "sack_rate": 0.06430000066757202,
+      "sample": 48
+    },
+    "Bad": {
+      "pressure_generated": 0.1213,
+      "sack_rate": 0.05299999937415123,
+      "sample": 48
+    }
+  },
+  "dl_block_shed": {
+    "Elite": {
+      "stuff_rate_generated": 0.2126,
+      "ypc_allowed": 4.260000228881836,
+      "sample": 48
+    },
+    "Above Avg": {
+      "stuff_rate_generated": 0.1806,
+      "ypc_allowed": 4.400000095367432,
+      "sample": 48
+    },
+    "Below Avg": {
+      "stuff_rate_generated": 0.1615,
+      "ypc_allowed": 4.659999847412109,
+      "sample": 48
+    },
+    "Bad": {
+      "stuff_rate_generated": 0.1324,
+      "ypc_allowed": 4.730000019073486,
+      "sample": 48
+    }
+  },
+  "attribute_calibration": {
+    "pass_block": {
+      "nfl_metric": "pressure_rate_allowed",
+      "tier_data": {
+        "Elite": {
+          "pressure_allowed": 0.113,
+          "sack_rate_allowed": 0.05260000005364418,
+          "sample": 48
+        },
+        "Above Avg": {
+          "pressure_allowed": 0.1389,
+          "sack_rate_allowed": 0.06030000001192093,
+          "sample": 48
+        },
+        "Below Avg": {
+          "pressure_allowed": 0.1603,
+          "sack_rate_allowed": 0.06759999692440033,
+          "sample": 48
+        },
+        "Bad": {
+          "pressure_allowed": 0.1969,
+          "sack_rate_allowed": 0.08609999716281891,
+          "sample": 48
+        }
+      },
+      "note": "Lower pressure allowed = better pass blocking",
+      "spread_elite_to_bad": 0.0839,
+      "effect_per_10_points": -0.0153
+    },
+    "run_block": {
+      "nfl_metric": "yards_per_carry_and_stuff_rate",
+      "tier_data": {
+        "Elite": {
+          "ypc": 5.099999904632568,
+          "stuff_rate": 0.1567,
+          "explosive_rate": 0.1419,
+          "sample": 48
+        },
+        "Above Avg": {
+          "ypc": 4.599999904632568,
+          "stuff_rate": 0.1675,
+          "explosive_rate": 0.1198,
+          "sample": 48
+        },
+        "Below Avg": {
+          "ypc": 4.320000171661377,
+          "stuff_rate": 0.174,
+          "explosive_rate": 0.1117,
+          "sample": 48
+        },
+        "Bad": {
+          "ypc": 3.940000057220459,
+          "stuff_rate": 0.1902,
+          "explosive_rate": 0.0937,
+          "sample": 48
+        }
+      },
+      "ypc_spread": 1.159999966621399,
+      "effect_per_10_points": 0.211
+    },
+    "pass_rush": {
+      "nfl_metric": "pressure_rate_generated",
+      "tier_data": {
+        "Elite": {
+          "pressure_generated": 0.1811,
+          "sack_rate": 0.07599999755620956,
+          "sample": 48
+        },
+        "Above Avg": {
+          "pressure_generated": 0.1602,
+          "sack_rate": 0.06930000334978104,
+          "sample": 48
+        },
+        "Below Avg": {
+          "pressure_generated": 0.1413,
+          "sack_rate": 0.06430000066757202,
+          "sample": 48
+        },
+        "Bad": {
+          "pressure_generated": 0.1213,
+          "sack_rate": 0.05299999937415123,
+          "sample": 48
+        }
+      },
+      "note": "Higher pressure generated = better pass rush",
+      "spread_elite_to_bad": 0.0598,
+      "effect_per_10_points": 0.0109
+    },
+    "block_shedding": {
+      "nfl_metric": "stuff_rate_generated",
+      "tier_data": {
+        "Elite": {
+          "stuff_rate_generated": 0.2126,
+          "ypc_allowed": 4.260000228881836,
+          "sample": 48
+        },
+        "Above Avg": {
+          "stuff_rate_generated": 0.1806,
+          "ypc_allowed": 4.400000095367432,
+          "sample": 48
+        },
+        "Below Avg": {
+          "stuff_rate_generated": 0.1615,
+          "ypc_allowed": 4.659999847412109,
+          "sample": 48
+        },
+        "Bad": {
+          "stuff_rate_generated": 0.1324,
+          "ypc_allowed": 4.730000019073486,
+          "sample": 48
+        }
+      },
+      "spread_elite_to_bad": 0.0802,
+      "effect_per_10_points": 0.0146
+    }
+  },
+  "attributes_covered": [
+    "pass_block",
+    "run_block",
+    "pass_rush",
+    "block_shedding"
+  ]
+}

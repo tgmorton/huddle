@@ -1,0 +1,136 @@
+{
+  "model_name": "rushing_attribute_projection",
+  "description": "Maps RB rushing attributes to NFL performance metrics",
+  "data_source": "NFL PBP and NGS 2019-2024",
+  "yards_after_contact": {},
+  "yards_before_contact": {},
+  "fumble_rate": {
+    "Elite": {
+      "fumble_rate": 0.02055,
+      "fumble_rate_per_100": 2.06,
+      "sample": 16737
+    },
+    "Above Avg": {
+      "fumble_rate": 0.00846,
+      "fumble_rate_per_100": 0.85,
+      "sample": 19622
+    },
+    "Below Avg": {
+      "fumble_rate": 0.00761,
+      "fumble_rate_per_100": 0.76,
+      "sample": 20238
+    },
+    "Bad": {
+      "fumble_rate": 0.00714,
+      "fumble_rate_per_100": 0.71,
+      "sample": 15267
+    }
+  },
+  "short_yardage": {
+    "Elite": {
+      "success_rate": 0.7555,
+      "avg_yards": 4.320000171661377,
+      "sample": 1309
+    },
+    "Above Avg": {
+      "success_rate": 0.6835,
+      "avg_yards": 3.5,
+      "sample": 1128
+    },
+    "Below Avg": {
+      "success_rate": 0.682,
+      "avg_yards": 3.2300000190734863,
+      "sample": 1308
+    },
+    "Bad": {
+      "success_rate": 0.6239,
+      "avg_yards": 2.430000066757202,
+      "sample": 1061
+    }
+  },
+  "stuff_rate": {
+    "Elite": {
+      "stuff_rate": 0.1452,
+      "sample": 16675
+    },
+    "Above Avg": {
+      "stuff_rate": 0.1667,
+      "sample": 19588
+    },
+    "Below Avg": {
+      "stuff_rate": 0.1766,
+      "sample": 20198
+    },
+    "Bad": {
+      "stuff_rate": 0.1944,
+      "sample": 15247
+    }
+  },
+  "explosive_rate": {
+    "Elite": {
+      "explosive_rate": 0.1673,
+      "sample": 16675
+    },
+    "Above Avg": {
+      "explosive_rate": 0.116,
+      "sample": 19588
+    },
+    "Below Avg": {
+      "explosive_rate": 0.0997,
+      "sample": 20198
+    },
+    "Bad": {
+      "explosive_rate": 0.0716,
+      "sample": 15247
+    }
+  },
+  "attribute_calibration": {
+    "carrying": {
+      "nfl_metric": "fumble_rate_inverse",
+      "tier_data": {
+        "Elite": 0.02055,
+        "Above Avg": 0.00846,
+        "Below Avg": 0.00761,
+        "Bad": 0.00714
+      },
+      "note": "Higher carrying = lower fumble rate",
+      "spread_elite_to_bad": -0.01341,
+      "effect_per_10_points": 0.00244
+    },
+    "trucking": {
+      "nfl_metric": "short_yardage_success_rate",
+      "tier_data": {
+        "Elite": 0.7555,
+        "Above Avg": 0.6835,
+        "Below Avg": 0.682,
+        "Bad": 0.6239
+      },
+      "spread_elite_to_bad": 0.1316,
+      "effect_per_10_points": 0.0239
+    },
+    "break_tackle": {
+      "nfl_metric": "stuff_rate_and_explosive_rate",
+      "stuff_rate_by_tier": {
+        "Elite": 0.1452,
+        "Above Avg": 0.1667,
+        "Below Avg": 0.1766,
+        "Bad": 0.1944
+      },
+      "explosive_rate_by_tier": {
+        "Elite": 0.1673,
+        "Above Avg": 0.116,
+        "Below Avg": 0.0997,
+        "Bad": 0.0716
+      },
+      "stuff_spread": 0.0492,
+      "explosive_spread": 0.0957
+    }
+  },
+  "attributes_covered": [
+    "elusiveness",
+    "ball_carrier_vision",
+    "break_tackle",
+    "trucking",
+    "carrying"
+  ]
+}

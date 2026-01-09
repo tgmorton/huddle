@@ -1,13 +1,18 @@
 """Linebacker Brain - Decision-making for MLBs, OLBs, and ILBs.
 
-The LB brain is the most versatile defensive brain, handling:
-- Run/pass diagnosis
-- Gap fits vs run
-- Zone and man coverage
-- Blitz execution
-- Pursuit
+PLAYMAKER-FIRST PHILOSOPHY:
+The LB's objective is MAKING PLAYS, not reading keys.
 
-Phases: PRE_SNAP → READ → RUN_FIT/COVERAGE/BLITZ → PURSUIT → TACKLE
+Principles:
+1. TARGET = The ball. Always know where it is, always be moving toward it.
+2. Reads are a MEANS to making plays faster, not the goal itself.
+3. Run fit = get to the ballcarrier FIRST (before blockers arrive)
+4. Coverage = position to INTERCEPT or BREAK UP the pass
+5. Every decision optimizes for: tackles, INTs, PBUs, TFLs
+
+The LB who waits to be sure loses. The LB who attacks makes plays.
+
+Phases: PRE_SNAP → ATTACK → MAKE_PLAY
 """
 
 from __future__ import annotations
@@ -19,6 +24,18 @@ from typing import List, Optional, Tuple
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
+from ..core.trace import get_trace_system, TraceCategory
+from ..core.variance import pursuit_angle_accuracy
+
+
+# =============================================================================
+# Trace Helper
+# =============================================================================
+
+def _trace(world: WorldState, msg: str, category: TraceCategory = TraceCategory.DECISION):
+    """Add a trace for this LB."""
+    trace = get_trace_system()
+    trace.trace(world.me.id, world.me.name, category, msg)
 
 
 # =============================================================================
@@ -36,14 +53,14 @@ class PlayDiagnosis(str, Enum):
 
 
 class LBPhase(str, Enum):
-    """Current phase of LB actions."""
-    PRE_SNAP = "pre_snap"
-    READING = "reading"
-    RUN_FIT = "run_fit"
-    COVERAGE = "coverage"
-    BLITZ = "blitz"
-    PURSUIT = "pursuit"
-    TACKLE = "tackle"
+    """Current phase of LB actions - all phases lead to making plays."""
+    PRE_SNAP = "pre_snap"      # Pre-snap alignment to optimize play-making position
+    READING = "reading"        # Quick key read to attack faster (not to be certain)
+    RUN_FIT = "run_fit"        # Attacking the ball through assigned gap
+    COVERAGE = "coverage"      # Positioning for INT/PBU opportunity
+    BLITZ = "blitz"            # Direct path to sack/TFL
+    PURSUIT = "pursuit"        # Closing on ballcarrier for tackle
+    TACKLE = "tackle"          # Making the play
 
 
 class GapResponsibility(str, Enum):
@@ -167,7 +184,10 @@ def _read_keys(world: WorldState) -> ReadKeys:
 
 
 def _diagnose_play(world: WorldState, state: LBState) -> Tuple[PlayDiagnosis, float]:
-    """Diagnose run vs pass.
+    """Quick read to attack faster - not to be certain.
+
+    The goal is to make plays, and reading helps us attack in the right
+    direction SOONER. We don't wait to be sure - we attack on first read.
 
     Returns:
         (diagnosis, confidence)
@@ -314,6 +334,50 @@ def _get_gap_position(world: WorldState, gap: GapResponsibility) -> Vec2:
     return gap_positions.get(gap, Vec2(0, los))
 
 
+def _read_run_direction(world: WorldState) -> str:
+    """Read OL blocking flow to determine run direction.
+
+    Key reads:
+    - Guard pulling = run going that way
+    - OL zone stepping = run to that side
+    - Explicit run_play_side from WorldState
+
+    Returns: "left", "right", or "unknown"
+    """
+    # Check explicit run side if available
+    if hasattr(world, 'run_play_side') and world.run_play_side:
+        return world.run_play_side
+
+    # Read guard/tackle movement (zone step direction)
+    left_flow = 0
+    right_flow = 0
+
+    for opp in world.opponents:
+        if opp.position in (Position.LG, Position.LT):
+            if opp.velocity.x > 1.0:  # Moving right
+                right_flow += 1
+            elif opp.velocity.x < -1.0:  # Moving left
+                left_flow += 1
+        elif opp.position in (Position.RG, Position.RT):
+            if opp.velocity.x > 1.0:
+                right_flow += 1
+            elif opp.velocity.x < -1.0:
+                left_flow += 1
+        # Guard pulling is a strong indicator
+        elif opp.position in (Position.LG, Position.RG):
+            if abs(opp.velocity.x) > 3.0:  # Pulling
+                if opp.velocity.x > 0:
+                    right_flow += 2  # Strong indicator
+                else:
+                    left_flow += 2
+
+    if right_flow > left_flow:
+        return "right"
+    elif left_flow > right_flow:
+        return "left"
+    return "unknown"
+
+
 def _find_my_gap(world: WorldState) -> GapResponsibility:
     """Determine assigned gap based on position and alignment."""
     my_pos = world.me.pos
@@ -330,12 +394,19 @@ def _find_my_gap(world: WorldState) -> GapResponsibility:
     return GapResponsibility.B_GAP
 
 
-def _calculate_pursuit_angle(my_pos: Vec2, bc_pos: Vec2, bc_vel: Vec2, my_speed: float) -> Vec2:
-    """Calculate pursuit angle to intercept ballcarrier."""
+def _calculate_pursuit_angle(
+    world: WorldState, my_pos: Vec2, bc_pos: Vec2, bc_vel: Vec2, my_speed: float
+) -> Vec2:
+    """Calculate optimal angle to make the tackle - cut off the ballcarrier.
+
+    Applies pursuit_angle_accuracy variance - lower awareness/tackle
+    LB take worse angles (overpursue), creating cutback opportunities.
+    """
     if bc_vel.length() < 0.5:
         return bc_pos
 
-    # Predict where ballcarrier will be
+    # Calculate optimal intercept point
+    optimal_intercept = bc_pos
     time_estimates = [0.5, 1.0, 1.5, 2.0]
 
     for t in time_estimates:
@@ -344,10 +415,24 @@ def _calculate_pursuit_angle(my_pos: Vec2, bc_pos: Vec2, bc_vel: Vec2, my_speed:
         my_time = my_dist / my_speed if my_speed > 0 else 10.0
 
         if my_time <= t + 0.2:  # Can intercept
-            return predicted
+            optimal_intercept = predicted
+            break
+    else:
+        optimal_intercept = bc_pos + bc_vel * 0.5
 
-    # Can't intercept - just chase
-    return bc_pos + bc_vel * 0.5
+    # Apply pursuit accuracy variance
+    # Lower awareness/tackle = worse angles (overpursue toward current pos)
+    awareness = getattr(world.me.attributes, 'awareness', 75)
+    tackle = getattr(world.me.attributes, 'tackle', 75)
+    fatigue = getattr(world.me, 'fatigue', 0.0)
+
+    accuracy = pursuit_angle_accuracy(awareness, tackle, fatigue)
+
+    if accuracy < 1.0:
+        # Lerp toward ballcarrier current position (overpursuit)
+        return optimal_intercept.lerp(bc_pos, 1.0 - accuracy)
+
+    return optimal_intercept
 
 
 # =============================================================================
@@ -491,13 +576,15 @@ def _get_blitz_path(world: WorldState, gap: GapResponsibility) -> Vec2:
 # =============================================================================
 
 def lb_brain(world: WorldState) -> BrainDecision:
-    """Linebacker brain - called every tick for MLBs, OLBs, and ILBs.
+    """Linebacker brain - PLAYMAKER-FIRST decision making.
 
-    Args:
-        world: Complete world state
+    Priority order:
+    1. Can I make a tackle RIGHT NOW? → MAKE IT
+    2. Can I get to the ball? → ATTACK IT
+    3. Quick read to attack in right direction → GO
 
     Returns:
-        BrainDecision with action and reasoning
+        BrainDecision optimizing for tackles, INTs, PBUs, TFLs
     """
     state = _get_state(world.me.id)
 
@@ -520,7 +607,7 @@ def lb_brain(world: WorldState) -> BrainDecision:
         # Calculate pursuit angle
         my_speed = 5.0 + (world.me.attributes.speed - 75) * 0.1
         intercept = _calculate_pursuit_angle(
-            world.me.pos, ballcarrier.pos, ballcarrier.velocity, my_speed
+            world, world.me.pos, ballcarrier.pos, ballcarrier.velocity, my_speed
         )
 
         dist = world.me.pos.distance_to(ballcarrier.pos)
@@ -533,7 +620,7 @@ def lb_brain(world: WorldState) -> BrainDecision:
                 action="tackle",
                 target_id=ballcarrier.id,
                 intent="tackle",
-                reasoning=f"Tackling ballcarrier at {dist:.1f}yd",
+                reasoning=f"Making tackle at {dist:.1f}yd!",
             )
 
         return BrainDecision(
@@ -541,7 +628,7 @@ def lb_brain(world: WorldState) -> BrainDecision:
             move_type="sprint",
             intent="pursuit",
             target_id=ballcarrier.id,
-            reasoning=f"Pursuing at angle, {dist:.1f}yd from ballcarrier",
+            reasoning=f"Closing for tackle ({dist:.1f}yd)",
         )
 
     # =========================================================================
@@ -557,11 +644,11 @@ def lb_brain(world: WorldState) -> BrainDecision:
             move_type="sprint",
             action="blitz",
             intent="blitz",
-            reasoning=f"Blitzing through {state.blitz_gap.value}",
+            reasoning=f"Attacking QB through {state.blitz_gap.value} for sack!",
         )
 
     # =========================================================================
-    # Read Phase
+    # Read Phase - Quick read to attack in right direction
     # =========================================================================
     if state.diagnosis == PlayDiagnosis.UNKNOWN:
         state.phase = LBPhase.READING
@@ -575,7 +662,7 @@ def lb_brain(world: WorldState) -> BrainDecision:
 
         return BrainDecision(
             intent="reading",
-            reasoning=f"Reading keys... ({world.time_since_snap:.2f}s)",
+            reasoning=f"Quick read, ready to attack ({world.time_since_snap:.2f}s)",
         )
 
     # =========================================================================
@@ -612,50 +699,117 @@ def lb_brain(world: WorldState) -> BrainDecision:
                 # Fall through to pass response
 
     # =========================================================================
-    # Run Response
+    # Run Response - ATTACK THE BALL! Get there before blockers!
     # =========================================================================
-    if state.diagnosis == PlayDiagnosis.RUN:
+    if state.diagnosis == PlayDiagnosis.RUN or (
+        hasattr(world, 'is_run_play') and world.is_run_play
+    ):
         state.phase = LBPhase.RUN_FIT
+
+        # Read run direction from OL flow
+        run_direction = _read_run_direction(world)
+        my_side = "right" if world.me.pos.x > 0 else "left"
+        run_to_me = run_direction == my_side
 
         gap_pos = _get_gap_position(world, state.gap_assignment)
 
-        # Check for blocker
-        for opp in world.opponents:
-            if opp.position in (Position.LG, Position.RG, Position.C, Position.FB):
-                if opp.pos.distance_to(gap_pos) < 3:
-                    state.blocker_id = opp.id
-                    break
+        # Ballcarrier location for fill decisions
+        ballcarrier = _find_ballcarrier(world)
+        bc_committed = ballcarrier and ballcarrier.pos.y > world.los_y - 2
 
-        if state.blocker_id:
-            # Take on blocker
+        # -------------------------------------------------------------------------
+        # Run TO my side - ATTACK GAP AT LOS! Don't wait for BC!
+        # -------------------------------------------------------------------------
+        if run_to_me or run_direction == "unknown":
+            # Attack point is ALWAYS at LOS level in our gap
+            # LBs fill the gap, RB runs into them - not the other way around
+            attack_point = Vec2(gap_pos.x, world.los_y)
+
+            # If close enough to BC, make the tackle
+            if ballcarrier:
+                dist_to_bc = world.me.pos.distance_to(ballcarrier.pos)
+
+                if dist_to_bc < 2.5:
+                    return BrainDecision(
+                        move_target=ballcarrier.pos,
+                        move_type="sprint",
+                        action="tackle",
+                        target_id=ballcarrier.id,
+                        intent="tackle",
+                        reasoning=f"TFL! {dist_to_bc:.1f}yd",
+                    )
+
+            # ALWAYS attack gap at LOS - don't wait for BC to commit!
+            # This is the key change: LBs are PROACTIVE, not REACTIVE
+            dist_to_gap = world.me.pos.distance_to(attack_point)
+
+            if dist_to_gap < 1.0:
+                # Already at gap - hold and wait for contact
+                return BrainDecision(
+                    move_target=attack_point,
+                    move_type="run",
+                    action="hold_gap",
+                    intent="run_fit",
+                    reasoning=f"Holding {state.gap_assignment.value} at LOS",
+                )
+
+            # Sprint to gap at LOS - get there BEFORE the play arrives
             return BrainDecision(
-                move_target=gap_pos,
-                move_type="run",
-                action="fit_gap",
+                move_target=attack_point,
+                move_type="sprint",
+                action="attack_gap",
                 intent="run_fit",
-                target_id=state.blocker_id,
-                reasoning=f"Fitting {state.gap_assignment.value}, engaging blocker",
+                reasoning=f"Attacking {state.gap_assignment.value} at LOS!",
             )
 
-        return BrainDecision(
-            move_target=gap_pos,
-            move_type="sprint",
-            action="fit_gap",
-            intent="run_fit",
-            reasoning=f"Filling {state.gap_assignment.value}",
-        )
+        # -------------------------------------------------------------------------
+        # Run AWAY from my side - SCRAPE for cutback tackle opportunity
+        # -------------------------------------------------------------------------
+        else:
+            # Flow toward ball but stay in position for cutback tackle
+            # Cutbacks = tackle opportunity!
+
+            # Check for cutback - if RB is coming back toward me
+            if ballcarrier:
+                bc_coming_back = (
+                    (my_side == "right" and ballcarrier.velocity.x > 1) or
+                    (my_side == "left" and ballcarrier.velocity.x < -1)
+                )
+
+                if bc_coming_back:
+                    # Cutback! Big play opportunity!
+                    return BrainDecision(
+                        move_target=ballcarrier.pos,
+                        move_type="sprint",
+                        action="cutback_fill",
+                        target_id=ballcarrier.id,
+                        intent="cutback",
+                        reasoning="Cutback! TFL opportunity!",
+                    )
+
+            # Scrape toward ball, positioned for cutback tackle
+            scrape_x = gap_pos.x + (3 if run_direction == "right" else -3)
+            scrape_pos = Vec2(scrape_x, world.los_y + 2)
+
+            return BrainDecision(
+                move_target=scrape_pos,
+                move_type="run",
+                action="scrape",
+                intent="backside_scrape",
+                reasoning=f"Positioning for cutback tackle",
+            )
 
     # =========================================================================
-    # Pass Response (Zone or Man Coverage)
+    # Pass Response - Position for INT/PBU opportunity!
     # =========================================================================
     if state.diagnosis == PlayDiagnosis.PASS:
         state.phase = LBPhase.COVERAGE
 
-        # Zone coverage
+        # Zone coverage - position for INT opportunities
         if state.coverage_assignment != CoverageType.MAN:
             zone_pos = _get_zone_position(world, state.coverage_assignment)
 
-            # Check for receiver in zone
+            # Check for receiver in zone - PBU opportunity
             receiver = _find_receiver_in_zone(world, zone_pos)
 
             if receiver:
@@ -664,10 +818,10 @@ def lb_brain(world: WorldState) -> BrainDecision:
                     move_type="run",
                     intent="zone_cover",
                     target_id=receiver.id,
-                    reasoning=f"Receiver in {state.coverage_assignment.value} zone",
+                    reasoning=f"Taking away {state.coverage_assignment.value} throw",
                 )
 
-            # Ball thrown - break on it (with reaction delay)
+            # Ball thrown - INT opportunity!
             if world.ball.is_in_flight:
                 if world.ball.flight_target:
                     target = world.ball.flight_target
@@ -682,7 +836,7 @@ def lb_brain(world: WorldState) -> BrainDecision:
                             move_target=zone_pos,
                             move_type="run",
                             intent="zone_drop",
-                            reasoning=f"Reacting to throw ({delay_remaining:.2f}s)",
+                            reasoning=f"Locating ball ({delay_remaining:.2f}s)",
                         )
 
                     # Reacted - now check if ball is in our zone
@@ -692,17 +846,17 @@ def lb_brain(world: WorldState) -> BrainDecision:
                             move_type="sprint",
                             action="break_on_ball",
                             intent="zone_break",
-                            reasoning="Ball thrown to zone, breaking!",
+                            reasoning="INT opportunity! Breaking on ball!",
                         )
 
             return BrainDecision(
                 move_target=zone_pos,
                 move_type="run",
                 intent="zone_drop",
-                reasoning=f"Dropping to {state.coverage_assignment.value} zone",
+                reasoning=f"Positioning for INT in {state.coverage_assignment.value}",
             )
 
-        # Man coverage
+        # Man coverage - take away the throw, position for PBU/INT
         else:
             man = _find_man_assignment(world)
 
@@ -714,7 +868,7 @@ def lb_brain(world: WorldState) -> BrainDecision:
                     move_type="run" if dist > 5 else "sprint",
                     intent="man_cover",
                     target_id=man.id,
-                    reasoning=f"Man coverage on {man.position.value}, {dist:.1f}yd away",
+                    reasoning=f"Taking away throw to {man.position.value} ({dist:.1f}yd)",
                 )
 
     # Default: hold position

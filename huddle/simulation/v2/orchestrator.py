@@ -19,6 +19,7 @@ Usage:
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Dict, Any, Optional, Callable, Tuple
@@ -35,28 +36,20 @@ from .systems.coverage import CoverageSystem, CoverageType
 from .systems.passing import PassingSystem, ThrowResult, CatchResolution
 from .resolution.tackle import TackleResolver, TackleOutcome
 from .resolution.move import MoveResolver, MoveOutcome
-from .resolution.blocking import BlockResolver, BlockOutcome, BlockType, find_blocking_matchups
+from .resolution.blocking import (
+    BlockResolver, BlockOutcome, BlockType, find_blocking_matchups,
+    roll_play_blocking_quality, reset_play_blocking_quality
+)
 from .plays.run_concepts import get_run_concept, RunConcept
 from .game_state import PlayHistory, GameSituation
 from .core.variance import VarianceConfig, SimulationMode, set_config as set_variance_config
 from .core.trace import get_trace_system, TraceCategory
-
-
-# =============================================================================
-# Play Phase
-# =============================================================================
-
-class PlayPhase(str, Enum):
-    """Current phase of play execution."""
-    SETUP = "setup"           # Configuring the play
-    PRE_SNAP = "pre_snap"     # At alignments, ready to snap
-    SNAP = "snap"             # Ball just snapped (single tick)
-    DEVELOPMENT = "development"  # Routes running, pocket forming
-    BALL_IN_AIR = "ball_in_air"  # Pass thrown, waiting for resolution
-    AFTER_CATCH = "after_catch"  # Receiver caught ball, now running
-    RUN_ACTIVE = "run_active"    # Ballcarrier has ball, running (handoff/scramble)
-    RESOLUTION = "resolution"    # Play resolving (tackle, catch, etc.)
-    POST_PLAY = "post_play"      # Play complete, compiling results
+from .core.phases import PlayPhase, PhaseStateMachine
+from .core.contexts import (
+    WorldStateBase, QBContext, WRContext, OLContext, DLContext,
+    LBContext, DBContext, RBContext, BallcarrierContext,
+)
+from .systems.pressure import PressureSystem, PressureState, PressureLevel
 
 
 class DropbackType(str, Enum):
@@ -130,6 +123,11 @@ class PlayerView:
     # Route info (for receivers)
     read_order: int = 0  # QB read progression (1 = first read, 2 = second, etc.)
     break_point: Optional[Vec2] = None  # Where receiver will cut on route
+    route_direction: str = ""  # "inside", "outside", "vertical" - direction of route
+    route_settles: bool = False  # True if route ends in a stop (curl, hitch)
+    settle_point: Optional[Vec2] = None  # Where settling routes stop (for throw targeting)
+    route_phase: str = ""  # release, stem, break, post_break, complete
+    pre_break: bool = True  # Is receiver before their break point?
 
     @classmethod
     def from_player(cls, player: Player, observer_pos: Optional[Vec2] = None) -> PlayerView:
@@ -181,133 +179,11 @@ class BallView:
         )
 
 
-@dataclass
-class WorldState:
-    """Complete world state passed to AI brains each tick.
-
-    This is the interface between simulation and AI. Brains receive
-    this and return decisions. They don't have direct access to
-    simulation internals.
-
-    Attributes:
-        me: The player this brain controls
-        teammates: Other players on same team
-        opponents: Players on opposing team
-        ball: Ball state
-        field: Field reference for geometry
-        clock: Current time info
-        phase: Current play phase
-
-        # Context-specific data
-        assignment: Current assignment (route, coverage target, etc.)
-        threats: Nearby threats (defenders for ballcarrier, rushers for QB)
-        opportunities: Windows, gaps, open receivers
-    """
-    # Core state
-    me: Player
-    teammates: List[PlayerView]
-    opponents: List[PlayerView]
-    ball: BallView
-    field: Field
-
-    # Time
-    current_time: float
-    tick: int
-    dt: float  # Time delta for this tick
-
-    # Play context
-    phase: PlayPhase
-    time_since_snap: float = 0.0
-
-    # Assignment info (varies by position)
-    assignment: str = ""
-    target_id: Optional[str] = None  # Man coverage target, blocking assignment, etc.
-
-    # Route info (for receivers)
-    route_target: Optional[Vec2] = None  # Current waypoint target from route system
-    route_phase: Optional[str] = None  # release, stem, break, post_break, complete
-    at_route_break: bool = False  # Is receiver at the break point?
-    route_settles: bool = False  # Does this route settle (curl/hitch) vs continue (slant/go)?
-
-    # Spatial awareness
-    threats: List[PlayerView] = field(default_factory=list)
-    opportunities: Dict[str, Any] = field(default_factory=dict)
-
-    # Situational
-    down: int = 1
-    distance: float = 10.0
-    los_y: float = 0.0  # Line of scrimmage Y position
-
-    # QB timing state (for QB brain decision-making)
-    dropback_depth: float = 7.0  # Target depth for QB dropback (yards behind LOS)
-    dropback_target_pos: Optional[Vec2] = None  # Exact position QB is dropping to
-    qb_is_set: bool = False  # True when QB has completed dropback AND planted feet
-    qb_set_time: float = 0.0  # Time when QB became set (for timing reads)
-
-    # Pre-snap adjustments (set by QB brain pre-snap, used by receivers)
-    hot_routes: Dict[str, str] = field(default_factory=dict)  # player_id -> new_route_name
-
-    # Run play info (for OL brains)
-    is_run_play: bool = False
-    run_play_side: str = ""  # "left", "right", or "balanced"
-    run_blocking_assignment: Optional[str] = None  # "zone_step", "combo", "pull_lead", etc.
-    run_gap_target: Optional[str] = None  # "a_left", "b_right", etc.
-    combo_partner_position: Optional[str] = None  # Position to combo with (e.g., "C", "LG")
-
-    # Protection info (for OL coordination)
-    slide_direction: str = ""  # "left", "right", or "" - from protection call
-    mike_id: Optional[str] = None  # Identified MIKE linebacker
-
-    # Run play info (for RB brains)
-    run_path: List[Vec2] = field(default_factory=list)  # Waypoints for RB path
-    run_aiming_point: Optional[str] = None  # Target gap (e.g., "a_right", "b_left")
-    run_mesh_depth: float = 4.0  # Yards behind LOS for handoff
-
-    # Game-level state (persists across plays)
-    play_history: Optional[PlayHistory] = None
-    game_situation: Optional[GameSituation] = None
-
-    # DL shed immunity - True if this player just shed a block and is free to sprint
-    has_shed_immunity: bool = False
-
-    # OL beaten state - True if this OL just had their block shed and is recovering
-    is_beaten: bool = False
-
-    # Convenience methods
-    def get_teammate(self, player_id: str) -> Optional[PlayerView]:
-        """Get a specific teammate by ID."""
-        for t in self.teammates:
-            if t.id == player_id:
-                return t
-        return None
-
-    def get_opponent(self, player_id: str) -> Optional[PlayerView]:
-        """Get a specific opponent by ID."""
-        for o in self.opponents:
-            if o.id == player_id:
-                return o
-        return None
-
-    def nearest_threat(self) -> Optional[PlayerView]:
-        """Get the closest threat."""
-        if not self.threats:
-            return None
-        return min(self.threats, key=lambda t: t.distance)
-
-    def ball_carrier(self) -> Optional[PlayerView]:
-        """Get the ball carrier if any."""
-        if self.ball.carrier_id:
-            if self.ball.carrier_id == self.me.id:
-                return None  # That's me
-            # Check teammates
-            for t in self.teammates:
-                if t.id == self.ball.carrier_id:
-                    return t
-            # Check opponents
-            for o in self.opponents:
-                if o.id == self.ball.carrier_id:
-                    return o
-        return None
+# WorldState is now an alias to WorldStateBase for backwards compatibility.
+# Brains receive role-specific contexts (QBContext, WRContext, etc.) that inherit
+# from WorldStateBase. The specific context type provides role-relevant fields.
+# See core/contexts.py for the full hierarchy.
+WorldState = WorldStateBase
 
 
 # =============================================================================
@@ -490,6 +366,7 @@ class Orchestrator:
         self.move_resolver = MoveResolver(self.event_bus)
         self.block_resolver = BlockResolver(self.event_bus)
         self.movement_solver = MovementSolver()
+        self.pressure_system = PressureSystem()
 
         # Game-level state (persists across plays)
         self.play_history = PlayHistory()
@@ -501,8 +378,8 @@ class Orchestrator:
         # AI brains (player_id -> brain function)
         self._brains: Dict[str, BrainFunc] = {}
 
-        # State
-        self.phase = PlayPhase.SETUP
+        # State - use PhaseStateMachine for validated transitions
+        self._phase_machine = PhaseStateMachine()
         self.snap_time: Optional[float] = None  # None = no snap yet, 0.0 = snapped at t=0
         self.los_y: float = 0.0  # Line of scrimmage
 
@@ -561,34 +438,68 @@ class Orchestrator:
         self.event_bus.subscribe(EventType.TACKLE, self._on_tackle)
 
     # =========================================================================
+    # Phase Management
+    # =========================================================================
+
+    @property
+    def phase(self) -> PlayPhase:
+        """Current play phase (read-only, use _transition_to for changes)."""
+        return self._phase_machine.phase
+
+    def _transition_to(self, target: PlayPhase, reason: str = "") -> None:
+        """Transition to a new phase with validation.
+
+        Args:
+            target: Target phase
+            reason: Why the transition is happening (for debugging)
+        """
+        self._phase_machine.transition_to(
+            target,
+            reason=reason,
+            tick=self.clock.tick_count if self.clock else 0,
+            time=self.clock.current_time if self.clock else 0.0,
+        )
+
+    # =========================================================================
     # Event Handlers
     # =========================================================================
 
     def _on_throw(self, event: Event) -> None:
-        """Handle throw event."""
+        """Handle throw event.
+
+        Note: Phase transition to BALL_IN_AIR is handled by _do_throw,
+        so we only track the throw time here.
+        """
         self._throw_time = event.time
-        self.phase = PlayPhase.BALL_IN_AIR
+        # Phase transition handled by _do_throw to avoid duplicate transitions
 
     def _on_catch(self, event: Event) -> None:
-        """Handle catch event."""
+        """Handle catch event.
+
+        Note: Phase transition to AFTER_CATCH is handled by _resolve_pass.
+        """
         self._result_outcome = "complete"
-        # Give some time for YAC before ending
-        # In full implementation, would continue to RUN_ACTIVE
 
     def _on_incomplete(self, event: Event) -> None:
-        """Handle incomplete pass."""
+        """Handle incomplete pass.
+
+        Note: Phase transition to POST_PLAY is handled by _resolve_pass.
+        """
         self._result_outcome = "incomplete"
-        self.phase = PlayPhase.POST_PLAY
 
     def _on_interception(self, event: Event) -> None:
-        """Handle interception."""
+        """Handle interception.
+
+        Note: Phase transition to POST_PLAY is handled by _resolve_pass.
+        """
         self._result_outcome = "interception"
-        self.phase = PlayPhase.POST_PLAY
 
     def _on_tackle(self, event: Event) -> None:
-        """Handle tackle."""
+        """Handle tackle.
+
+        Note: Phase transition to POST_PLAY is handled by _check_tackles.
+        """
         self._down_position = event.data.get("position")
-        self.phase = PlayPhase.POST_PLAY
 
     # =========================================================================
     # Setup
@@ -671,7 +582,9 @@ class Orchestrator:
         # Reset state
         self.clock = Clock()
         self.event_bus.clear_history()
-        self.phase = PlayPhase.PRE_SNAP
+        self._phase_machine.reset()  # Reset to SETUP
+        self._transition_to(PlayPhase.PRE_SNAP, "play setup complete")
+        self.pressure_system.reset()  # Reset pressure tracking
         self.snap_time = None
         self._throw_time = None
         self._throw_position = None
@@ -721,11 +634,14 @@ class Orchestrator:
     # WorldState Construction
     # =========================================================================
 
-    def _build_world_state(self, player: Player, dt: float) -> WorldState:
-        """Build WorldState for a specific player.
+    def _build_world_state(self, player: Player, dt: float) -> WorldStateBase:
+        """Build role-specific context for a player's brain.
 
-        Each player gets a personalized view of the world from their
-        perspective.
+        Each player gets a personalized view tailored to their role:
+        - QB gets timing and read progression info
+        - WR gets route info
+        - OL gets blocking assignments
+        - etc.
         """
         my_pos = player.pos
         is_offense = player.team == Team.OFFENSE
@@ -738,20 +654,22 @@ class Orchestrator:
         for p in my_team:
             if p.id != player.id:
                 view = PlayerView.from_player(p, my_pos)
-                # Add read_order and break_point from route assignments (for QB brain)
+                # Add route info from route assignments (for QB brain throw targeting)
                 route_assign = self.route_runner.get_assignment(p.id)
                 if route_assign:
                     view.read_order = route_assign.read_order
                     view.break_point = route_assign.get_break_point()
+                    view.route_direction = route_assign.route.route_side
+                    view.route_settles = route_assign.route.settles
+                    view.settle_point = route_assign.get_settle_point()
+                    view.route_phase = route_assign.phase.value if route_assign.phase else ""
+                    view.pre_break = not route_assign.has_passed_break
                 teammates.append(view)
 
-        opponents = [
-            PlayerView.from_player(p, my_pos)
-            for p in other_team
-        ]
+        opponents = [PlayerView.from_player(p, my_pos) for p in other_team]
 
         # Build threats (opponents within relevant range)
-        threat_range = 15.0  # yards
+        threat_range = 15.0
         threats = [o for o in opponents if o.distance < threat_range]
         threats.sort(key=lambda t: t.distance)
 
@@ -762,24 +680,6 @@ class Orchestrator:
         assignment = player.assignment
         target_id = player.target_id
 
-        # Route assignment if receiver
-        route_assignment = self.route_runner.get_assignment(player.id)
-        route_target = None
-        route_phase = None
-        at_route_break = False
-        route_settles = False
-
-        if route_assignment:
-            # Check if player arrived at current waypoint and advance if so
-            # This is needed when brain controls movement but route system tracks progress
-            self.route_runner.check_waypoint_arrival(player)
-
-            assignment = f"route:{route_assignment.route.name}"
-            route_target = route_assignment.current_target
-            route_phase = route_assignment.phase.value if route_assignment.phase else None
-            at_route_break = route_assignment.is_at_break
-            route_settles = route_assignment.route.settles
-
         # Coverage assignment if defender
         cov_assignment = self.coverage_system.get_assignment(player.id)
         if cov_assignment:
@@ -789,51 +689,11 @@ class Orchestrator:
             else:
                 assignment = f"zone:{cov_assignment.zone_type.value}"
 
-        # Run play info (for OL)
+        # Run play info
         is_run_play = self.config.is_run_play if self.config else False
-        run_play_side = ""
-        run_blocking_assignment = None
-        run_gap_target = None
-        combo_partner_position = None
 
-        # RB-specific run play info
-        run_path: List[Vec2] = []
-        run_aiming_point: Optional[str] = None
-        run_mesh_depth: float = 4.0
-
-        if is_run_play and self._run_concept:
-            run_play_side = self._run_concept.play_side
-            run_mesh_depth = self._run_concept.mesh_depth
-
-            # Get OL assignment based on position
-            pos_name = player.position.value.upper() if player.position else ""
-            ol_assign = self._run_concept.get_ol_assignment(pos_name)
-            if ol_assign:
-                run_blocking_assignment = ol_assign.assignment.value
-                run_gap_target = ol_assign.target_gap.value if ol_assign.target_gap else None
-                combo_partner_position = ol_assign.combo_partner
-                # Update assignment string for OL
-                assignment = f"run:{ol_assign.assignment.value}"
-
-            # Get RB assignment (path and aiming point)
-            if player.position in (Position.RB, Position.FB):
-                rb_assign = self._run_concept.get_backfield_assignment(
-                    player.position.value.upper()
-                )
-                if rb_assign:
-                    # Convert relative waypoints to absolute positions
-                    # Path is relative to snap position, need to add LOS offset
-                    run_path = [Vec2(wp.x, self.los_y + wp.y) for wp in rb_assign.path]
-                    run_aiming_point = rb_assign.aiming_point.value if rb_assign.aiming_point else None
-                    assignment = f"run:{rb_assign.role}"
-
-        # Check if this player has shed immunity (just broke free from a block)
-        has_shed_immunity = self._shed_immunity.get(player.id, 0) > self.clock.current_time
-
-        # Check if this OL is beaten (just had their block shed, recovering)
-        is_beaten = self._ol_beaten.get(player.id, 0) > self.clock.current_time
-
-        return WorldState(
+        # Base fields shared by all contexts
+        base_kwargs = dict(
             me=player,
             teammates=teammates,
             opponents=opponents,
@@ -848,38 +708,118 @@ class Orchestrator:
             target_id=target_id,
             threats=threats,
             los_y=self.los_y,
-            # Route info
-            route_target=route_target,
-            route_phase=route_phase,
-            at_route_break=at_route_break,
-            route_settles=route_settles,
-            # QB timing state
-            dropback_depth=self._dropback_depth,
-            dropback_target_pos=self._dropback_target,
-            qb_is_set=self._qb_is_set,
-            qb_set_time=self._qb_set_time,
-            # Pre-snap adjustments
-            hot_routes=self._hot_routes,
-            # Run play info (OL)
             is_run_play=is_run_play,
-            run_play_side=run_play_side,
-            run_blocking_assignment=run_blocking_assignment,
-            run_gap_target=run_gap_target,
-            combo_partner_position=combo_partner_position,
-            # Protection info (for OL coordination)
-            slide_direction=self._get_slide_direction(),
-            # Run play info (RB)
-            run_path=run_path,
-            run_aiming_point=run_aiming_point,
-            run_mesh_depth=run_mesh_depth,
-            # Game-level state
             play_history=self.play_history,
             game_situation=self.game_situation,
-            # DL shed immunity
-            has_shed_immunity=has_shed_immunity,
-            # OL beaten state
-            is_beaten=is_beaten,
         )
+
+        # Build role-specific context based on position
+        pos = player.position
+
+        # QB Context
+        if pos == Position.QB:
+            return QBContext(
+                **base_kwargs,
+                dropback_depth=self._dropback_depth,
+                dropback_target_pos=self._dropback_target,
+                qb_is_set=self._qb_is_set,
+                qb_set_time=self._qb_set_time,
+                hot_routes=self._hot_routes,
+                pressure_state=self.pressure_system.state,
+            )
+
+        # WR/TE Context (receivers)
+        if pos in (Position.WR, Position.TE):
+            route_assignment = self.route_runner.get_assignment(player.id)
+            route_target = None
+            route_phase = None
+            at_route_break = False
+            route_settles = False
+
+            if route_assignment:
+                self.route_runner.check_waypoint_arrival(player)
+                base_kwargs["assignment"] = f"route:{route_assignment.route.name}"
+                route_target = route_assignment.current_target
+                route_phase = route_assignment.phase.value if route_assignment.phase else None
+                at_route_break = route_assignment.is_at_break
+                route_settles = route_assignment.route.settles
+
+            return WRContext(
+                **base_kwargs,
+                route_target=route_target,
+                route_phase=route_phase,
+                at_route_break=at_route_break,
+                route_settles=route_settles,
+            )
+
+        # OL Context
+        if pos in (Position.LT, Position.LG, Position.C, Position.RG, Position.RT):
+            run_play_side = ""
+            run_blocking_assignment = None
+            run_gap_target = None
+            combo_partner_position = None
+
+            if is_run_play and self._run_concept:
+                run_play_side = self._run_concept.play_side
+                pos_name = pos.value.upper()
+                ol_assign = self._run_concept.get_ol_assignment(pos_name)
+                if ol_assign:
+                    run_blocking_assignment = ol_assign.assignment.value
+                    run_gap_target = ol_assign.target_gap.value if ol_assign.target_gap else None
+                    combo_partner_position = ol_assign.combo_partner
+                    base_kwargs["assignment"] = f"run:{ol_assign.assignment.value}"
+
+            is_beaten = self._ol_beaten.get(player.id, 0) > self.clock.current_time
+
+            return OLContext(
+                **base_kwargs,
+                run_play_side=run_play_side,
+                run_blocking_assignment=run_blocking_assignment,
+                run_gap_target=run_gap_target,
+                combo_partner_position=combo_partner_position,
+                slide_direction=self._get_slide_direction(),
+                is_beaten=is_beaten,
+            )
+
+        # DL Context
+        if pos in (Position.DT, Position.DE, Position.NT):
+            has_shed_immunity = self._shed_immunity.get(player.id, 0) > self.clock.current_time
+            return DLContext(**base_kwargs, has_shed_immunity=has_shed_immunity)
+
+        # LB Context
+        if pos in (Position.MLB, Position.OLB, Position.ILB):
+            return LBContext(**base_kwargs)
+
+        # DB Context (CB, S)
+        if pos in (Position.CB, Position.FS, Position.SS):
+            return DBContext(**base_kwargs)
+
+        # RB/FB Context
+        if pos in (Position.RB, Position.FB):
+            run_path: List[Vec2] = []
+            run_aiming_point: Optional[str] = None
+            run_mesh_depth: float = 4.0
+            run_play_side = ""
+
+            if is_run_play and self._run_concept:
+                run_play_side = self._run_concept.play_side
+                run_mesh_depth = self._run_concept.mesh_depth
+                rb_assign = self._run_concept.get_backfield_assignment(pos.value.upper())
+                if rb_assign:
+                    run_path = [Vec2(wp.x, self.los_y + wp.y) for wp in rb_assign.path]
+                    run_aiming_point = rb_assign.aiming_point.value if rb_assign.aiming_point else None
+                    base_kwargs["assignment"] = f"run:{rb_assign.role}"
+
+            return RBContext(
+                **base_kwargs,
+                run_path=run_path,
+                run_aiming_point=run_aiming_point,
+                run_mesh_depth=run_mesh_depth,
+                run_play_side=run_play_side,
+            )
+
+        # Fallback: return base context
+        return WorldStateBase(**base_kwargs)
 
     # =========================================================================
     # Main Loop
@@ -1069,7 +1009,7 @@ class Orchestrator:
 
     def _do_snap(self) -> None:
         """Execute the snap."""
-        self.phase = PlayPhase.SNAP
+        self._transition_to(PlayPhase.SNAP, "ball snapped")
         self.snap_time = self.clock.current_time
 
         self.event_bus.emit_simple(
@@ -1079,6 +1019,17 @@ class Orchestrator:
             description="Ball snapped",
         )
 
+        # Roll play-level blocking quality for run plays
+        # This creates variance: sometimes OL dominates (explosive), sometimes DL wins (stuff)
+        is_run = self.config.is_run_play if self.config else False
+        if is_run:
+            quality = roll_play_blocking_quality()
+            # Store for result calculation
+            self._play_blocking_quality = quality
+        else:
+            reset_play_blocking_quality()
+            self._play_blocking_quality = "average"
+
         # Start all routes
         self.route_runner.start_all_routes(self.clock)
 
@@ -1086,7 +1037,7 @@ class Orchestrator:
         self.coverage_system.start_coverage(self.clock)
 
         # Advance to development
-        self.phase = PlayPhase.DEVELOPMENT
+        self._transition_to(PlayPhase.DEVELOPMENT, "play developing")
 
     def _update_qb_dropback_state(self, dt: float) -> None:
         """Update QB dropback tracking.
@@ -1143,14 +1094,35 @@ class Orchestrator:
         if self.phase == PlayPhase.DEVELOPMENT:
             self._update_qb_dropback_state(dt)
 
+            # Update pressure system (if this is a pass play)
+            if not (self.config and self.config.is_run_play):
+                qb = self._get_player(self.ball.carrier_id) if self.ball.carrier_id else None
+                if qb and qb.position == Position.QB:
+                    self.pressure_system.update(
+                        qb_pos=qb.pos,
+                        defenders=self.defense,
+                        blockers=self.offense,
+                        dt=dt,
+                        current_time=self.clock.current_time,
+                    )
+
         # Resolve OL/DL blocking engagements FIRST (before player movement)
         # This ensures OL/DL don't pass through each other based on brain decisions
         # Include BALL_IN_AIR - linemen don't instantly disengage when pass is thrown
         if self.phase in (PlayPhase.DEVELOPMENT, PlayPhase.RUN_ACTIVE, PlayPhase.BALL_IN_AIR):
             self._resolve_blocks(dt)
 
-        # Update all players
-        for player in self.offense + self.defense:
+        # Check for sack BEFORE player brains run (so sack happens before throw decision)
+        if self.phase == PlayPhase.DEVELOPMENT and not self._result_outcome:
+            self._check_sack()
+            if self._result_outcome == "sack":
+                return  # Play ended with sack, skip player updates
+
+        # Update all players in randomized order to remove tick ordering bias
+        # (In deterministic mode, shuffle uses seeded random for reproducibility)
+        all_players = self.offense + self.defense
+        random.shuffle(all_players)
+        for player in all_players:
             # For engaged OL/DL: run brain for action selection, but don't apply movement
             # (blocking resolution controls their positions)
             if getattr(player, 'is_engaged', False):
@@ -1558,21 +1530,79 @@ class Orchestrator:
 
         self._throw_time = self.clock.current_time
         self._throw_position = qb.pos
-        self.phase = PlayPhase.BALL_IN_AIR
+        self._transition_to(PlayPhase.BALL_IN_AIR, "pass thrown")
 
     def _do_scripted_throw(self, target_id: str) -> None:
-        """Execute a scripted throw for testing."""
+        """Execute a scripted throw for testing.
+
+        Unlike normal throws (where QB brain calculates lead), scripted throws
+        still need to lead the receiver properly. We calculate throw lead
+        based on receiver's current velocity and position.
+        """
+        from huddle.simulation.v2.ai.qb_brain import _calculate_throw_lead, ReceiverEval, ReceiverStatus
+
         qb = None
         for p in self.offense:
             if p.position == Position.QB and p.has_ball:
                 qb = p
                 break
 
-        if qb:
+        if not qb:
+            return
+
+        # Find the receiver
+        receiver = self._get_player(target_id)
+        if not receiver:
             self._do_throw(qb, target_id)
-            # Clear the config so we don't throw again
-            if self.config:
-                self.config.throw_timing = None
+            return
+
+        # Get route info for throw lead calculation
+        route_assign = self.route_runner.get_assignment(receiver.id)
+        route_direction = ""
+        route_settles = False
+        settle_point = None
+        break_point = None
+        pre_break = True
+
+        if route_assign:
+            route_direction = route_assign.route.route_side
+            route_settles = route_assign.route.settles
+            settle_point = route_assign.get_settle_point()
+            break_point = route_assign.get_break_point()
+            pre_break = not route_assign.has_passed_break
+
+        # Build ReceiverEval for throw lead calculation
+        receiver_eval = ReceiverEval(
+            player_id=receiver.id,
+            position=receiver.pos,
+            velocity=receiver.velocity,
+            separation=5.0,  # Assume open for scripted throws
+            status=ReceiverStatus.OPEN,
+            nearest_defender_id="",
+            nearest_defender_pos=None,
+            defender_closing_speed=0,
+            route_phase=route_assign.phase.value if route_assign and route_assign.phase else "",
+            is_hot=False,
+            read_order=1,
+            defender_trailing=True,
+            pre_break=pre_break,
+            detection_quality=1.0,
+            break_point=break_point,
+            route_direction=route_direction,
+            route_settles=route_settles,
+            settle_point=settle_point,
+        )
+
+        # Calculate throw lead
+        throw_power = qb.attributes.throw_power if qb.attributes else 80
+        lead_pos = _calculate_throw_lead(qb.pos, receiver_eval, throw_power)
+
+        # Execute throw with calculated lead
+        self._do_throw(qb, target_id, lead_pos)
+
+        # Clear the config so we don't throw again
+        if self.config:
+            self.config.throw_timing = None
 
     def _do_handoff(self) -> None:
         """Execute a handoff from QB to ball carrier.
@@ -1619,7 +1649,7 @@ class Orchestrator:
         self._handoff_complete = True
 
         # Transition to run active phase
-        self.phase = PlayPhase.RUN_ACTIVE
+        self._transition_to(PlayPhase.RUN_ACTIVE, "handoff complete")
 
         # Emit event
         self.event_bus.emit_simple(
@@ -1664,7 +1694,7 @@ class Orchestrator:
                 receiver.has_ball = True
             self._result_outcome = "complete"
             # Transition to AFTER_CATCH for YAC
-            self.phase = PlayPhase.AFTER_CATCH
+            self._transition_to(PlayPhase.AFTER_CATCH, "catch complete")
 
         elif resolution.result == CatchResult.INTERCEPTION:
             # Ball state updated by passing system
@@ -1672,11 +1702,11 @@ class Orchestrator:
             if interceptor:
                 interceptor.has_ball = True
             self._result_outcome = "interception"
-            self.phase = PlayPhase.POST_PLAY
+            self._transition_to(PlayPhase.POST_PLAY, "interception")
 
         else:  # INCOMPLETE
             self._result_outcome = "incomplete"
-            self.phase = PlayPhase.POST_PLAY
+            self._transition_to(PlayPhase.POST_PLAY, "pass incomplete")
 
     # =========================================================================
     # Block Resolution
@@ -1729,8 +1759,11 @@ class Orchestrator:
             ol_action = getattr(ol, '_last_action', 'anchor')
             dl_action = getattr(dl, '_last_action', 'bull_rush')
 
-            # Determine block type based on phase
-            if self.phase == PlayPhase.RUN_ACTIVE:
+            # Determine block type based on play type
+            # For run plays, use RUN_BLOCK from the start (not just after handoff)
+            # This ensures blocking quality system works correctly
+            is_run_play = self.config and self.config.is_run_play
+            if self.phase == PlayPhase.RUN_ACTIVE or is_run_play:
                 block_type = BlockType.RUN_BLOCK
             else:
                 block_type = BlockType.PASS_PRO
@@ -1752,6 +1785,10 @@ class Orchestrator:
             # This overrides their brain's requested movement
             ol.pos = result.ol_new_pos
             dl.pos = result.dl_new_pos
+
+            # Store block outcome on defender for pressure system to read
+            # This enables pressure tracking even when DL is engaged but winning
+            dl._block_outcome = result.outcome.value if result.outcome else None
 
             # Track engagement state
             if result.outcome == BlockOutcome.DL_SHED:
@@ -1889,35 +1926,118 @@ class Orchestrator:
                 )
             # If failed, defender stays engaged and can't tackle this tick
 
-        # Find tackle attempts (now includes any DL who just shed)
-        attempts = self.tackle_resolver.find_tackle_attempts(ballcarrier, tacklers)
+        # === TACKLE ENGAGEMENT SYSTEM ===
+        # Tackles are now a struggle, not an instant event.
+        # Contact -> engagement -> outcome (with fall forward)
+
+        # Check if we have an active tackle engagement
+        engagement = self.tackle_resolver.get_engagement(ballcarrier.id)
+
+        if engagement:
+            # Update the ongoing engagement
+            from .resolution.tackle import TackleEngagementOutcome
+
+            outcome, result = self.tackle_resolver.update_engagement(
+                ballcarrier, tacklers, self.clock.dt
+            )
+
+            if result:
+                # Engagement resolved - handle the result
+                self._handle_tackle_result(ballcarrier, result)
+
+            elif outcome == TackleEngagementOutcome.IN_PROGRESS:
+                # Still in engagement - ballcarrier moves forward slowly
+                # (movement is tracked in engagement.yards_gained_in_engagement)
+                # Apply slowed movement
+                if engagement.bc_velocity_at_contact.length() > 0.1:
+                    move_dir = engagement.bc_velocity_at_contact.normalized()
+                    # Slow movement during tackle struggle
+                    slow_factor = 0.2 + (engagement.leverage + 1.0) * 0.15
+                    ballcarrier.pos = ballcarrier.pos + move_dir * slow_factor * self.clock.dt
+
+            return
+
+        # No active engagement - look for new tackle attempts
+        # Only use path blocking check during pass plays - on run plays OL are
+        # moving with the play and shouldn't block tackle paths the same way
+        if self.phase == PlayPhase.RUN_ACTIVE:
+            blockers = None  # Don't use path blocking on run plays
+        else:
+            blockers = self.offense if ballcarrier.team == Team.OFFENSE else self.defense
+
+        attempts = self.tackle_resolver.find_tackle_attempts(
+            ballcarrier, tacklers, blockers=blockers
+        )
 
         if not attempts:
             return
 
-        # Only resolve if best attempt is in close range
-        # Tackles can happen at 2 yards with a diving attempt
-        if attempts[0].distance > 2.0:
+        # Only start engagement if close enough for contact
+        # Very close = immediate contact, further = diving attempt
+        if attempts[0].distance > 1.8:
             return
 
-        # Resolve the tackle
-        result = self.tackle_resolver.resolve(
-            attempts,
-            tick=self.clock.tick_count,
-            time=self.clock.current_time,
+        # Start a new tackle engagement
+        engagement = self.tackle_resolver.start_engagement(
+            ballcarrier, attempts, self.clock.current_time
         )
 
-        # Handle outcome
+        # Mark ballcarrier as being tackled (slows them)
+        # Emit contact event
+        self.event_bus.emit_simple(
+            EventType.TACKLE,  # Using TACKLE for contact too
+            self.clock.tick_count,
+            self.clock.current_time,
+            player_id=attempts[0].defender.id,
+            target_id=ballcarrier.id,
+            description=f"{attempts[0].defender.name} makes contact with {ballcarrier.name}",
+            is_contact=True,  # Distinguish from actual tackle
+        )
+
+    def _handle_tackle_result(self, ballcarrier: Player, result) -> None:
+        """Handle the outcome of a tackle engagement."""
+        from .resolution.tackle import TackleOutcome
+
         if result.outcome in (TackleOutcome.TACKLED, TackleOutcome.GANG_TACKLED):
+            # Apply fall forward - move ballcarrier forward by YAC amount
+            if result.yards_after_contact > 0 and ballcarrier.velocity.length() > 0.1:
+                fall_dir = ballcarrier.velocity.normalized()
+                ballcarrier.pos = ballcarrier.pos + fall_dir * result.yards_after_contact
+
             ballcarrier.is_down = True
             self._down_position = ballcarrier.pos
             self._result_outcome = "tackle"
-            self.phase = PlayPhase.POST_PLAY
+            self._transition_to(PlayPhase.POST_PLAY, "ballcarrier tackled")
 
             # Update result tracking
             if self._throw_time:
                 # This was a pass play that ended in tackle
                 self._result_outcome = "complete"
+
+            # Emit tackle event
+            self.event_bus.emit_simple(
+                EventType.TACKLE,
+                self.clock.tick_count,
+                self.clock.current_time,
+                player_id=result.primary_tackler.id if result.primary_tackler else None,
+                target_id=ballcarrier.id,
+                description=result.format_description(),
+                yards_after_contact=result.yards_after_contact,
+            )
+
+        elif result.outcome == TackleOutcome.BROKEN:
+            # Ballcarrier broke free! Give them a boost
+            self.event_bus.emit_simple(
+                EventType.MISSED_TACKLE,
+                self.clock.tick_count,
+                self.clock.current_time,
+                player_id=result.primary_tackler.id if result.primary_tackler else None,
+                target_id=ballcarrier.id,
+                description=result.format_description(),
+                broken=True,
+            )
+            # Brief tackle immunity after breaking free
+            self._tackle_immunity[ballcarrier.id] = self.clock.current_time + 0.3
 
         elif result.outcome == TackleOutcome.FUMBLE:
             # Handle fumble
@@ -1935,18 +2055,84 @@ class Orchestrator:
                     if recoverer.team != ballcarrier.team:
                         self._down_position = recoverer.pos
                         self._result_outcome = "fumble_lost"
-                        self.phase = PlayPhase.POST_PLAY
+                        self._transition_to(PlayPhase.POST_PLAY, "fumble recovered by defense")
                     else:
                         # Offense recovered, play continues
                         self._result_outcome = "fumble_recovered"
 
-        elif result.outcome in (TackleOutcome.BROKEN, TackleOutcome.STUMBLE):
-            # Broken tackle - ballcarrier continues but maybe slowed
-            if result.outcome == TackleOutcome.STUMBLE:
-                # Slow them down a bit
-                ballcarrier.velocity = ballcarrier.velocity * 0.7
+    def _check_sack(self) -> None:
+        """Check for sack opportunities during pass development.
 
-        # MISSED doesn't change anything
+        A sack occurs when:
+        1. Pressure has accumulated past the threshold (from sustained rushers)
+        2. An unengaged defender is close enough to the QB
+
+        The pressure accumulation model ensures sacks feel "earned" - rushers
+        must maintain pressure over time rather than instant proximity checks.
+
+        NFL target: 6.5% sack rate
+        """
+        # Only check during pass plays in development
+        if self.phase != PlayPhase.DEVELOPMENT:
+            return
+
+        # Don't sack on run plays
+        if self.config and self.config.is_run_play:
+            return
+
+        # Find QB
+        qb = self._get_player(self.ball.carrier_id) if self.ball.carrier_id else None
+        if not qb or qb.position != Position.QB:
+            return
+
+        # Check if pressure has accumulated enough to enable sack attempts
+        if not self.pressure_system.can_attempt_sack():
+            return
+
+        # Sack range - defender must be within this distance to attempt sack
+        SACK_RANGE = 2.5  # yards
+
+        # Find unengaged defenders in sack range
+        for defender in self.defense:
+            # Skip engaged defenders (still blocked)
+            if defender.is_engaged:
+                continue
+
+            # Check distance to QB
+            distance = qb.pos.distance_to(defender.pos)
+            if distance > SACK_RANGE:
+                continue
+
+            # Defender is in sack range and unblocked, with enough accumulated pressure!
+            # Base probability from distance
+            base_prob = 0.30 + (2.5 - distance) * 0.20  # 30-80% base range
+
+            # Modify by accumulated pressure
+            pressure_modifier = self.pressure_system.get_sack_probability_modifier()
+            sack_prob = min(0.95, base_prob * pressure_modifier)
+
+            if random.random() < sack_prob:
+                # SACK!
+                # Calculate yards lost (distance behind LOS)
+                yards_lost = self.los_y - qb.pos.y
+
+                # Update game state
+                qb.is_down = True
+                self._down_position = qb.pos
+                self._result_outcome = "sack"
+                self._transition_to(PlayPhase.POST_PLAY, "QB sacked")
+
+                # Emit sack event
+                self.event_bus.emit_simple(
+                    EventType.SACK,
+                    self.clock.tick_count,
+                    self.clock.current_time,
+                    player_id=defender.id,
+                    target_id=qb.id,
+                    description=f"{defender.name} sacks {qb.name} for {abs(yards_lost):.0f} yard loss",
+                    yards_lost=yards_lost,
+                )
+                return
 
     def _check_out_of_bounds(self) -> None:
         """Check if ballcarrier has gone out of bounds."""
@@ -1962,12 +2148,13 @@ class Orchestrator:
             # Out of bounds!
             self._down_position = ballcarrier.pos
             self._result_outcome = "out_of_bounds"
-            self.phase = PlayPhase.POST_PLAY
+            self._transition_to(PlayPhase.POST_PLAY, "out of bounds")
 
             # Emit event
             self.event_bus.emit(Event(
                 type=EventType.OUT_OF_BOUNDS,
                 tick=self.clock.tick_count,
+                time=self.clock.current_time,
                 player_id=ballcarrier.id,
                 data={
                     "position": {"x": ballcarrier.pos.x, "y": ballcarrier.pos.y},

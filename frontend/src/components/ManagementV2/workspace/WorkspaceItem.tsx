@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { GripVertical, X, Pin, ArrowDownToLine } from 'lucide-react';
 import type { WorkspaceItem } from '../types';
 import { TYPE_SIZE, TYPE_CONFIG } from '../constants';
-import { DeadlinePane, PracticePane, ContractPane, ScoutPane, PlayerPane, ProspectPane, NewsPane, MeetingPane, GamePane } from './panes';
+import { DeadlinePane, PracticePane, ContractPane, ContractDetailPane, ScoutPane, PlayerPane, PlayerStatsPane, ProspectPane, NewsPane, MeetingPane, GamePane, NegotiationPane, AuctionPane } from './panes';
 
 export interface WorkspaceItemProps {
   item: WorkspaceItem;
@@ -166,8 +166,20 @@ export const WorkspaceItemComponent: React.FC<WorkspaceItemProps> = ({
             {item.type === 'prospect' && item.playerId && (
               <ProspectPane playerId={item.playerId} franchiseId={franchiseId || undefined} onComplete={onCollapse} />
             )}
+            {item.type === 'contract' && item.playerId && (
+              <ContractDetailPane playerId={item.playerId} onComplete={onCollapse} />
+            )}
+            {item.type === 'negotiation' && item.playerId && (
+              <NegotiationPane playerId={item.playerId} onComplete={onRemove} />
+            )}
+            {item.type === 'auction' && item.playerId && (
+              <AuctionPane playerId={item.playerId} onComplete={onRemove} />
+            )}
             {item.type === 'news' && (
               <NewsPane title={item.title} content={item.subtitle || ''} onComplete={onCollapse} />
+            )}
+            {item.type === 'stats' && item.playerId && (
+              <PlayerStatsPane playerId={item.playerId} onComplete={onCollapse} />
             )}
           </div>
         </div>

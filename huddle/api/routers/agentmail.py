@@ -14,7 +14,6 @@ Features:
 Designed for Claude and other LLM agents to communicate asynchronously.
 """
 
-import os
 import re
 import json
 import shutil
@@ -143,6 +142,9 @@ class Message(BaseModel):
     blocks: Optional[list[str]] = None  # Message IDs this blocks
     # Mentions
     mentions: Optional[list[str]] = None  # Agents mentioned with @ in body
+    # Archive
+    archived: bool = False
+    archived_at: Optional[str] = None
 
 
 class Task(BaseModel):
@@ -255,6 +257,24 @@ class UpdateMessageThreadingRequest(BaseModel):
     message_id: str = Field(..., description="Message ID to update")
     in_reply_to: str = Field(..., description="Message ID this should reply to")
     thread_id: Optional[str] = Field(default=None, description="Thread ID (auto-generated if not provided)")
+
+
+class ArchiveMessageRequest(BaseModel):
+    """Request to archive or unarchive a message."""
+    message_id: str = Field(..., description="Message ID (e.g., 'qa_agent_to_001')")
+    archived: bool = Field(default=True, description="True to archive, False to unarchive")
+
+
+class BulkArchiveRequest(BaseModel):
+    """Request to archive multiple messages at once."""
+    message_ids: list[str] = Field(..., description="List of message IDs to archive")
+    archived: bool = Field(default=True, description="True to archive, False to unarchive")
+
+
+class BulkStatusRequest(BaseModel):
+    """Request to update status of multiple messages at once."""
+    message_ids: list[str] = Field(..., description="List of message IDs to update")
+    status: Literal["open", "in_progress", "resolved", "closed"]
 
 
 class UpdateStatusRequest(BaseModel):
@@ -578,6 +598,17 @@ def parse_message_file(filepath: Path, agent_name: str, direction: str) -> Optio
     if mentions_match:
         mentions = [m.strip() for m in mentions_match.group(1).split(",")]
 
+    # Extract archive status
+    archived = False
+    archived_match = re.search(r"\*\*Archived:\*\*\s*(\w+)", content)
+    if archived_match:
+        archived = archived_match.group(1).lower() == "true"
+
+    archived_at = None
+    archived_at_match = re.search(r"\*\*Archived-At:\*\*\s*(.+)", content)
+    if archived_at_match:
+        archived_at = archived_at_match.group(1).strip()
+
     # Extract date (with optional time)
     date = ""
     date_match = re.search(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}:\d{2})?)", content)
@@ -642,7 +673,9 @@ def parse_message_file(filepath: Path, agent_name: str, direction: str) -> Optio
         file_references=file_references,
         blocked_by=blocked_by,
         blocks=blocks,
-        mentions=mentions
+        mentions=mentions,
+        archived=archived,
+        archived_at=archived_at
     )
 
 
@@ -858,11 +891,12 @@ def _get_agent_info(agent_name: str) -> Optional[AgentInfo]:
 # ============================================================================
 
 @router.get("/dashboard")
-async def get_dashboard_data():
+async def get_dashboard_data(include_archived: bool = False):
     """
     Get full dashboard data.
 
     Returns all agents, statuses, messages, tasks, and tuning notes.
+    By default, archived messages are excluded. Set include_archived=true to include them.
     """
     if not AGENTMAIL_PATH.exists():
         raise HTTPException(status_code=404, detail="Agentmail folder not found")
@@ -901,12 +935,10 @@ async def get_dashboard_data():
                                 status="pending"
                             ))
 
-            from_dir = agent_dir / "from"
-            if from_dir.exists():
-                for msg_file in from_dir.glob("*.md"):
-                    msg = parse_message_file(msg_file, agent_dir.name, "from")
-                    if msg:
-                        messages.append(msg)
+            # Note: We intentionally skip `from/` folders here.
+            # The `from/` folder contains sender's archival copies which don't have
+            # updated status fields. The canonical message state lives in the
+            # recipient's `to/` folder only.
 
     # Parse status files
     status_path = AGENTMAIL_PATH / "status"
@@ -934,6 +966,13 @@ async def get_dashboard_data():
             unique_messages.append(msg)
     messages = unique_messages
 
+    # Count archived messages before filtering
+    archived_count = len([m for m in messages if m.archived])
+
+    # Filter out archived messages unless requested
+    if not include_archived:
+        messages = [m for m in messages if not m.archived]
+
     # Update agent inbox/outbox counts based on actual To/From content routing
     for agent in agents:
         agent.inbox_count = len([m for m in messages if m.to_agent == agent.name])
@@ -951,7 +990,12 @@ async def get_dashboard_data():
         "pending_tasks": len([t for t in tasks if t.status == "pending"]),
         "bugs": len([m for m in messages if m.type == "bug"]),
         "blocking_bugs": len([m for m in messages if m.severity == "BLOCKING"]),
-        "tuning_notes": len(tuning_notes)
+        "tuning_notes": len(tuning_notes),
+        "archived_count": archived_count,
+        "open_count": len([m for m in messages if m.status == "open"]),
+        "in_progress_count": len([m for m in messages if m.status == "in_progress"]),
+        "resolved_count": len([m for m in messages if m.status == "resolved"]),
+        "closed_count": len([m for m in messages if m.status == "closed"])
     }
 
     return {
@@ -1542,6 +1586,144 @@ async def update_message_status(request: UpdateMessageStatusRequest):
         success=True,
         message=f"Status updated to '{request.status}'",
         data={"message_id": request.message_id, "status": request.status}
+    )
+
+
+@router.post("/messages/archive", response_model=OperationResponse)
+async def archive_message(request: ArchiveMessageRequest):
+    """
+    Archive or unarchive a message.
+
+    This modifies the message file to add or update the **Archived:** field.
+    """
+    # Parse message_id to find the file
+    parts = request.message_id.rsplit("_", 2)
+    if len(parts) < 3:
+        raise HTTPException(status_code=400, detail="Invalid message_id format")
+
+    agent_name = "_".join(parts[:-2])
+    direction = parts[-2]
+    msg_num = parts[-1]
+
+    if direction not in ["to", "from"]:
+        raise HTTPException(status_code=400, detail="Invalid message_id format")
+
+    # Find the message file
+    agent_dir = AGENTMAIL_PATH / agent_name / direction
+    if not agent_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Agent directory not found")
+
+    # Find file starting with the message number
+    matching_files = list(agent_dir.glob(f"{msg_num}_*.md"))
+    if not matching_files:
+        raise HTTPException(status_code=404, detail=f"Message not found")
+
+    filepath = matching_files[0]
+    content = filepath.read_text()
+
+    # Update or add archived field
+    archived_pattern = r"\*\*Archived:\*\*\s*\w+"
+    new_archived_line = f"**Archived:** {'true' if request.archived else 'false'}"
+
+    if re.search(archived_pattern, content):
+        # Update existing archived status
+        content = re.sub(archived_pattern, new_archived_line, content)
+    else:
+        # Add archived after status or at start of metadata
+        if "**Status:**" in content:
+            content = re.sub(
+                r"(\*\*Status:\*\*\s*\w+)",
+                f"\\1\n{new_archived_line}",
+                content
+            )
+        elif "**Date:**" in content:
+            content = re.sub(
+                r"(\*\*Date:\*\*\s*[\d-]+)",
+                f"\\1\n{new_archived_line}",
+                content
+            )
+        else:
+            # Add after first heading
+            content = re.sub(
+                r"(^#\s+.+$)",
+                f"\\1\n\n{new_archived_line}",
+                content,
+                count=1,
+                flags=re.MULTILINE
+            )
+
+    # Update or add archived_at timestamp
+    if request.archived:
+        archived_at = datetime.now().isoformat()
+        archived_at_pattern = r"\*\*Archived-At:\*\*\s*.+"
+        new_archived_at_line = f"**Archived-At:** {archived_at}"
+
+        if re.search(archived_at_pattern, content):
+            content = re.sub(archived_at_pattern, new_archived_at_line, content)
+        else:
+            # Add after Archived line
+            content = re.sub(
+                r"(\*\*Archived:\*\*\s*\w+)",
+                f"\\1\n{new_archived_at_line}",
+                content
+            )
+    else:
+        # Remove archived_at when unarchiving
+        content = re.sub(r"\*\*Archived-At:\*\*\s*.+\n?", "", content)
+
+    filepath.write_text(content)
+
+    return OperationResponse(
+        success=True,
+        message=f"Message {'archived' if request.archived else 'unarchived'}",
+        data={"message_id": request.message_id, "archived": request.archived}
+    )
+
+
+@router.post("/messages/archive/bulk", response_model=OperationResponse)
+async def bulk_archive_messages(request: BulkArchiveRequest):
+    """
+    Archive or unarchive multiple messages at once.
+    """
+    results = []
+    errors = []
+
+    for message_id in request.message_ids:
+        try:
+            # Reuse the single archive logic
+            single_request = ArchiveMessageRequest(message_id=message_id, archived=request.archived)
+            await archive_message(single_request)
+            results.append(message_id)
+        except HTTPException as e:
+            errors.append({"message_id": message_id, "error": e.detail})
+
+    return OperationResponse(
+        success=len(errors) == 0,
+        message=f"Archived {len(results)} messages" if request.archived else f"Unarchived {len(results)} messages",
+        data={"archived": results, "errors": errors}
+    )
+
+
+@router.post("/messages/status/bulk", response_model=OperationResponse)
+async def bulk_update_status(request: BulkStatusRequest):
+    """
+    Update the status of multiple messages at once.
+    """
+    results = []
+    errors = []
+
+    for message_id in request.message_ids:
+        try:
+            single_request = UpdateMessageStatusRequest(message_id=message_id, status=request.status)
+            await update_message_status(single_request)
+            results.append(message_id)
+        except HTTPException as e:
+            errors.append({"message_id": message_id, "error": e.detail})
+
+    return OperationResponse(
+        success=len(errors) == 0,
+        message=f"Updated {len(results)} messages to status '{request.status}'",
+        data={"updated": results, "errors": errors}
     )
 
 

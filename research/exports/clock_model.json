@@ -1,0 +1,140 @@
+{
+  "model_name": "clock_management",
+  "version": "1.0",
+  "source": "nfl_data_py play-by-play 2019-2024",
+  "time_between_plays": {
+    "overall": {
+      "mean": 30.299999237060547,
+      "median": 36.0,
+      "std": 15.5,
+      "percentiles": {
+        "p10": 5.0,
+        "p25": 20.0,
+        "p75": 41.0,
+        "p90": 45.0
+      }
+    },
+    "by_play_type": {
+      "pass": {
+        "mean": 25.399999618530273,
+        "median": 29.0,
+        "std": 16.700000762939453
+      },
+      "run": {
+        "mean": 36.20000076293945,
+        "median": 38.0,
+        "std": 11.300000190734863
+      }
+    },
+    "by_result": {
+      "complete_pass": {
+        "mean": 32.79999923706055,
+        "median": 36.0,
+        "note": "Clock runs, normal pace"
+      },
+      "incomplete_pass": {
+        "mean": 5.599999904632568,
+        "median": 5.0,
+        "note": "Clock stops, faster next snap"
+      },
+      "first_down": {
+        "mean": 33.29999923706055,
+        "median": 36.0,
+        "note": "Clock stops briefly for chains"
+      }
+    }
+  },
+  "pace": {
+    "hurry_up": {
+      "mean": 13.199999809265137,
+      "median": 7.0,
+      "sample_size": 18241,
+      "description": "Under 2 min in 2nd/4th quarter"
+    },
+    "normal": {
+      "mean": 33.29999923706055,
+      "median": 37.0,
+      "sample_size": 136519,
+      "description": "1st/3rd quarter or early 2nd/4th"
+    }
+  },
+  "by_score_differential": {
+    "close_game": {
+      "range": "within 8 points",
+      "mean": 31.100000381469727,
+      "median": 36.0
+    },
+    "leading_big": {
+      "range": "up 14+",
+      "mean": 33.099998474121094,
+      "median": 39.0,
+      "note": "Run clock, slower pace"
+    },
+    "trailing_big": {
+      "range": "down 14+",
+      "mean": 25.899999618530273,
+      "median": 28.0,
+      "note": "More urgency"
+    }
+  },
+  "by_quarter": {
+    "Q1": {
+      "mean": 33.5,
+      "median": 37.0,
+      "sample_size": 40024
+    },
+    "Q2": {
+      "mean": 28.299999237060547,
+      "median": 34.0,
+      "sample_size": 46110
+    },
+    "Q3": {
+      "mean": 33.099998474121094,
+      "median": 37.0,
+      "sample_size": 40520
+    },
+    "Q4": {
+      "mean": 27.0,
+      "median": 31.0,
+      "sample_size": 46345
+    }
+  },
+  "play_clock": {
+    "mean_at_snap": 0.0,
+    "median_at_snap": 0.0,
+    "std": 0.0,
+    "percentiles": {
+      "p10": 0.0,
+      "p25": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "note": "Seconds remaining on play clock at snap",
+    "delay_risk_rate": 1.0
+  },
+  "game_length": {
+    "plays_per_game": {
+      "mean": 125.1,
+      "median": 125.0,
+      "std": 8.8
+    },
+    "estimated_game_time": {
+      "scrimmage_minutes": 63.2,
+      "note": "Does not include stoppages, commercials, halftime"
+    }
+  },
+  "timeouts": {
+    "total_timeouts": 12872,
+    "per_game": 7.68,
+    "by_quarter": {
+      "Q1": 699,
+      "Q2": 5576,
+      "Q3": 761,
+      "Q4": 5682
+    }
+  },
+  "implementation_hints": {
+    "time_off_clock": "\ndef time_off_clock(play_type: str, play_result: dict, pace: str = 'normal') -> int:\n    '''\n    Calculate seconds elapsed for a play.\n\n    Args:\n        play_type: 'pass' or 'run'\n        play_result: dict with 'complete', 'first_down', 'out_of_bounds'\n        pace: 'normal', 'hurry_up', or 'milk_clock'\n\n    Returns:\n        Seconds elapsed\n    '''\n    # Base time by pace\n    if pace == 'hurry_up':\n        base = 25  # ~25 seconds hurry-up\n    elif pace == 'milk_clock':\n        base = 40  # Use full play clock\n    else:\n        base = 32  # Normal pace ~32 seconds\n\n    # Adjustments for clock-stopping plays\n    if play_type == 'pass' and not play_result.get('complete', True):\n        # Incomplete pass - clock stops, faster next play\n        return max(5, base - 10)\n\n    if play_result.get('out_of_bounds', False):\n        # Out of bounds - clock stops\n        return max(5, base - 8)\n\n    if play_result.get('first_down', False):\n        # First down - brief stop for chains\n        return base + 3\n\n    return base\n",
+    "pace_selection": "\ndef select_pace(score_diff: int, quarter: int, time_remaining: int) -> str:\n    '''\n    Determine offensive pace based on game situation.\n\n    Returns: 'hurry_up', 'normal', or 'milk_clock'\n    '''\n    # Two-minute drill\n    if quarter in [2, 4] and time_remaining <= 120 and score_diff <= 0:\n        return 'hurry_up'\n\n    # Trailing late\n    if quarter == 4 and time_remaining <= 300 and score_diff < -8:\n        return 'hurry_up'\n\n    # Leading late - milk clock\n    if quarter == 4 and time_remaining <= 300 and score_diff >= 8:\n        return 'milk_clock'\n\n    # Leading big anytime\n    if score_diff >= 17:\n        return 'milk_clock'\n\n    return 'normal'\n"
+  }
+}

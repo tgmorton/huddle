@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 from ..core.vec2 import Vec2
+from ..core.variance import execution_precision, is_deterministic
 
 
 @dataclass
@@ -81,8 +82,22 @@ class MovementProfile:
         # v² = 2 * a * d → d = v² / (2a)
         return (current_speed ** 2) / (2 * self.deceleration)
 
-    def speed_after_cut(self, current_speed: float, angle: float) -> float:
-        """Speed after making a cut of given angle."""
+    def speed_after_cut(
+        self,
+        current_speed: float,
+        angle: float,
+        agility: Optional[int] = None,
+    ) -> float:
+        """Speed after making a cut of given angle.
+
+        Args:
+            current_speed: Speed before the cut
+            angle: Cut angle in radians
+            agility: Player agility for variance (if None, no variance)
+
+        Returns:
+            Speed after the cut, with optional variance applied
+        """
         if abs(angle) < self.cut_angle_threshold:
             # Gradual turn, no speed loss
             return current_speed
@@ -91,7 +106,17 @@ class MovementProfile:
         # Larger angles lose more speed
         angle_factor = min(1.0, abs(angle) / math.pi)  # 0 to 1
         retention = self.cut_speed_retention * (1 - angle_factor * 0.3)
-        return current_speed * retention
+        result_speed = current_speed * retention
+
+        # Apply execution variance if agility provided (and not in deterministic mode)
+        if agility is not None and not is_deterministic():
+            # Higher agility = more consistent cuts (tighter variance)
+            # Variance can make cuts slightly sharper OR sloppier
+            result_speed = execution_precision(result_speed, agility)
+            # Clamp to reasonable bounds (can't exceed pre-cut speed)
+            result_speed = max(0.1, min(result_speed, current_speed))
+
+        return result_speed
 
     def __repr__(self) -> str:
         return (
@@ -145,6 +170,7 @@ class MovementSolver:
         profile: MovementProfile,
         dt: float,
         max_speed_override: Optional[float] = None,
+        agility: Optional[int] = None,
     ) -> MovementResult:
         """Compute movement toward target.
 
@@ -155,6 +181,7 @@ class MovementSolver:
             profile: Player's movement capabilities
             dt: Time step in seconds
             max_speed_override: Optional speed cap (e.g., for jogging)
+            agility: Player agility for cut variance (if None, no variance)
 
         Returns:
             MovementResult with new position, velocity, and debug info
@@ -184,9 +211,9 @@ class MovementSolver:
             cut_angle = current_dir.angle_to(desired_dir)
 
             if cut_angle > profile.cut_angle_threshold:
-                # Hard cut - lose speed
+                # Hard cut - lose speed (with optional variance from agility)
                 cut_occurred = True
-                current_speed = profile.speed_after_cut(current_speed, cut_angle)
+                current_speed = profile.speed_after_cut(current_speed, cut_angle, agility)
 
         speed_before = current_speed
 
@@ -228,6 +255,7 @@ class MovementSolver:
         dt: float,
         arrival_threshold: float = 0.5,
         max_speed_override: Optional[float] = None,
+        agility: Optional[int] = None,
     ) -> Tuple[MovementResult, bool]:
         """Solve movement and report if arrived at target.
 
@@ -239,11 +267,12 @@ class MovementSolver:
             max_speed_override: Optional speed cap
             dt: Time step in seconds
             arrival_threshold: Distance considered "arrived"
+            agility: Player agility for cut variance
 
         Returns:
             (MovementResult, has_arrived)
         """
-        result = self.solve(current_pos, current_vel, target_pos, profile, dt, max_speed_override)
+        result = self.solve(current_pos, current_vel, target_pos, profile, dt, max_speed_override, agility)
         arrived = result.new_pos.distance_to(target_pos) < arrival_threshold
         return result, arrived
 

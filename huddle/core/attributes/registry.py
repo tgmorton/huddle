@@ -1,7 +1,7 @@
 """Attribute registry and player attribute container."""
 
 from dataclasses import dataclass, field
-from typing import Iterator
+from typing import Iterator, Optional
 
 from huddle.core.attributes.base import (
     ALL_ATTRIBUTES,
@@ -150,6 +150,58 @@ class PlayerAttributes:
             return 50
 
         return int(weighted_sum / total_weight)
+
+    def get_potential(self, attr_name: str) -> Optional[int]:
+        """
+        Get potential ceiling for an attribute.
+
+        Args:
+            attr_name: The base attribute name (e.g., "speed", not "speed_potential")
+
+        Returns:
+            Potential ceiling value, or None if not set
+        """
+        return self._values.get(f"{attr_name}_potential")
+
+    def set_potential(self, attr_name: str, value: int) -> None:
+        """
+        Set potential ceiling for an attribute.
+
+        Args:
+            attr_name: The base attribute name (e.g., "speed", not "speed_potential")
+            value: Potential ceiling value (clamped to 0-99)
+        """
+        self._values[f"{attr_name}_potential"] = max(0, min(99, value))
+
+    def get_growth_room(self, attr_name: str) -> int:
+        """
+        Get remaining growth room for an attribute.
+
+        Args:
+            attr_name: The base attribute name
+
+        Returns:
+            Difference between potential and current value, or 0 if no potential set
+        """
+        current = self.get(attr_name)
+        potential = self.get_potential(attr_name)
+        if potential is None:
+            return 0
+        return max(0, potential - current)
+
+    def get_all_potentials(self) -> dict[str, int]:
+        """
+        Get all potential values.
+
+        Returns:
+            Dict of {attr_name: potential_value} (without _potential suffix in keys)
+        """
+        potentials = {}
+        for key, value in self._values.items():
+            if key.endswith("_potential"):
+                base_name = key[:-10]  # Remove "_potential" suffix
+                potentials[base_name] = value
+        return potentials
 
     def to_dict(self) -> dict[str, int]:
         """Convert to plain dictionary for serialization."""

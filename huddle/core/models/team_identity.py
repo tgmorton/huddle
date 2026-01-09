@@ -14,9 +14,13 @@ These identities influence:
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum, auto
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import random
+
+if TYPE_CHECKING:
+    from huddle.core.models.player import Player
 
 
 # =============================================================================
@@ -118,6 +122,432 @@ class FreeAgencyPhilosophy(Enum):
     FAVOR_OWN_PLAYERS = auto()  # Prioritizes re-signing own players
     FAVOR_OUTSIDE_PLAYERS = auto()  # Looks externally for upgrades
     BALANCED_RETENTION = auto()  # No strong preference
+
+
+# =============================================================================
+# Team Status (Dynamic Competitive State)
+# =============================================================================
+
+
+class TeamStatus(Enum):
+    """
+    Dynamic competitive status that persists until triggers change it.
+
+    Unlike static philosophies, status reflects the team's current
+    competitive window and influences AI decision-making.
+
+    Based on NFL contract research identifying distinct team archetypes
+    by financial signatures and roster construction.
+    """
+
+    # Peak performance - sustained excellence
+    DYNASTY = auto()  # 3+ consecutive playoff appearances, championship(s)
+
+    # Active contention
+    CONTENDING = auto()  # Playoff team, competing for championship
+
+    # Window closing
+    WINDOW_CLOSING = auto()  # Aging core, declining performance
+
+    # Rebuilding states
+    REBUILDING = auto()  # Intentional rebuild, accumulating assets
+    EMERGING = auto()  # Young talent developing, on the rise
+
+    # Stagnant states
+    STUCK_IN_MIDDLE = auto()  # Not good enough to contend, not bad enough to rebuild
+    MISMANAGED = auto()  # High dead money, poor roster construction
+
+    # Transitional
+    UNKNOWN = auto()  # New team or insufficient data
+
+
+# Status -> AI behavior modifiers
+TEAM_STATUS_BEHAVIORS = {
+    TeamStatus.DYNASTY: {
+        "trade_pick_value": 0.8,  # Less value on future picks
+        "veteran_preference": 1.2,  # Prefer proven players
+        "cap_aggression": 1.3,  # Willing to push cap
+        "draft_upside_weight": 0.7,  # Prefer polished players
+        "trade_star_threshold": 0.95,  # Very unlikely to trade stars
+    },
+    TeamStatus.CONTENDING: {
+        "trade_pick_value": 0.85,
+        "veteran_preference": 1.15,
+        "cap_aggression": 1.2,
+        "draft_upside_weight": 0.8,
+        "trade_star_threshold": 0.85,
+    },
+    TeamStatus.WINDOW_CLOSING: {
+        "trade_pick_value": 0.7,  # Getting desperate
+        "veteran_preference": 1.3,  # All-in on now
+        "cap_aggression": 1.4,  # Mortgage future
+        "draft_upside_weight": 0.6,
+        "trade_star_threshold": 0.75,
+    },
+    TeamStatus.REBUILDING: {
+        "trade_pick_value": 1.4,  # Hoard picks
+        "veteran_preference": 0.6,  # Youth movement
+        "cap_aggression": 0.5,  # Maintain flexibility
+        "draft_upside_weight": 1.3,  # Swing for fences
+        "trade_star_threshold": 0.5,  # Will move anyone for picks
+    },
+    TeamStatus.EMERGING: {
+        "trade_pick_value": 1.2,
+        "veteran_preference": 0.8,
+        "cap_aggression": 0.9,
+        "draft_upside_weight": 1.1,
+        "trade_star_threshold": 0.7,
+    },
+    TeamStatus.STUCK_IN_MIDDLE: {
+        "trade_pick_value": 1.0,
+        "veteran_preference": 1.0,
+        "cap_aggression": 1.0,
+        "draft_upside_weight": 1.0,
+        "trade_star_threshold": 0.65,
+    },
+    TeamStatus.MISMANAGED: {
+        "trade_pick_value": 1.1,
+        "veteran_preference": 0.9,
+        "cap_aggression": 0.7,  # Cap hell
+        "draft_upside_weight": 1.2,
+        "trade_star_threshold": 0.55,
+    },
+    TeamStatus.UNKNOWN: {
+        "trade_pick_value": 1.0,
+        "veteran_preference": 1.0,
+        "cap_aggression": 1.0,
+        "draft_upside_weight": 1.0,
+        "trade_star_threshold": 0.7,
+    },
+}
+
+
+@dataclass
+class TeamStatusTransition:
+    """Record of a team status change."""
+
+    from_status: TeamStatus
+    to_status: TeamStatus
+    season: int
+    week: int = 0  # 0 = offseason
+    trigger: str = ""  # What caused the change
+    notes: str = ""
+
+
+@dataclass
+class TeamStatusState:
+    """
+    Current team status with history tracking.
+
+    Status persists until specific triggers cause transitions:
+    - Dynasty falls after missing playoffs 2+ years
+    - Contender becomes window_closing after core ages
+    - Rebuilding team becomes emerging when young talent develops
+    - etc.
+    """
+
+    current_status: TeamStatus = TeamStatus.UNKNOWN
+    status_since_season: int = 0  # When current status started
+
+    # Performance tracking for trigger evaluation
+    consecutive_playoff_appearances: int = 0
+    consecutive_playoff_misses: int = 0
+    championships: int = 0
+    recent_win_pcts: list[float] = field(default_factory=list)  # Last 3 seasons
+
+    # Roster composition metrics
+    avg_starter_age: float = 0.0
+    rookie_starter_count: int = 0
+    dead_money_pct: float = 0.0  # % of cap in dead money
+
+    # History
+    status_history: list[TeamStatusTransition] = field(default_factory=list)
+
+    def get_behavior_modifier(self, behavior: str) -> float:
+        """Get AI behavior modifier based on current status."""
+        behaviors = TEAM_STATUS_BEHAVIORS.get(self.current_status, {})
+        return behaviors.get(behavior, 1.0)
+
+    def transition_to(
+        self,
+        new_status: TeamStatus,
+        season: int,
+        week: int = 0,
+        trigger: str = "",
+        notes: str = "",
+    ) -> None:
+        """Record a status transition."""
+        if new_status == self.current_status:
+            return
+
+        transition = TeamStatusTransition(
+            from_status=self.current_status,
+            to_status=new_status,
+            season=season,
+            week=week,
+            trigger=trigger,
+            notes=notes,
+        )
+        self.status_history.append(transition)
+        self.current_status = new_status
+        self.status_since_season = season
+
+    def seasons_in_status(self, current_season: int) -> int:
+        """How many seasons the team has held current status."""
+        return current_season - self.status_since_season
+
+    def to_dict(self) -> dict:
+        """Serialize for storage."""
+        return {
+            "current_status": self.current_status.name,
+            "status_since_season": self.status_since_season,
+            "consecutive_playoff_appearances": self.consecutive_playoff_appearances,
+            "consecutive_playoff_misses": self.consecutive_playoff_misses,
+            "championships": self.championships,
+            "recent_win_pcts": self.recent_win_pcts,
+            "avg_starter_age": self.avg_starter_age,
+            "rookie_starter_count": self.rookie_starter_count,
+            "dead_money_pct": self.dead_money_pct,
+            "status_history": [
+                {
+                    "from_status": t.from_status.name,
+                    "to_status": t.to_status.name,
+                    "season": t.season,
+                    "week": t.week,
+                    "trigger": t.trigger,
+                    "notes": t.notes,
+                }
+                for t in self.status_history
+            ],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "TeamStatusState":
+        """Deserialize from storage."""
+        state = cls(
+            current_status=TeamStatus[data.get("current_status", "UNKNOWN")],
+            status_since_season=data.get("status_since_season", 0),
+            consecutive_playoff_appearances=data.get("consecutive_playoff_appearances", 0),
+            consecutive_playoff_misses=data.get("consecutive_playoff_misses", 0),
+            championships=data.get("championships", 0),
+            recent_win_pcts=data.get("recent_win_pcts", []),
+            avg_starter_age=data.get("avg_starter_age", 0.0),
+            rookie_starter_count=data.get("rookie_starter_count", 0),
+            dead_money_pct=data.get("dead_money_pct", 0.0),
+        )
+        for t_data in data.get("status_history", []):
+            state.status_history.append(TeamStatusTransition(
+                from_status=TeamStatus[t_data["from_status"]],
+                to_status=TeamStatus[t_data["to_status"]],
+                season=t_data["season"],
+                week=t_data.get("week", 0),
+                trigger=t_data.get("trigger", ""),
+                notes=t_data.get("notes", ""),
+            ))
+        return state
+
+
+# =============================================================================
+# Status Transition Triggers
+# =============================================================================
+
+
+def evaluate_team_status(
+    current_state: TeamStatusState,
+    season: int,
+    made_playoffs: bool,
+    won_championship: bool,
+    win_pct: float,
+    roster_avg_age: float,
+    rookie_starters: int,
+    dead_money_pct: float,
+    qb_age: Optional[int] = None,
+    qb_overall: Optional[int] = None,
+) -> Optional[TeamStatus]:
+    """
+    Evaluate if a team's status should change based on triggers.
+
+    Called at end of each season to check for transitions.
+
+    Returns:
+        New status if transition triggered, None if status unchanged
+    """
+    current = current_state.current_status
+
+    # Update tracking metrics
+    current_state.recent_win_pcts = (current_state.recent_win_pcts + [win_pct])[-3:]
+    current_state.avg_starter_age = roster_avg_age
+    current_state.rookie_starter_count = rookie_starters
+    current_state.dead_money_pct = dead_money_pct
+
+    if made_playoffs:
+        current_state.consecutive_playoff_appearances += 1
+        current_state.consecutive_playoff_misses = 0
+    else:
+        current_state.consecutive_playoff_misses += 1
+        current_state.consecutive_playoff_appearances = 0
+
+    if won_championship:
+        current_state.championships += 1
+
+    # =========================================================================
+    # Transition Logic
+    # =========================================================================
+
+    avg_recent_win_pct = (
+        sum(current_state.recent_win_pcts) / len(current_state.recent_win_pcts)
+        if current_state.recent_win_pcts else 0.5
+    )
+
+    # --- DYNASTY triggers ---
+    if current == TeamStatus.DYNASTY:
+        # Dynasty falls after 2+ consecutive playoff misses
+        if current_state.consecutive_playoff_misses >= 2:
+            return TeamStatus.WINDOW_CLOSING
+        # Dynasty can become window_closing if core is aging
+        if roster_avg_age >= 29 and not made_playoffs:
+            return TeamStatus.WINDOW_CLOSING
+
+    # --- CONTENDING triggers ---
+    elif current == TeamStatus.CONTENDING:
+        # Promote to dynasty after 3+ playoff years with championship
+        if (current_state.consecutive_playoff_appearances >= 3 and
+            current_state.championships > 0):
+            return TeamStatus.DYNASTY
+        # Drop to window_closing after 2 misses
+        if current_state.consecutive_playoff_misses >= 2:
+            return TeamStatus.WINDOW_CLOSING
+        # Aging core signals window closing
+        if roster_avg_age >= 30 and avg_recent_win_pct < 0.55:
+            return TeamStatus.WINDOW_CLOSING
+
+    # --- WINDOW_CLOSING triggers ---
+    elif current == TeamStatus.WINDOW_CLOSING:
+        # If they make playoffs with young team, they're contending again
+        if made_playoffs and roster_avg_age < 27:
+            return TeamStatus.CONTENDING
+        # Full rebuild after 3+ misses or bad record
+        if current_state.consecutive_playoff_misses >= 3 or avg_recent_win_pct < 0.35:
+            return TeamStatus.REBUILDING
+
+    # --- REBUILDING triggers ---
+    elif current == TeamStatus.REBUILDING:
+        # Emerging if young talent showing results
+        if rookie_starters >= 5 and win_pct >= 0.4 and roster_avg_age < 26:
+            return TeamStatus.EMERGING
+        # Mismanaged if dead money is high with bad results
+        if dead_money_pct >= 0.15 and win_pct < 0.35:
+            return TeamStatus.MISMANAGED
+
+    # --- EMERGING triggers ---
+    elif current == TeamStatus.EMERGING:
+        # Graduate to contending with playoff appearance
+        if made_playoffs:
+            return TeamStatus.CONTENDING
+        # Stall out if not improving
+        if current_state.seasons_in_status(season) >= 3 and avg_recent_win_pct < 0.45:
+            return TeamStatus.STUCK_IN_MIDDLE
+
+    # --- STUCK_IN_MIDDLE triggers ---
+    elif current == TeamStatus.STUCK_IN_MIDDLE:
+        # Break out with playoffs
+        if made_playoffs:
+            return TeamStatus.CONTENDING
+        # Start rebuild with losing season and young movement
+        if win_pct < 0.4 and rookie_starters >= 4:
+            return TeamStatus.REBUILDING
+        # Become mismanaged with dead money issues
+        if dead_money_pct >= 0.15:
+            return TeamStatus.MISMANAGED
+
+    # --- MISMANAGED triggers ---
+    elif current == TeamStatus.MISMANAGED:
+        # Clear dead money and start fresh = rebuilding
+        if dead_money_pct < 0.08 and roster_avg_age < 26:
+            return TeamStatus.REBUILDING
+        # Somehow make playoffs = contending
+        if made_playoffs:
+            return TeamStatus.CONTENDING
+
+    # --- UNKNOWN triggers ---
+    elif current == TeamStatus.UNKNOWN:
+        # Assign initial status based on metrics
+        if won_championship or current_state.consecutive_playoff_appearances >= 2:
+            return TeamStatus.CONTENDING
+        elif win_pct >= 0.55:
+            return TeamStatus.CONTENDING
+        elif win_pct <= 0.35 and rookie_starters >= 4:
+            return TeamStatus.REBUILDING
+        elif roster_avg_age >= 28 and win_pct < 0.45:
+            return TeamStatus.WINDOW_CLOSING
+        elif roster_avg_age < 26 and win_pct >= 0.4:
+            return TeamStatus.EMERGING
+        elif dead_money_pct >= 0.15:
+            return TeamStatus.MISMANAGED
+        else:
+            return TeamStatus.STUCK_IN_MIDDLE
+
+    return None  # No transition
+
+
+def generate_initial_team_status(
+    win_pct: float,
+    roster_avg_age: float,
+    dead_money_pct: float,
+    playoff_history: list[bool],  # Last 3 seasons, most recent last
+    has_franchise_qb: bool,
+    season: int,
+) -> TeamStatusState:
+    """
+    Generate initial team status for a new league.
+
+    Uses roster composition and simulated history to assign
+    appropriate starting status.
+    """
+    state = TeamStatusState(status_since_season=season)
+
+    # Calculate playoff streaks
+    consecutive_playoffs = 0
+    for made_it in reversed(playoff_history):
+        if made_it:
+            consecutive_playoffs += 1
+        else:
+            break
+
+    consecutive_misses = 0
+    for made_it in reversed(playoff_history):
+        if not made_it:
+            consecutive_misses += 1
+        else:
+            break
+
+    state.consecutive_playoff_appearances = consecutive_playoffs
+    state.consecutive_playoff_misses = consecutive_misses
+    state.recent_win_pcts = [win_pct] * min(3, len(playoff_history) + 1)
+    state.avg_starter_age = roster_avg_age
+    state.dead_money_pct = dead_money_pct
+
+    # Determine initial status
+    if consecutive_playoffs >= 3 and has_franchise_qb:
+        status = TeamStatus.DYNASTY
+    elif consecutive_playoffs >= 1 or win_pct >= 0.55:
+        status = TeamStatus.CONTENDING
+    elif roster_avg_age >= 29 and consecutive_misses >= 1:
+        status = TeamStatus.WINDOW_CLOSING
+    elif roster_avg_age < 26 and win_pct >= 0.35:
+        status = TeamStatus.EMERGING
+    elif dead_money_pct >= 0.12:
+        status = TeamStatus.MISMANAGED
+    elif consecutive_misses >= 2 and roster_avg_age < 27:
+        status = TeamStatus.REBUILDING
+    elif 0.4 <= win_pct <= 0.55:
+        status = TeamStatus.STUCK_IN_MIDDLE
+    else:
+        status = TeamStatus.UNKNOWN
+
+    state.current_status = status
+
+    return state
 
 
 # =============================================================================
@@ -645,11 +1075,15 @@ class ExtendedTeamIdentity(TeamIdentity):
     - Salary cap state and management style
     - Position-specific player preferences
     - Future pick valuation
+    - Dynamic team status (contending, rebuilding, etc.)
     """
 
     # Financials
     financials: TeamFinancials = None  # type: ignore
     cap_management: CapManagementStyle = CapManagementStyle.MODERATE
+
+    # Dynamic team status (persists until triggers change it)
+    status: TeamStatusState = None  # type: ignore
 
     # Positional philosophies (affects OVR calculation and drafting)
     wr_philosophy: PositionalPhilosophy = PositionalPhilosophy.WR_BALANCED
@@ -665,6 +1099,59 @@ class ExtendedTeamIdentity(TeamIdentity):
     def __post_init__(self):
         if self.financials is None:
             self.financials = TeamFinancials()
+        if self.status is None:
+            self.status = TeamStatusState()
+
+    def get_status_modifier(self, behavior: str) -> float:
+        """Get AI behavior modifier based on team status."""
+        return self.status.get_behavior_modifier(behavior)
+
+    def update_status(
+        self,
+        season: int,
+        made_playoffs: bool,
+        won_championship: bool,
+        win_pct: float,
+        roster_avg_age: float,
+        rookie_starters: int,
+        qb_age: Optional[int] = None,
+        qb_overall: Optional[int] = None,
+    ) -> Optional[TeamStatus]:
+        """
+        Evaluate and potentially update team status after a season.
+
+        Returns new status if a transition occurred, None otherwise.
+        """
+        dead_money_pct = (
+            self.financials.dead_money / self.financials.salary_cap
+            if self.financials.salary_cap > 0 else 0.0
+        )
+
+        new_status = evaluate_team_status(
+            self.status,
+            season,
+            made_playoffs,
+            won_championship,
+            win_pct,
+            roster_avg_age,
+            rookie_starters,
+            dead_money_pct,
+            qb_age,
+            qb_overall,
+        )
+
+        if new_status is not None:
+            trigger = _get_transition_trigger(
+                self.status.current_status,
+                new_status,
+                made_playoffs,
+                won_championship,
+                roster_avg_age,
+                dead_money_pct,
+            )
+            self.status.transition_to(new_status, season, trigger=trigger)
+
+        return new_status
 
     def get_positional_attribute_weights(self, position: str) -> dict[str, float]:
         """
@@ -715,6 +1202,40 @@ class ExtendedTeamIdentity(TeamIdentity):
                 weights = {"finesse_moves": 1.3, "power_moves": 1.2, "speed": 1.1}
 
         return weights
+
+
+def _get_transition_trigger(
+    from_status: TeamStatus,
+    to_status: TeamStatus,
+    made_playoffs: bool,
+    won_championship: bool,
+    roster_avg_age: float,
+    dead_money_pct: float,
+) -> str:
+    """Generate human-readable trigger description for status transition."""
+    if to_status == TeamStatus.DYNASTY:
+        return "Sustained playoff success with championship"
+    elif to_status == TeamStatus.CONTENDING:
+        if from_status == TeamStatus.EMERGING:
+            return "Young core made playoffs"
+        elif from_status == TeamStatus.MISMANAGED:
+            return "Overcame cap difficulties to make playoffs"
+        return "Playoff appearance"
+    elif to_status == TeamStatus.WINDOW_CLOSING:
+        if roster_avg_age >= 29:
+            return f"Core aging (avg age {roster_avg_age:.1f})"
+        return "Consecutive playoff misses"
+    elif to_status == TeamStatus.REBUILDING:
+        if from_status == TeamStatus.WINDOW_CLOSING:
+            return "Window closed, entering full rebuild"
+        return "Youth movement initiated"
+    elif to_status == TeamStatus.EMERGING:
+        return "Young talent developing"
+    elif to_status == TeamStatus.STUCK_IN_MIDDLE:
+        return "Stalled development"
+    elif to_status == TeamStatus.MISMANAGED:
+        return f"Cap mismanagement ({dead_money_pct*100:.1f}% dead money)"
+    return "Status evaluation"
 
 
 # =============================================================================

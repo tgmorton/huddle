@@ -1147,6 +1147,23 @@ export function SimCanvas({
       tackleLabel.y = midY - barHeight / 2 - 8;
       container.addChild(tackleLabel);
 
+      // Yards gained during engagement (YAC display)
+      if (ballcarrier.tackle_yards_gained && ballcarrier.tackle_yards_gained > 0.1) {
+        const yacLabel = new Text({
+          text: `+${ballcarrier.tackle_yards_gained.toFixed(1)} YAC`,
+          style: new TextStyle({
+            fontSize: runZoom ? 9 : 7,
+            fill: 0x22c55e,
+            fontWeight: 'bold',
+            fontFamily: 'Berkeley Mono, SF Mono, monospace',
+          }),
+        });
+        yacLabel.anchor.set(0.5);
+        yacLabel.x = midX;
+        yacLabel.y = midY + barHeight / 2 + 8;
+        container.addChild(yacLabel);
+      }
+
       // Highlight the primary tackler with an orange ring
       g.circle(tacklerScreen.x, tacklerScreen.y, runZoom ? 18 : 14);
       g.stroke({ color: 0xf97316, width: 3, alpha: 0.8 });
@@ -1164,6 +1181,38 @@ export function SimCanvas({
     // Outer ring (faded)
     g.circle(bcScreen.x, bcScreen.y, ringRadius + 6);
     g.stroke({ color: ringColor, width: 2, alpha: 0.3 });
+
+    // "GOING DOWN" indicator when tackler is winning heavily
+    if (leverage < -0.6) {
+      const downLabel = new Text({
+        text: 'GOING DOWN',
+        style: new TextStyle({
+          fontSize: runZoom ? 11 : 9,
+          fill: 0xef4444,
+          fontWeight: 'bold',
+          fontFamily: 'Berkeley Mono, SF Mono, monospace',
+        }),
+      });
+      downLabel.anchor.set(0.5);
+      downLabel.x = bcScreen.x;
+      downLabel.y = bcScreen.y + ringRadius + 14;
+      container.addChild(downLabel);
+    } else if (leverage > 0.6) {
+      // "BREAKING FREE" indicator when BC is about to escape
+      const freeLabel = new Text({
+        text: 'BREAKING FREE',
+        style: new TextStyle({
+          fontSize: runZoom ? 11 : 9,
+          fill: 0x22c55e,
+          fontWeight: 'bold',
+          fontFamily: 'Berkeley Mono, SF Mono, monospace',
+        }),
+      });
+      freeLabel.anchor.set(0.5);
+      freeLabel.x = bcScreen.x;
+      freeLabel.y = bcScreen.y + ringRadius + 14;
+      container.addChild(freeLabel);
+    }
 
     container.addChild(g);
   };

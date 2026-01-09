@@ -66,6 +66,31 @@ from huddle.core.contracts.extensions import (
     get_extension_candidates,
 )
 
+from huddle.core.contracts.integration import (
+    sync_contract_to_player,
+    create_contract_from_legacy,
+    assign_contract_with_sync,
+    assign_rookie_contract_with_sync,
+    advance_contract_year,
+    clear_contract,
+    restructure_contract,
+    get_contract_summary,
+    upgrade_roster_contracts,
+)
+
+from huddle.core.contracts.contract import (
+    Contract,
+    ContractType,
+    ContractStatus,
+    ContractYear,
+    create_rookie_contract,
+    create_veteran_contract,
+    create_minimum_contract,
+    create_franchise_tag,
+    get_rookie_contract_value,
+    ROOKIE_WAGE_SCALE,
+)
+
 __all__ = [
     # Market value
     "MarketValue",
@@ -114,4 +139,25 @@ __all__ = [
     "apply_extension",
     "generate_extension_offer",
     "get_extension_candidates",
+    # Contract integration (bridge old/new)
+    "sync_contract_to_player",
+    "create_contract_from_legacy",
+    "assign_contract_with_sync",
+    "assign_rookie_contract_with_sync",
+    "advance_contract_year",
+    "clear_contract",
+    "restructure_contract",
+    "get_contract_summary",
+    "upgrade_roster_contracts",
+    # Full Contract class
+    "Contract",
+    "ContractType",
+    "ContractStatus",
+    "ContractYear",
+    "create_rookie_contract",
+    "create_veteran_contract",
+    "create_minimum_contract",
+    "create_franchise_tag",
+    "get_rookie_contract_value",
+    "ROOKIE_WAGE_SCALE",
 ]

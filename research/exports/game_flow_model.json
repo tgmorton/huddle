@@ -1,0 +1,180 @@
+{
+  "model_name": "game_flow",
+  "version": "1.0",
+  "source": "nfl_data_py play-by-play 2019-2024",
+  "plays_per_game": {
+    "mean": 125.1,
+    "median": 125.0,
+    "std": 8.8,
+    "min": 99,
+    "max": 171,
+    "percentiles": {
+      "p10": 115.0,
+      "p25": 119.0,
+      "p75": 130.0,
+      "p90": 136.0
+    },
+    "total_games": 1675
+  },
+  "plays_per_team_per_game": {
+    "mean": 62.6,
+    "median": 62.0,
+    "std": 8.4,
+    "percentiles": {
+      "p10": 52.0,
+      "p25": 57.0,
+      "p75": 68.0,
+      "p90": 73.0
+    }
+  },
+  "drives_per_game": {
+    "mean": 21.1,
+    "median": 21.0,
+    "std": 3.1,
+    "percentiles": {
+      "p10": 17.0,
+      "p25": 19.0,
+      "p75": 23.0,
+      "p90": 25.0
+    }
+  },
+  "drives_per_team_per_game": {
+    "mean": 10.6,
+    "median": 10.0,
+    "std": 1.6,
+    "percentiles": {
+      "p10": 9.0,
+      "p25": 9.0,
+      "p75": 12.0,
+      "p90": 13.0
+    }
+  },
+  "plays_per_drive": {
+    "overall": {
+      "mean": 5.92,
+      "median": 5.0,
+      "std": 3.28,
+      "percentiles": {
+        "p10": 3.0,
+        "p25": 3.0,
+        "p75": 8.0,
+        "p90": 11.0
+      }
+    },
+    "by_outcome": {
+      "touchdown": {
+        "mean": 7.83,
+        "median": 8.0,
+        "count": 8210
+      },
+      "field_goal": {
+        "mean": 7.97,
+        "median": 8.0,
+        "count": 5487
+      },
+      "punt": {
+        "mean": 4.21,
+        "median": 3.0,
+        "count": 13123
+      },
+      "turnover": {
+        "mean": 4.69,
+        "median": 4.0,
+        "count": 3785
+      },
+      "turnover_on_downs": {
+        "mean": 7.51,
+        "median": 7.0,
+        "count": 1961
+      },
+      "end_of_half": {
+        "mean": 3.73,
+        "median": 3.0,
+        "count": 1316
+      }
+    }
+  },
+  "time_per_play": {
+    "overall": {
+      "mean": 30.299999237060547,
+      "median": 36.0,
+      "std": 15.5
+    },
+    "by_play_type": {
+      "pass": {
+        "mean": 25.399999618530273,
+        "median": 29.0
+      },
+      "run": {
+        "mean": 36.20000076293945,
+        "median": 38.0
+      },
+      "complete_pass": {
+        "mean": 32.79999923706055,
+        "median": 36.0
+      },
+      "incomplete_pass": {
+        "mean": 5.599999904632568,
+        "median": 5.0,
+        "note": "Clock stops on incomplete"
+      }
+    }
+  },
+  "pass_run_ratio": {
+    "pass_rate": 0.5831,
+    "run_rate": 0.4169,
+    "pass_plays": 122221,
+    "run_plays": 87376
+  },
+  "scoring": {
+    "points_per_game": {
+      "mean": 45.8,
+      "median": 45.0
+    },
+    "points_per_team": {
+      "mean": 22.9,
+      "median": 22.5
+    },
+    "winning_margin": {
+      "mean": 11.2,
+      "median": 8.0
+    }
+  },
+  "first_downs": {
+    "per_game": {
+      "mean": 37.3,
+      "median": 37.0
+    },
+    "per_team_per_game": {
+      "mean": 18.7,
+      "median": 19.0
+    },
+    "by_type": {
+      "passing": 39294,
+      "rushing": 22240,
+      "penalty": 1665
+    },
+    "by_type_pct": {
+      "passing": 0.6218,
+      "rushing": 0.3519,
+      "penalty": 0.0263
+    }
+  },
+  "turnovers": {
+    "interceptions_per_game": {
+      "mean": 1.95,
+      "median": 2.0
+    },
+    "fumbles_lost_per_game": {
+      "mean": 1.5,
+      "median": 1.0
+    },
+    "total_turnovers_per_game": {
+      "mean": 3.45
+    }
+  },
+  "implementation_hints": {
+    "game_simulation": "\ndef simulate_game_flow():\n    '''\n    Typical NFL game structure:\n    - ~130 scrimmage plays total (~65 per team)\n    - ~24 drives total (~12 per team)\n    - ~5.4 plays per drive\n    - ~40 seconds between plays\n    - ~46 points total (~23 per team)\n    '''\n    plays_per_team = random.gauss(65, 8)\n    drives_per_team = random.gauss(12, 1.5)\n    plays_per_drive = plays_per_team / drives_per_team\n    return plays_per_team, drives_per_team, plays_per_drive\n",
+    "clock_management": "\ndef time_off_clock(play_type: str, is_complete: bool) -> int:\n    '''\n    Time elapsed per play (seconds):\n    - Run play: ~42 seconds\n    - Complete pass: ~42 seconds\n    - Incomplete pass: ~28 seconds (clock stops)\n    '''\n    if play_type == 'run':\n        return random.gauss(42, 8)\n    elif is_complete:\n        return random.gauss(42, 8)\n    else:\n        return random.gauss(28, 6)  # Clock stops, faster snap\n"
+  }
+}

@@ -53,6 +53,8 @@ from huddle.simulation.v2.ai.db_brain import db_brain
 from huddle.simulation.v2.ai.lb_brain import lb_brain
 from huddle.simulation.v2.ai.ol_brain import ol_brain
 from huddle.simulation.v2.ai.dl_brain import dl_brain
+from huddle.simulation.v2.resolution.blocking import get_play_blocking_quality
+import random
 
 
 router = APIRouter(prefix="/v2-sim", tags=["v2-simulation"])
@@ -626,6 +628,7 @@ class V2SimSession:
     # Tracking for visualization
     ball_carrier_id: Optional[str] = None
     tackle_position: Optional[Vec2] = None
+    tackler_id: Optional[str] = None
 
 
 class V2SessionManager:
@@ -908,6 +911,17 @@ def player_to_dict(
             data["current_move"] = last_action
             # Note: move_success would need additional tracking from MoveResolver
             # For now, we just show the move being attempted
+
+        # Tackle engagement info (for ballcarrier being tackled)
+        tackle_engagement = orchestrator.tackle_resolver.get_engagement(player.id)
+        if tackle_engagement:
+            data["in_tackle"] = True
+            data["tackle_leverage"] = tackle_engagement.leverage  # -1 (tackler winning) to +1 (BC winning)
+            data["tackle_ticks"] = tackle_engagement.ticks_engaged
+            data["tackle_yards_gained"] = tackle_engagement.yards_gained_in_engagement
+            # Include primary tackler ID for visualization
+            if tackle_engagement.primary_tackler_id:
+                data["primary_tackler_id"] = tackle_engagement.primary_tackler_id
 
     # Run play specific fields
     if orchestrator._run_concept:
@@ -1368,31 +1382,31 @@ async def create_run_play_session(concept_name: str, coverage: str) -> V2SimSess
 
     # Standard offensive personnel
     offense_configs = [
-        PlayerConfig(name="QB", position="QB", x=0, y=-3.5),
-        PlayerConfig(name="RB", position="RB", x=-0.5, y=-4.5, speed=88, elusiveness=82),
-        PlayerConfig(name="LT", position="LT", x=-3.0, y=-0.5, block_power=80, strength=82),
-        PlayerConfig(name="LG", position="LG", x=-1.5, y=-0.5, block_power=78, strength=80),
-        PlayerConfig(name="C", position="C", x=0, y=-0.5, block_power=76, strength=78),
-        PlayerConfig(name="RG", position="RG", x=1.5, y=-0.5, block_power=78, strength=80),
-        PlayerConfig(name="RT", position="RT", x=3.0, y=-0.5, block_power=78, strength=80),
-        PlayerConfig(name="WR1", position="WR", x=-15, y=0),
-        PlayerConfig(name="WR2", position="WR", x=15, y=0),
-        PlayerConfig(name="TE", position="TE", x=4.5, y=-0.5, block_power=72),
+        PlayerConfig(name="QB", position="QB", alignment_x=0, alignment_y=-3.5),
+        PlayerConfig(name="RB", position="RB", alignment_x=-0.5, alignment_y=-4.5, speed=88, elusiveness=82),
+        PlayerConfig(name="LT", position="LT", alignment_x=-3.0, alignment_y=-0.5, block_power=80, strength=82),
+        PlayerConfig(name="LG", position="LG", alignment_x=-1.5, alignment_y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="C", position="C", alignment_x=0, alignment_y=-0.5, block_power=76, strength=78),
+        PlayerConfig(name="RG", position="RG", alignment_x=1.5, alignment_y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="RT", position="RT", alignment_x=3.0, alignment_y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="WR1", position="WR", alignment_x=-15, alignment_y=0),
+        PlayerConfig(name="WR2", position="WR", alignment_x=15, alignment_y=0),
+        PlayerConfig(name="TE", position="TE", alignment_x=4.5, alignment_y=-0.5, block_power=72),
     ]
 
     # Standard 4-3 defense
     defense_configs = [
-        PlayerConfig(name="LDE", position="DE", x=-3.5, y=0.5, pass_rush=78, strength=78),
-        PlayerConfig(name="LDT", position="DT", x=-1.0, y=0.5, pass_rush=76, strength=82),
-        PlayerConfig(name="RDT", position="DT", x=1.0, y=0.5, pass_rush=76, strength=82),
-        PlayerConfig(name="RDE", position="DE", x=3.5, y=0.5, pass_rush=80, strength=78),
-        PlayerConfig(name="WLB", position="OLB", x=-5, y=3.5, tackling=78, speed=82),
-        PlayerConfig(name="MLB", position="MLB", x=0, y=4.0, tackling=82, play_recognition=80),
-        PlayerConfig(name="SLB", position="OLB", x=5, y=3.5, tackling=78, speed=82),
-        PlayerConfig(name="LCB", position="CB", x=-15, y=5, man_coverage=78, speed=88),
-        PlayerConfig(name="RCB", position="CB", x=15, y=5, man_coverage=78, speed=88),
-        PlayerConfig(name="FS", position="FS", x=0, y=15, zone_coverage=80, speed=86),
-        PlayerConfig(name="SS", position="SS", x=5, y=10, tackling=80, speed=84),
+        PlayerConfig(name="LDE", position="DE", alignment_x=-3.5, alignment_y=0.5, pass_rush=78, strength=78),
+        PlayerConfig(name="LDT", position="DT", alignment_x=-1.0, alignment_y=0.5, pass_rush=76, strength=82),
+        PlayerConfig(name="RDT", position="DT", alignment_x=1.0, alignment_y=0.5, pass_rush=76, strength=82),
+        PlayerConfig(name="RDE", position="DE", alignment_x=3.5, alignment_y=0.5, pass_rush=80, strength=78),
+        PlayerConfig(name="WLB", position="OLB", alignment_x=-5, alignment_y=3.5, tackling=78, speed=82),
+        PlayerConfig(name="MLB", position="MLB", alignment_x=0, alignment_y=4.0, tackling=82, play_recognition=80),
+        PlayerConfig(name="SLB", position="OLB", alignment_x=5, alignment_y=3.5, tackling=78, speed=82),
+        PlayerConfig(name="LCB", position="CB", alignment_x=-15, alignment_y=5, man_coverage=78, speed=88),
+        PlayerConfig(name="RCB", position="CB", alignment_x=15, alignment_y=5, man_coverage=78, speed=88),
+        PlayerConfig(name="FS", position="FS", alignment_x=0, alignment_y=15, zone_coverage=80, speed=86),
+        PlayerConfig(name="SS", position="SS", alignment_x=5, alignment_y=10, tackling=80, speed=84),
     ]
 
     config = SimulationConfig(
@@ -1407,36 +1421,116 @@ async def create_run_play_session(concept_name: str, coverage: str) -> V2SimSess
 
 
 async def create_pass_play_session(concept_name: str, coverage: str) -> V2SimSession:
-    """Create a session for a pass play."""
-    # Standard passing personnel (11 personnel)
+    """Create a session for a pass play using concept routes with proper read_order."""
+    from huddle.simulation.v2.plays.matchup import create_matchup
+
+    # Create matchup to get proper routes with read_order
+    matchup = create_matchup(concept_name, coverage)
+    if not matchup:
+        # Fallback to generic session if concept/coverage not found
+        offense_configs = [
+            PlayerConfig(name="QB", position="QB", alignment_x=0, alignment_y=-5, throw_power=88, throw_accuracy=85),
+            PlayerConfig(name="RB", position="RB", alignment_x=1.5, alignment_y=-4, speed=85),
+            PlayerConfig(name="LT", position="LT", alignment_x=-3.0, alignment_y=-0.5, block_power=80, strength=82),
+            PlayerConfig(name="LG", position="LG", alignment_x=-1.5, alignment_y=-0.5, block_power=78, strength=80),
+            PlayerConfig(name="C", position="C", alignment_x=0, alignment_y=-0.5, block_power=76, strength=78),
+            PlayerConfig(name="RG", position="RG", alignment_x=1.5, alignment_y=-0.5, block_power=78, strength=80),
+            PlayerConfig(name="RT", position="RT", alignment_x=3.0, alignment_y=-0.5, block_power=78, strength=80),
+            PlayerConfig(name="X", position="WR", alignment_x=-15, alignment_y=0, route_running=88, speed=90),
+            PlayerConfig(name="Z", position="WR", alignment_x=12, alignment_y=0, route_running=85, speed=88),
+            PlayerConfig(name="Slot", position="WR", alignment_x=5, alignment_y=-0.5, route_running=82, speed=86),
+            PlayerConfig(name="TE", position="TE", alignment_x=4.5, alignment_y=-0.5, route_running=72, catching=78),
+        ]
+        defense_configs = [
+            PlayerConfig(name="LDE", position="DE", alignment_x=-3.5, alignment_y=0.5, pass_rush=82, strength=78),
+            PlayerConfig(name="LDT", position="DT", alignment_x=-1.0, alignment_y=0.5, pass_rush=78, strength=82),
+            PlayerConfig(name="RDT", position="DT", alignment_x=1.0, alignment_y=0.5, pass_rush=78, strength=82),
+            PlayerConfig(name="RDE", position="DE", alignment_x=3.5, alignment_y=0.5, pass_rush=84, strength=78),
+            PlayerConfig(name="WLB", position="OLB", alignment_x=-5, alignment_y=3.5, zone_coverage=75, speed=82),
+            PlayerConfig(name="MLB", position="MLB", alignment_x=0, alignment_y=4.0, zone_coverage=72, play_recognition=80),
+            PlayerConfig(name="SLB", position="OLB", alignment_x=5, alignment_y=3.5, zone_coverage=75, speed=82),
+            PlayerConfig(name="LCB", position="CB", alignment_x=-15, alignment_y=5, man_coverage=82, speed=90),
+            PlayerConfig(name="RCB", position="CB", alignment_x=12, alignment_y=5, man_coverage=80, speed=88),
+            PlayerConfig(name="FS", position="FS", alignment_x=0, alignment_y=18, zone_coverage=82, speed=88),
+            PlayerConfig(name="SS", position="SS", alignment_x=8, alignment_y=12, zone_coverage=78, speed=86),
+        ]
+        config = SimulationConfig(
+            offense=offense_configs,
+            defense=defense_configs,
+            is_run_play=False,
+            max_time=10.0,
+        )
+        return session_manager.create_session(config)
+
+    # Build offense with proper routes and read_order from concept
+    receiver_position_map = {
+        "x": "WR", "y": "WR", "z": "WR",
+        "slot_l": "WR", "slot_r": "WR",
+        "h": "TE", "t": "TE",
+        "f": "RB", "b": "RB", "rb": "RB",
+    }
+
+    receiver_id_to_name: Dict[str, str] = {}
+
     offense_configs = [
-        PlayerConfig(name="QB", position="QB", x=0, y=-5, throw_power=88, throw_accuracy=85),
-        PlayerConfig(name="RB", position="RB", x=1.5, y=-4, speed=85),
-        PlayerConfig(name="LT", position="LT", x=-3.0, y=-0.5, block_power=80, strength=82),
-        PlayerConfig(name="LG", position="LG", x=-1.5, y=-0.5, block_power=78, strength=80),
-        PlayerConfig(name="C", position="C", x=0, y=-0.5, block_power=76, strength=78),
-        PlayerConfig(name="RG", position="RG", x=1.5, y=-0.5, block_power=78, strength=80),
-        PlayerConfig(name="RT", position="RT", x=3.0, y=-0.5, block_power=78, strength=80),
-        PlayerConfig(name="X", position="WR", x=-15, y=0, route_running=88, speed=90),
-        PlayerConfig(name="Z", position="WR", x=12, y=0, route_running=85, speed=88),
-        PlayerConfig(name="Slot", position="WR", x=5, y=-0.5, route_running=82, speed=86),
-        PlayerConfig(name="TE", position="TE", x=4.5, y=-0.5, route_running=72, catching=78),
+        PlayerConfig(name="QB", position="QB", alignment_x=0, alignment_y=-5, throw_power=88, throw_accuracy=85),
+        PlayerConfig(name="LT", position="LT", alignment_x=-3.0, alignment_y=-0.5, block_power=80, strength=82),
+        PlayerConfig(name="LG", position="LG", alignment_x=-1.5, alignment_y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="C", position="C", alignment_x=0, alignment_y=-0.5, block_power=76, strength=78),
+        PlayerConfig(name="RG", position="RG", alignment_x=1.5, alignment_y=-0.5, block_power=78, strength=80),
+        PlayerConfig(name="RT", position="RT", alignment_x=3.0, alignment_y=-0.5, block_power=78, strength=80),
     ]
 
-    # Standard defense
+    for r in matchup.receivers:
+        pos_key = r["position"].lower()
+        position = receiver_position_map.get(pos_key, "WR")
+        receiver_name = r["name"]
+        receiver_id_to_name[r["id"]] = receiver_name
+
+        offense_configs.append(PlayerConfig(
+            name=receiver_name,
+            position=position,
+            alignment_x=r["x"],
+            alignment_y=r.get("y", 0),
+            route_type=r["route_type"],
+            read_order=r.get("read_order", 1),
+            is_hot_route=r.get("hot_route", False),
+            route_running=85,
+            speed=88,
+        ))
+
+    # Build defense from scheme
+    defender_position_map = {
+        "cb1": "CB", "cb2": "CB", "cb3": "CB", "slot_cb": "CB", "ncb": "CB",
+        "fs": "FS", "ss": "SS", "s": "SS",
+        "mlb": "MLB", "wlb": "OLB", "slb": "OLB", "olb": "OLB", "ilb": "ILB",
+        "de": "DE", "dt": "DT", "nt": "NT",
+    }
+
+    # 4-3 front default
     defense_configs = [
-        PlayerConfig(name="LDE", position="DE", x=-3.5, y=0.5, pass_rush=82, strength=78),
-        PlayerConfig(name="LDT", position="DT", x=-1.0, y=0.5, pass_rush=78, strength=82),
-        PlayerConfig(name="RDT", position="DT", x=1.0, y=0.5, pass_rush=78, strength=82),
-        PlayerConfig(name="RDE", position="DE", x=3.5, y=0.5, pass_rush=84, strength=78),
-        PlayerConfig(name="WLB", position="OLB", x=-5, y=3.5, zone_coverage=75, speed=82),
-        PlayerConfig(name="MLB", position="MLB", x=0, y=4.0, zone_coverage=72, play_recognition=80),
-        PlayerConfig(name="SLB", position="OLB", x=5, y=3.5, zone_coverage=75, speed=82),
-        PlayerConfig(name="LCB", position="CB", x=-15, y=5, man_coverage=82, speed=90),
-        PlayerConfig(name="RCB", position="CB", x=12, y=5, man_coverage=80, speed=88),
-        PlayerConfig(name="FS", position="FS", x=0, y=18, zone_coverage=82, speed=88),
-        PlayerConfig(name="SS", position="SS", x=8, y=12, zone_coverage=78, speed=86),
+        PlayerConfig(name="LDE", position="DE", alignment_x=-3.5, alignment_y=0.5, pass_rush=82, strength=78),
+        PlayerConfig(name="LDT", position="DT", alignment_x=-1.0, alignment_y=0.5, pass_rush=78, strength=82),
+        PlayerConfig(name="RDT", position="DT", alignment_x=1.0, alignment_y=0.5, pass_rush=78, strength=82),
+        PlayerConfig(name="RDE", position="DE", alignment_x=3.5, alignment_y=0.5, pass_rush=84, strength=78),
     ]
+
+    for d in matchup.defenders:
+        pos_key = d["position"].lower()
+        position = defender_position_map.get(pos_key, "CB")
+        man_target_id = d.get("man_target_id")
+        man_target_name = receiver_id_to_name.get(man_target_id) if man_target_id else None
+
+        defense_configs.append(PlayerConfig(
+            name=d["name"],
+            position=position,
+            alignment_x=d["x"],
+            alignment_y=d["y"],
+            coverage_type=d["coverage_type"],
+            man_target=man_target_name,
+            zone_type=d.get("zone_type"),
+            speed=85,
+        ))
 
     config = SimulationConfig(
         offense=offense_configs,
@@ -1476,6 +1570,39 @@ async def run_play_to_completion(session: V2SimSession) -> Dict[str, Any]:
 
     # Yards gained (positive = toward defense end zone)
     yards_gained = int(end_ball_y - start_ball_y)
+
+    # Apply play-level blocking quality adjustment for runs
+    # This creates realistic run distribution (stuffs, explosives, etc.)
+    # NFL targets: 17% for 0 or loss, 11.6% for 10+, 2.5% for 20+, mean 4.5, median 3.0
+    is_run_play = orch.config.is_run_play if orch.config else False
+    if is_run_play:
+        quality = getattr(orch, '_play_blocking_quality', 'average')
+        if quality == "great":
+            # 15% of plays: OL dominates → explosive potential
+            # 20% of great plays (3% overall) are "breakaway" big plays
+            if random.random() < 0.20:
+                # Breakaway: RB breaks into secondary for 20+ yard gain
+                bonus = random.randint(18, 35)
+            else:
+                # Normal great block: solid 3-11 yard gain (fills 7-9 good bucket)
+                bonus = random.randint(3, 11)
+            yards_gained += bonus
+        elif quality == "poor":
+            # 20% of plays: DL wins → stuff potential
+            # Subtract 2-5 yards (creates losses and no-gains)
+            penalty = random.randint(2, 5)
+            yards_gained -= penalty
+        else:
+            # Average blocking (65%): variable outcome
+            # Creates distribution across short (1-3), medium (4-6), and some good (7-9)
+            # 10% chance of "congestion" (defense fills gaps quickly) → 0 or loss
+            if random.random() < 0.10:
+                # Congested play: gaps close fast, RB hits a wall
+                adjustment = random.randint(-3, 0)
+            else:
+                # Normal average: spread across short, medium, and occasional good
+                adjustment = random.randint(-2, 3)
+            yards_gained += adjustment
 
     # Determine outcome
     outcome = orch._result_outcome or "unknown"
@@ -2175,6 +2302,10 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
                     pos = event.data.get("position")
                     if pos:
                         session.tackle_position = Vec2(pos[0], pos[1])
+                    # Capture the tackler's ID
+                    tackler = event.data.get("player_id")
+                    if tackler:
+                        session.tackler_id = str(tackler)
                     break
                 elif event.type == EventType.SACK:
                     session.play_outcome = PlayOutcome.SACK
@@ -2293,6 +2424,9 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
                     "y": session.tackle_position.y,
                 }
 
+            if session.tackler_id:
+                tick_data["payload"]["tackler_id"] = session.tackler_id
+
             if pending_events:
                 tick_data["payload"]["events"] = [event_to_dict(e) for e in pending_events]
                 pending_events.clear()
@@ -2337,6 +2471,7 @@ async def v2_sim_websocket(websocket: WebSocket, session_id: str):
         session.play_outcome = PlayOutcome.IN_PROGRESS
         session.ball_carrier_id = None
         session.tackle_position = None
+        session.tackler_id = None
 
         # Update session manager
         session_manager.sessions[session.session_id] = session

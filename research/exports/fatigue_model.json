@@ -1,0 +1,115 @@
+{
+  "snap_targets": {
+    "QB": {
+      "starter_target_pct": 1.0,
+      "rotation_target_pct": 1.0,
+      "max_healthy_pct": 0.95
+    },
+    "RB": {
+      "starter_target_pct": 0.69,
+      "rotation_target_pct": 0.27,
+      "max_healthy_pct": 0.95
+    },
+    "WR": {
+      "starter_target_pct": 0.92,
+      "rotation_target_pct": 0.53,
+      "max_healthy_pct": 0.95
+    },
+    "TE": {
+      "starter_target_pct": 0.83,
+      "rotation_target_pct": 0.41,
+      "max_healthy_pct": 0.95
+    },
+    "OL": {
+      "starter_target_pct": 1.0,
+      "rotation_target_pct": 1.0,
+      "max_healthy_pct": 0.95
+    },
+    "DL": {
+      "starter_target_pct": 0.77,
+      "rotation_target_pct": 0.47,
+      "max_healthy_pct": 0.95
+    },
+    "EDGE": {
+      "starter_target_pct": 0.9,
+      "rotation_target_pct": 0.42,
+      "max_healthy_pct": 0.95
+    },
+    "LB": {
+      "starter_target_pct": 1.0,
+      "rotation_target_pct": 0.37,
+      "max_healthy_pct": 0.95
+    },
+    "CB": {
+      "starter_target_pct": 1.0,
+      "rotation_target_pct": 0.6,
+      "max_healthy_pct": 0.95
+    },
+    "S": {
+      "starter_target_pct": 1.0,
+      "rotation_target_pct": 0.65,
+      "max_healthy_pct": 0.95
+    }
+  },
+  "fatigue_curve": {
+    "0.0": 1.0,
+    "0.5": 1.0,
+    "0.7": 0.99,
+    "0.8": 0.97,
+    "0.9": 0.94,
+    "0.95": 0.9,
+    "1.0": 0.85,
+    "position_modifiers": {
+      "QB": 0.7,
+      "RB": 1.3,
+      "WR": 1.0,
+      "TE": 1.1,
+      "OL": 0.9,
+      "DL": 1.4,
+      "EDGE": 1.2,
+      "LB": 1.1,
+      "CB": 1.0,
+      "S": 0.9
+    }
+  },
+  "rotation_recommendations": {
+    "RB": {
+      "typical_rotation_size": 2,
+      "min_snap_share": 0.33,
+      "optimal_lead_pct": 0.7
+    },
+    "DL": {
+      "typical_rotation_size": 6,
+      "min_snap_share": 0.14,
+      "optimal_lead_pct": 0.3
+    },
+    "WR": {
+      "typical_rotation_size": 4,
+      "min_snap_share": 0.2,
+      "optimal_lead_pct": 0.5
+    },
+    "TE": {
+      "typical_rotation_size": 2,
+      "min_snap_share": 0.33,
+      "optimal_lead_pct": 0.7
+    },
+    "LB": {
+      "typical_rotation_size": 4,
+      "min_snap_share": 0.2,
+      "optimal_lead_pct": 0.5
+    },
+    "CB": {
+      "typical_rotation_size": 3,
+      "min_snap_share": 0.25,
+      "optimal_lead_pct": 0.6
+    }
+  },
+  "cumulative_effects": {
+    "games_1": 1.0,
+    "games_2": 0.98,
+    "games_3": 0.95,
+    "games_4": 0.92,
+    "bye_week_recovery": 1.05,
+    "thursday_game_penalty": 0.97
+  }
+}

@@ -1,0 +1,551 @@
+{
+  "analysis_results": {
+    "personnel": {
+      "by_offense_personnel": {
+        "0 RB, 1 TE, 4 WR": {
+          "plays": 645,
+          "sack_rate": 0.0543,
+          "hit_rate": 0.1178,
+          "scramble_rate": 0.0
+        },
+        "1 C, 1 FB, 2 G, 1 QB, 1 RB, 2 T, 1 TE, 2 WR": {
+          "plays": 730,
+          "sack_rate": 0.0671,
+          "hit_rate": 0.1411,
+          "scramble_rate": 0.0
+        },
+        "1 C, 1 G, 1 QB, 1 RB, 3 T, 1 TE, 3 WR": {
+          "plays": 2990,
+          "sack_rate": 0.0893,
+          "hit_rate": 0.1702,
+          "scramble_rate": 0.0
+        },
+        "1 C, 1 G, 1 QB, 1 RB, 3 T, 2 TE, 2 WR": {
+          "plays": 839,
+          "sack_rate": 0.0513,
+          "hit_rate": 0.1418,
+          "scramble_rate": 0.0
+        },
+        "1 C, 1 QB, 1 RB, 4 T, 1 TE, 3 WR": {
+          "plays": 610,
+          "sack_rate": 0.1016,
+          "hit_rate": 0.1721,
+          "scramble_rate": 0.0
+        },
+        "1 C, 2 G, 1 QB, 1 RB, 2 T, 1 TE, 3 WR": {
+          "plays": 17544,
+          "sack_rate": 0.0705,
+          "hit_rate": 0.1574,
+          "scramble_rate": 0.0
+        },
+        "1 C, 2 G, 1 QB, 1 RB, 2 T, 2 TE, 2 WR": {
+          "plays": 4139,
+          "sack_rate": 0.0498,
+          "hit_rate": 0.1288,
+          "scramble_rate": 0.0
+        },
+        "1 C, 2 G, 1 QB, 1 RB, 2 T, 3 TE, 1 WR": {
+          "plays": 542,
+          "sack_rate": 0.0664,
+          "hit_rate": 0.1476,
+          "scramble_rate": 0.0
+        },
+        "1 C, 3 G, 1 QB, 1 RB, 1 T, 1 TE, 3 WR": {
+          "plays": 2503,
+          "sack_rate": 0.0707,
+          "hit_rate": 0.1502,
+          "scramble_rate": 0.0
+        },
+        "1 C, 3 G, 1 QB, 1 RB, 1 T, 2 TE, 2 WR": {
+          "plays": 632,
+          "sack_rate": 0.0585,
+          "hit_rate": 0.1535,
+          "scramble_rate": 0.0
+        },
+        "1 RB, 0 TE, 4 WR": {
+          "plays": 1719,
+          "sack_rate": 0.0727,
+          "hit_rate": 0.146,
+          "scramble_rate": 0.0
+        },
+        "1 RB, 1 TE, 3 WR": {
+          "plays": 56005,
+          "sack_rate": 0.0661,
+          "hit_rate": 0.1508,
+          "scramble_rate": 0.0
+        },
+        "1 RB, 2 TE, 2 WR": {
+          "plays": 12868,
+          "sack_rate": 0.0545,
+          "hit_rate": 0.1318,
+          "scramble_rate": 0.0001
+        },
+        "1 RB, 3 TE, 1 WR": {
+          "plays": 1772,
+          "sack_rate": 0.0587,
+          "hit_rate": 0.1321,
+          "scramble_rate": 0.0
+        },
+        "2 C, 1 G, 1 QB, 1 RB, 2 T, 1 TE, 3 WR": {
+          "plays": 1569,
+          "sack_rate": 0.0637,
+          "hit_rate": 0.1351,
+          "scramble_rate": 0.0
+        },
+        "2 G, 1 QB, 1 RB, 3 T, 1 TE, 3 WR": {
+          "plays": 766,
+          "sack_rate": 0.0822,
+          "hit_rate": 0.1358,
+          "scramble_rate": 0.0
+        },
+        "2 RB, 0 TE, 3 WR": {
+          "plays": 556,
+          "sack_rate": 0.0701,
+          "hit_rate": 0.1403,
+          "scramble_rate": 0.0
+        },
+        "2 RB, 1 TE, 2 WR": {
+          "plays": 4604,
+          "sack_rate": 0.0619,
+          "hit_rate": 0.1355,
+          "scramble_rate": 0.0
+        },
+        "2 RB, 2 TE, 1 WR": {
+          "plays": 1028,
+          "sack_rate": 0.0652,
+          "hit_rate": 0.1547,
+          "scramble_rate": 0.0
+        },
+        "3 G, 1 QB, 1 RB, 2 T, 1 TE, 3 WR": {
+          "plays": 1767,
+          "sack_rate": 0.0798,
+          "hit_rate": 0.1505,
+          "scramble_rate": 0.0
+        },
+        "3 G, 1 QB, 1 RB, 2 T, 2 TE, 2 WR": {
+          "plays": 531,
+          "sack_rate": 0.064,
+          "hit_rate": 0.1394,
+          "scramble_rate": 0.0
+        }
+      },
+      "by_defense_personnel": {
+        "1 DL, 4 LB, 6 DB": {
+          "plays": 1981,
+          "sack_rate": 0.0833,
+          "hit_rate": 0.1762,
+          "dl_count": null
+        },
+        "1 DL, 5 LB, 5 DB": {
+          "plays": 1084,
+          "sack_rate": 0.0849,
+          "hit_rate": 0.214,
+          "dl_count": null
+        },
+        "2 CB, 2 DE, 2 DT, 2 FS, 2 ILB, 1 SS": {
+          "plays": 590,
+          "sack_rate": 0.0492,
+          "hit_rate": 0.1322,
+          "dl_count": null
+        },
+        "2 DL, 3 LB, 6 DB": {
+          "plays": 5599,
+          "sack_rate": 0.0873,
+          "hit_rate": 0.182,
+          "dl_count": null
+        },
+        "2 DL, 4 LB, 5 DB": {
+          "plays": 13332,
+          "sack_rate": 0.0629,
+          "hit_rate": 0.1376,
+          "dl_count": null
+        },
+        "3 CB, 1 DE, 1 FS, 2 ILB, 1 NT, 2 OLB, 1 SS": {
+          "plays": 758,
+          "sack_rate": 0.0699,
+          "hit_rate": 0.1491,
+          "dl_count": null
+        },
+        "3 CB, 2 DE, 2 DT, 1 FS, 1 MLB, 1 OLB, 1 SS": {
+          "plays": 935,
+          "sack_rate": 0.0599,
+          "hit_rate": 0.1187,
+          "dl_count": null
+        },
+        "3 CB, 2 DE, 2 DT, 1 FS, 2 ILB, 1 SS": {
+          "plays": 1653,
+          "sack_rate": 0.0623,
+          "hit_rate": 0.15,
+          "dl_count": null
+        },
+        "3 CB, 2 DE, 2 DT, 2 FS, 2 ILB": {
+          "plays": 604,
+          "sack_rate": 0.0728,
+          "hit_rate": 0.1871,
+          "dl_count": null
+        },
+        "3 CB, 3 DE, 1 DT, 1 FS, 2 ILB, 1 SS": {
+          "plays": 575,
+          "sack_rate": 0.0748,
+          "hit_rate": 0.1722,
+          "dl_count": null
+        },
+        "3 DL, 2 LB, 6 DB": {
+          "plays": 3563,
+          "sack_rate": 0.0856,
+          "hit_rate": 0.1805,
+          "dl_count": null
+        },
+        "3 DL, 3 LB, 5 DB": {
+          "plays": 12466,
+          "sack_rate": 0.0606,
+          "hit_rate": 0.1383,
+          "dl_count": null
+        },
+        "3 DL, 4 LB, 4 DB": {
+          "plays": 5812,
+          "sack_rate": 0.0576,
+          "hit_rate": 0.1418,
+          "dl_count": null
+        },
+        "4 DL, 1 LB, 6 DB": {
+          "plays": 3942,
+          "sack_rate": 0.0771,
+          "hit_rate": 0.1938,
+          "dl_count": null
+        },
+        "4 DL, 2 LB, 5 DB": {
+          "plays": 24032,
+          "sack_rate": 0.0579,
+          "hit_rate": 0.1339,
+          "dl_count": null
+        },
+        "4 DL, 3 LB, 4 DB": {
+          "plays": 6563,
+          "sack_rate": 0.0504,
+          "hit_rate": 0.1248,
+          "dl_count": null
+        },
+        "5 DL, 2 LB, 4 DB": {
+          "plays": 626,
+          "sack_rate": 0.0559,
+          "hit_rate": 0.1518,
+          "dl_count": null
+        }
+      },
+      "by_box_count": {
+        "3": {
+          "plays": 958,
+          "sack_rate": 0.0647,
+          "hit_rate": 0.1284
+        },
+        "4": {
+          "plays": 6970,
+          "sack_rate": 0.0696,
+          "hit_rate": 0.1511
+        },
+        "5": {
+          "plays": 22762,
+          "sack_rate": 0.0755,
+          "hit_rate": 0.156
+        },
+        "6": {
+          "plays": 59739,
+          "sack_rate": 0.0654,
+          "hit_rate": 0.1475
+        },
+        "7": {
+          "plays": 24910,
+          "sack_rate": 0.0601,
+          "hit_rate": 0.1418
+        },
+        "8": {
+          "plays": 5920,
+          "sack_rate": 0.0542,
+          "hit_rate": 0.1463
+        },
+        "9": {
+          "plays": 487,
+          "sack_rate": 0.0595,
+          "hit_rate": 0.152
+        }
+      },
+      "by_formation": {}
+    },
+    "blitz": {
+      "blitz_detection": {
+        "Standard (\u22644)": {
+          "plays": 88708,
+          "sack_rate": 0.0585,
+          "completion_rate": 0.6219,
+          "int_rate": 0.0216
+        },
+        "Blitz (5+)": {
+          "plays": 33513,
+          "sack_rate": 0.0854,
+          "completion_rate": 0.5514,
+          "int_rate": 0.0199
+        }
+      },
+      "extra_rusher_effect": {
+        "3": {
+          "plays": 8381,
+          "sack_rate": 0.0354,
+          "completion_rate": 0.6542,
+          "marginal_sack_increase": 0.0
+        },
+        "4": {
+          "plays": 77777,
+          "sack_rate": 0.0623,
+          "completion_rate": 0.6185,
+          "marginal_sack_increase": 0.0268
+        },
+        "5": {
+          "plays": 24955,
+          "sack_rate": 0.0846,
+          "completion_rate": 0.5652,
+          "marginal_sack_increase": 0.0223
+        },
+        "6": {
+          "plays": 6857,
+          "sack_rate": 0.0898,
+          "completion_rate": 0.5139,
+          "marginal_sack_increase": 0.0053
+        },
+        "7": {
+          "plays": 1504,
+          "sack_rate": 0.0771,
+          "completion_rate": 0.5007,
+          "marginal_sack_increase": -0.0127
+        }
+      },
+      "timing_by_rush_count": {}
+    },
+    "run_blocking": {
+      "by_box_count": {
+        "4": {
+          "plays": 751,
+          "mean_yards": 7.74,
+          "stuff_rate": 0.0533,
+          "explosive_rate": 0.3009
+        },
+        "5": {
+          "plays": 4325,
+          "mean_yards": 6.09,
+          "stuff_rate": 0.1003,
+          "explosive_rate": 0.1908
+        },
+        "6": {
+          "plays": 34016,
+          "mean_yards": 4.92,
+          "stuff_rate": 0.144,
+          "explosive_rate": 0.1296
+        },
+        "7": {
+          "plays": 31636,
+          "mean_yards": 4.33,
+          "stuff_rate": 0.1787,
+          "explosive_rate": 0.1076
+        },
+        "8": {
+          "plays": 13403,
+          "mean_yards": 3.8,
+          "stuff_rate": 0.2176,
+          "explosive_rate": 0.0918
+        },
+        "9": {
+          "plays": 2001,
+          "mean_yards": 2.4,
+          "stuff_rate": 0.2934,
+          "explosive_rate": 0.047
+        },
+        "10": {
+          "plays": 606,
+          "mean_yards": 1.57,
+          "stuff_rate": 0.2987,
+          "explosive_rate": 0.0297
+        },
+        "11": {
+          "plays": 398,
+          "mean_yards": 0.88,
+          "stuff_rate": 0.3719,
+          "explosive_rate": 0.0151
+        }
+      },
+      "by_run_location": {
+        "left": {
+          "plays": 32350,
+          "mean_yards": 4.73,
+          "stuff_rate": 0.1724,
+          "explosive_rate": 0.1303
+        },
+        "middle": {
+          "plays": 22588,
+          "mean_yards": 4.13,
+          "stuff_rate": 0.1578,
+          "explosive_rate": 0.0946
+        },
+        "right": {
+          "plays": 31531,
+          "mean_yards": 4.69,
+          "stuff_rate": 0.1634,
+          "explosive_rate": 0.1247
+        }
+      },
+      "by_run_gap": {
+        "end": {
+          "plays": 22591,
+          "mean_yards": 5.38,
+          "median_yards": 4.0,
+          "stuff_rate": 0.1806,
+          "explosive_rate": 0.1767
+        },
+        "guard": {
+          "plays": 21408,
+          "mean_yards": 4.17,
+          "median_yards": 3.0,
+          "stuff_rate": 0.1517,
+          "explosive_rate": 0.0886
+        },
+        "tackle": {
+          "plays": 19879,
+          "mean_yards": 4.53,
+          "median_yards": 3.0,
+          "stuff_rate": 0.1709,
+          "explosive_rate": 0.1136
+        }
+      },
+      "by_formation": {},
+      "yards_distribution": {
+        "p5": -1.0,
+        "p10": 0.0,
+        "p25": 1.0,
+        "p50": 3.0,
+        "p75": 6.0,
+        "p90": 11.0,
+        "p95": 14.0
+      }
+    },
+    "qb_pocket": {
+      "pocket_outcomes": {
+        "hit": {
+          "plays": 18071,
+          "completion_rate": 0.238,
+          "int_rate": 0.0237
+        },
+        "clean": {
+          "plays": 104150,
+          "completion_rate": 0.6658,
+          "int_rate": 0.0207
+        }
+      },
+      "scramble_analysis": {
+        "rate": 0.0,
+        "count": 1,
+        "mean_yards": NaN
+      },
+      "pressure_response": {
+        "3_rushers": {
+          "scramble_rate": 0.0
+        },
+        "4_rushers": {
+          "scramble_rate": 0.0
+        },
+        "5_rushers": {
+          "scramble_rate": 0.0
+        },
+        "6_rushers": {
+          "scramble_rate": 0.0
+        },
+        "7_rushers": {
+          "scramble_rate": 0.0
+        }
+      }
+    },
+    "protection": {
+      "shotgun_vs_under_center": {
+        "Under Center": {
+          "plays": 21029,
+          "sack_rate": 0.0599,
+          "hit_rate": 0.1477
+        },
+        "Shotgun": {
+          "plays": 101192,
+          "sack_rate": 0.0671,
+          "hit_rate": 0.1479
+        }
+      },
+      "no_huddle_effect": {
+        "Huddle": {
+          "plays": 108114,
+          "sack_rate": 0.0669
+        },
+        "No Huddle": {
+          "plays": 14107,
+          "sack_rate": 0.0576
+        }
+      },
+      "play_action_protection": {}
+    }
+  },
+  "contesting_mechanics": {
+    "pass_rush_contesting": {
+      "blitz_multiplier": 1.46,
+      "box_modifiers": {
+        "3": 0.99,
+        "4": 1.06,
+        "5": 1.15,
+        "6": 1.0,
+        "7": 0.92,
+        "8": 0.83,
+        "9": 0.91
+      }
+    },
+    "run_block_contesting": {
+      "gap_win_rates": {
+        "end": {
+          "ol_win_rate": 0.742,
+          "stuff_rate": 0.1806,
+          "mean_yards": 5.38
+        },
+        "guard": {
+          "ol_win_rate": 0.783,
+          "stuff_rate": 0.1517,
+          "mean_yards": 4.17
+        },
+        "tackle": {
+          "ol_win_rate": 0.756,
+          "stuff_rate": 0.1709,
+          "mean_yards": 4.53
+        }
+      },
+      "box_modifiers": {
+        "4": 0.3,
+        "5": 0.56,
+        "6": 0.81,
+        "7": 1.0,
+        "8": 1.22,
+        "9": 1.64,
+        "10": 1.67,
+        "11": 2.08
+      }
+    },
+    "modifier_tables": {
+      "formation": {
+        "Under Center": {
+          "sack_rate": 0.0599
+        },
+        "Shotgun": {
+          "sack_rate": 0.0671
+        }
+      },
+      "scramble_by_rushers": {
+        "3": 0.0,
+        "4": 0.0,
+        "5": 0.0,
+        "6": 0.0,
+        "7": 0.0
+      }
+    }
+  }
+}

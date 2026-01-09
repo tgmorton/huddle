@@ -15,6 +15,11 @@ from huddle.api.routers.integrated_sim import router as integrated_sim_router
 from huddle.api.routers.v2_sim import router as v2_sim_router
 from huddle.api.routers.agentmail import router as agentmail_router
 from huddle.api.routers.agentmail_websocket import router as agentmail_websocket_router
+from huddle.api.routers.portraits import router as portraits_router
+from huddle.api.routers.history import router as history_router
+from huddle.api.routers.free_agency import router as free_agency_router
+from huddle.api.routers.position_plan import router as position_plan_router
+from huddle.api.routers.coach_mode import router as coach_mode_router
 
 __all__ = [
     "games_router",
@@ -32,4 +37,9 @@ __all__ = [
     "v2_sim_router",
     "agentmail_router",
     "agentmail_websocket_router",
+    "portraits_router",
+    "history_router",
+    "free_agency_router",
+    "position_plan_router",
+    "coach_mode_router",
 ]

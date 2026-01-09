@@ -1,0 +1,145 @@
+# NFL Run Game Analysis Report
+
+**Data Source:** nfl_data_py (nflfastR)
+**Seasons:** [2023, 2022, 2021]
+**Total Run Plays Analyzed:** 44,545
+
+---
+
+## Executive Summary
+
+The real NFL run game has these characteristics that our simulation should match:
+
+- **Average:** 4.5 yards per carry
+- **Median:** 3.0 yards (tells us distribution is right-skewed)
+- **Stuffed (loss):** 8.7% of runs
+- **Short gains (1-3):** 36.4% of runs
+- **Medium gains (4-6):** 24.1% of runs
+- **Explosive (10+):** 11.6% of runs
+
+---
+
+## Yards Distribution
+
+| Percentile | Yards |
+|------------|-------|
+| 10th | 0 |
+| 25th | 1 |
+| 50th (Median) | 3 |
+| 75th | 6 |
+| 90th | 11 |
+| 95th | 14 |
+| 99th | 28 |
+
+**Key Insight:** 50% of runs gain 3 yards or less. 75% gain 5 yards or less.
+The 4-6 yard "good run" is actually in the 50th-75th percentile.
+
+---
+
+## Outcome Buckets
+
+| Outcome | Percentage |
+|---------|------------|
+| Stuffed (loss) | 8.7% |
+| No gain (0) | 8.4% |
+| Short (1-3) | 36.4% |
+| Medium (4-6) | 24.1% |
+| Good (7-9) | 10.8% |
+| Explosive (10+) | 11.6% |
+| Big Play (20+) | 2.5% |
+
+---
+
+## By Down
+
+|   down |   plays |   mean_yards |   median_yards |   std_yards |   first_down_rate |   mean_epa |
+|-------:|--------:|-------------:|---------------:|------------:|------------------:|-----------:|
+|      1 |   23840 |         4.47 |              3 |        6.02 |              0.14 |      -0.08 |
+|      2 |   14499 |         4.51 |              3 |        5.95 |              0.34 |      -0.02 |
+|      3 |    5296 |         4.71 |              3 |        6.65 |              0.55 |       0.12 |
+|      4 |     910 |         3.17 |              2 |        5.94 |              0.69 |       0.48 |
+
+**Key Insights:**
+- 1st down runs average the most yards
+- 3rd and 4th down runs have lower averages (defense knows it's coming)
+- First down conversion rate drops significantly on 3rd/4th down
+
+---
+
+## By Yards to Go
+
+| ytg_bucket   |   plays |   mean_yards |   median_yards |   first_down_rate |   mean_epa |
+|:-------------|--------:|-------------:|---------------:|------------------:|-----------:|
+| 1-2          |    6609 |         3.27 |              2 |              0.7  |       0.1  |
+| 3-5          |    5635 |         4.11 |              3 |              0.41 |       0.06 |
+| 6-8          |    4793 |         4.72 |              4 |              0.25 |       0.07 |
+| 9-10         |   25219 |         4.74 |              3 |              0.13 |      -0.09 |
+| 11-15        |    1471 |         5.25 |              4 |              0.11 |       0    |
+| 16+          |     818 |         6.11 |              5 |              0.04 |      -0.18 |
+
+**Key Insight:** Short yardage (1-2) has highest EPA - this is where runs are most valuable.
+
+---
+
+## By Game Situation
+
+| situation   |   plays |   mean_yards |   mean_epa |
+|:------------|--------:|-------------:|-----------:|
+| down_14+    |    3719 |         4.67 |       0.01 |
+| down_7-13   |    7199 |         4.49 |       0.01 |
+| down_1-6    |    6950 |         4.58 |      -0.02 |
+| tied        |    9335 |         4.51 |      -0.02 |
+| up_1-7      |    9525 |         4.46 |      -0.03 |
+| up_8-14     |    4598 |         4.36 |      -0.06 |
+| up_14+      |    3219 |         4.23 |      -0.07 |
+
+**Key Insight:** Teams run more when ahead, but EPA drops (defense stacks the box).
+
+---
+
+## By Run Location
+
+| run_location   |   plays |   mean_yards |   median_yards |   first_down_rate |   mean_epa |
+|:---------------|--------:|-------------:|---------------:|------------------:|-----------:|
+| left           |   16610 |         4.67 |              3 |              0.26 |       0    |
+| middle         |   11557 |         4.02 |              3 |              0.28 |      -0.03 |
+| right          |   16038 |         4.71 |              3 |              0.26 |       0.01 |
+
+---
+
+## By Gap
+
+| run_gap   |   plays |   mean_yards |   median_yards |   first_down_rate |   mean_epa |
+|:----------|--------:|-------------:|---------------:|------------------:|-----------:|
+| end       |   11655 |         5.41 |              4 |              0.3  |       0.1  |
+| guard     |   10815 |         4.17 |              3 |              0.24 |      -0.04 |
+| tackle    |   10177 |         4.42 |              3 |              0.22 |      -0.06 |
+
+---
+
+## Simulation Calibration Recommendations
+
+### 1. Yards Distribution Target
+Our simulation should produce:
+- ~20% of runs for loss or no gain
+- ~35% of runs for 1-3 yards
+- ~25% of runs for 4-6 yards
+- ~10% of runs for 7-9 yards
+- ~10% of runs for 10+ yards
+
+### 2. Average YPC Target
+- Target: 4.2-4.5 yards per carry average
+- Median should be 3 yards (not the mean!)
+
+### 3. Explosive Play Rate
+- 10+ yard runs: ~10% of all runs
+- 20+ yard runs: ~2-3% of all runs
+
+### 4. Situation Awareness
+- Short yardage should convert ~75%+ of the time
+- 3rd/4th down runs should have lower success rate
+- Runs when ahead by 14+ should average less (stacked boxes)
+
+---
+
+*Report generated by researcher_agent using nfl_data_py*

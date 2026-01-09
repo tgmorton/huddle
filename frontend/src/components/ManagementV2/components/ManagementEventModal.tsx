@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { X, AlertTriangle, Briefcase, Shield, Users } from 'lucide-react';
+import { X, AlertTriangle, Briefcase, Shield, Users, FileText, DollarSign, UserMinus, Clock, MessageSquare } from 'lucide-react';
 import type { ManagementEvent } from '../../../types/management';
 
 interface ManagementEventModalProps {
@@ -19,7 +19,7 @@ interface ManagementEventModalProps {
 const categoryIcons: Record<string, React.FC<{ size: number }>> = {
   FREE_AGENCY: Users,
   TRADE: Briefcase,
-  CONTRACT: Briefcase,
+  CONTRACT: FileText,
   ROSTER: Users,
   PRACTICE: Shield,
   MEETING: Users,
@@ -29,6 +29,18 @@ const categoryIcons: Record<string, React.FC<{ size: number }>> = {
   STAFF: Briefcase,
   DEADLINE: AlertTriangle,
   SYSTEM: AlertTriangle,
+};
+
+// Map event subtypes to more specific icons
+const getContractIcon = (payload: Record<string, unknown> | undefined): React.FC<{ size: number }> => {
+  const subtype = payload?.subtype as string | undefined;
+  switch (subtype) {
+    case 'holdout': return UserMinus;
+    case 'extension_deadline': return Clock;
+    case 'agent_demand': return MessageSquare;
+    case 'signed': return FileText;
+    default: return DollarSign;
+  }
 };
 
 // Map priority to severity class
@@ -45,7 +57,10 @@ export const ManagementEventModal: React.FC<ManagementEventModalProps> = ({
   onAttend,
   onDismiss,
 }) => {
-  const IconComponent = categoryIcons[event.category] || AlertTriangle;
+  // Use contract-specific icons when applicable
+  const IconComponent = event.category === 'CONTRACT'
+    ? getContractIcon(event.payload)
+    : categoryIcons[event.category] || AlertTriangle;
   const severity = priorityToSeverity[event.priority] || 'info';
 
   return (

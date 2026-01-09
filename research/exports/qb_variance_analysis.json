@@ -1,0 +1,623 @@
+{
+  "time_to_throw": {
+    "distribution": {
+      "mean": 2.789,
+      "std": 0.163,
+      "min": 2.3,
+      "max": 3.271,
+      "p10": 2.571,
+      "p25": 2.691,
+      "p50": 2.797,
+      "p75": 2.886,
+      "p90": 2.981,
+      "sample": 246
+    },
+    "by_tier": {
+      "Quick": {
+        "avg_time_to_throw": 2.585,
+        "completion_pct": 65.56,
+        "comp_above_expected": -0.16,
+        "passer_rating": 90.8,
+        "int_rate": 2.32,
+        "sample": 62
+      },
+      "Normal-Quick": {
+        "avg_time_to_throw": 2.743,
+        "completion_pct": 65.31,
+        "comp_above_expected": 0.65,
+        "passer_rating": 90.3,
+        "int_rate": 2.42,
+        "sample": 61
+      },
+      "Normal-Slow": {
+        "avg_time_to_throw": 2.84,
+        "completion_pct": 63.46,
+        "comp_above_expected": -0.91,
+        "passer_rating": 89.0,
+        "int_rate": 2.18,
+        "sample": 61
+      },
+      "Slow": {
+        "avg_time_to_throw": 2.988,
+        "completion_pct": 63.04,
+        "comp_above_expected": -0.53,
+        "passer_rating": 90.4,
+        "int_rate": 2.28,
+        "sample": 62
+      }
+    },
+    "correlation_with_success": {
+      "ttt_vs_completion": -0.287,
+      "ttt_vs_passer_rating": -0.001,
+      "ttt_vs_comp_above_exp": -0.061,
+      "ttt_vs_int_rate": -0.016
+    },
+    "optimal_range": {
+      "best_time_for_rating": 2.4,
+      "recommended_range": [
+        2.4,
+        2.8
+      ],
+      "performance_by_time": {
+        "2.4": {
+          "completion_pct": 68.4,
+          "passer_rating": 95.1,
+          "sample": 5
+        },
+        "2.5": {
+          "completion_pct": 64.6,
+          "passer_rating": 86.0,
+          "sample": 15
+        },
+        "2.6": {
+          "completion_pct": 65.1,
+          "passer_rating": 89.1,
+          "sample": 21
+        },
+        "2.7": {
+          "completion_pct": 65.7,
+          "passer_rating": 91.3,
+          "sample": 53
+        },
+        "2.8": {
+          "completion_pct": 64.6,
+          "passer_rating": 90.2,
+          "sample": 65
+        },
+        "2.9": {
+          "completion_pct": 62.9,
+          "passer_rating": 89.6,
+          "sample": 51
+        },
+        "3.0": {
+          "completion_pct": 63.3,
+          "passer_rating": 90.6,
+          "sample": 21
+        },
+        "3.1": {
+          "completion_pct": 62.6,
+          "passer_rating": 92.3,
+          "sample": 11
+        }
+      }
+    }
+  },
+  "pressure_timing": {
+    "overall_pressure_rate": 0.1515,
+    "completion_clean": 0.6686999797821045,
+    "completion_pressured": 0.23229999840259552,
+    "pressure_penalty": 0.43639999628067017,
+    "sack_on_pressure": 0.43470001220703125,
+    "by_down": {
+      "1": {
+        "pressure_rate": 0.1268,
+        "completion_clean": 0.6935999989509583,
+        "completion_pressured": 0.24379999935626984,
+        "sample": 44918
+      },
+      "2": {
+        "pressure_rate": 0.1323,
+        "completion_clean": 0.6887999773025513,
+        "completion_pressured": 0.2551000118255615,
+        "sample": 41353
+      },
+      "3": {
+        "pressure_rate": 0.2084,
+        "completion_clean": 0.6265000104904175,
+        "completion_pressured": 0.2061000019311905,
+        "sample": 32545
+      },
+      "4": {
+        "pressure_rate": 0.2008,
+        "completion_clean": 0.5676000118255615,
+        "completion_pressured": 0.20990000665187836,
+        "sample": 2824
+      }
+    }
+  },
+  "game_to_game": {
+    "completion_variance": {
+      "avg_game_to_game_std": 0.0892,
+      "min_std": 0.0439,
+      "max_std": 0.1479,
+      "typical_range": 0.1796
+    },
+    "epa_variance": {
+      "avg_game_to_game_std": 0.293,
+      "min_std": 0.1115,
+      "max_std": 0.5467
+    },
+    "yards_variance": {
+      "avg_game_to_game_std": 1.7599
+    },
+    "by_consistency": {
+      "Consistent": {
+        "comp_std": 0.0657,
+        "comp_mean": 0.6144000291824341,
+        "epa_mean": 0.04430000111460686,
+        "sample": 50
+      },
+      "Average": {
+        "comp_std": 0.0885,
+        "comp_mean": 0.607200026512146,
+        "epa_mean": 0.04769999906420708,
+        "sample": 98
+      },
+      "Volatile": {
+        "comp_std": 0.1139,
+        "comp_mean": 0.602400004863739,
+        "epa_mean": 0.025499999523162842,
+        "sample": 50
+      }
+    },
+    "coefficient_of_variation": {
+      "mean": 0.1477,
+      "median": 0.1446,
+      "interpretation": "CV of 0.15 means typical game varies \u00b115% from season average"
+    }
+  },
+  "situational": {
+    "by_down": {
+      "1": {
+        "completion_rate": 0.6366000175476074,
+        "avg_air_yards": 7.710000038146973,
+        "int_rate": 0.018699999898672104,
+        "sample": 44918
+      },
+      "2": {
+        "completion_rate": 0.6315000057220459,
+        "avg_air_yards": 7.050000190734863,
+        "int_rate": 0.019200000911951065,
+        "sample": 41353
+      },
+      "3": {
+        "completion_rate": 0.5389000177383423,
+        "avg_air_yards": 8.9399995803833,
+        "int_rate": 0.025699999183416367,
+        "sample": 32545
+      },
+      "4": {
+        "completion_rate": 0.4957999885082245,
+        "avg_air_yards": 10.6899995803833,
+        "int_rate": 0.04179999977350235,
+        "sample": 2824
+      }
+    },
+    "by_distance": {
+      "Short": {
+        "completion_rate": 0.5967000126838684,
+        "avg_air_yards": 6.480000019073486,
+        "sample": 12031
+      },
+      "Medium": {
+        "completion_rate": 0.5720000267028809,
+        "avg_air_yards": 7.769999980926514,
+        "sample": 26144
+      },
+      "Long": {
+        "completion_rate": 0.6157000064849854,
+        "avg_air_yards": 8.109999656677246,
+        "sample": 71341
+      },
+      "Very Long": {
+        "completion_rate": 0.6254000067710876,
+        "avg_air_yards": 8.029999732971191,
+        "sample": 12124
+      }
+    },
+    "by_score": {
+      "Down Big": {
+        "completion_rate": 0.5810999870300293,
+        "avg_air_yards": 8.0,
+        "sample": 18442
+      },
+      "Down 2 Scores": {
+        "completion_rate": 0.5968999862670898,
+        "avg_air_yards": 8.09000015258789,
+        "sample": 24586
+      },
+      "Down 1 Score": {
+        "completion_rate": 0.5939000248908997,
+        "avg_air_yards": 8.229999542236328,
+        "sample": 21137
+      },
+      "Tied": {
+        "completion_rate": 0.6205000281333923,
+        "avg_air_yards": 7.360000133514404,
+        "sample": 22132
+      },
+      "Up 1 Score": {
+        "completion_rate": 0.6061000227928162,
+        "avg_air_yards": 7.889999866485596,
+        "sample": 15087
+      },
+      "Up 2 Scores": {
+        "completion_rate": 0.6169999837875366,
+        "avg_air_yards": 7.619999885559082,
+        "sample": 13973
+      },
+      "Up Big": {
+        "completion_rate": 0.6119999885559082,
+        "avg_air_yards": 7.730000019073486,
+        "sample": 6864
+      }
+    },
+    "by_quarter": {
+      "1": {
+        "completion_rate": 0.6274999976158142,
+        "sample": 26022
+      },
+      "2": {
+        "completion_rate": 0.6037999987602234,
+        "sample": 34928
+      },
+      "3": {
+        "completion_rate": 0.6067000031471252,
+        "sample": 26644
+      },
+      "4": {
+        "completion_rate": 0.5788999795913696,
+        "sample": 33876
+      }
+    },
+    "by_field_position": {
+      "Red Zone": {
+        "completion_rate": 0.5163999795913696,
+        "avg_air_yards": 5.010000228881836,
+        "sample": 16804
+      },
+      "Midfield": {
+        "completion_rate": 0.603600025177002,
+        "avg_air_yards": 8.449999809265137,
+        "sample": 36937
+      },
+      "Own Territory": {
+        "completion_rate": 0.6230999827384949,
+        "avg_air_yards": 8.229999542236328,
+        "sample": 68480
+      }
+    }
+  },
+  "air_yards": {
+    "air_yards_distribution": {
+      "mean": 7.869999885559082,
+      "std": 10.140000343322754,
+      "median": 5.0,
+      "p10": -3.0,
+      "p25": 1.0,
+      "p75": 12.0,
+      "p90": 21.0,
+      "negative_rate": 0.1664,
+      "deep_rate": 0.1166
+    },
+    "completion_by_air_yards": {
+      "Behind LOS": {
+        "completion_rate": 0.8047999739646912,
+        "int_rate": 0.006899999920278788,
+        "avg_yards_if_complete": 5.809999942779541,
+        "sample": 18852
+      },
+      "Screen/Check": {
+        "completion_rate": 0.7261000275611877,
+        "int_rate": 0.010400000028312206,
+        "avg_yards_if_complete": 7.119999885559082,
+        "sample": 31050
+      },
+      "Short": {
+        "completion_rate": 0.6766999959945679,
+        "int_rate": 0.017999999225139618,
+        "avg_yards_if_complete": 9.699999809265137,
+        "sample": 26721
+      },
+      "Intermediate": {
+        "completion_rate": 0.5622000098228455,
+        "int_rate": 0.02979999966919422,
+        "avg_yards_if_complete": 15.3100004196167,
+        "sample": 14113
+      },
+      "Medium-Deep": {
+        "completion_rate": 0.5335000157356262,
+        "int_rate": 0.041200000792741776,
+        "avg_yards_if_complete": 20.850000381469727,
+        "sample": 9553
+      },
+      "Deep": {
+        "completion_rate": 0.40459999442100525,
+        "int_rate": 0.05510000139474869,
+        "avg_yards_if_complete": 28.469999313354492,
+        "sample": 8070
+      },
+      "Bomb": {
+        "completion_rate": 0.29789999127388,
+        "int_rate": 0.07370000332593918,
+        "avg_yards_if_complete": 44.380001068115234,
+        "sample": 5170
+      }
+    },
+    "aggressiveness_distribution": {
+      "mean": 15.39,
+      "std": 2.98,
+      "min": 8.66,
+      "max": 24.44,
+      "p25": 13.17,
+      "p75": 17.23
+    },
+    "by_aggressiveness": {
+      "Conservative": {
+        "aggressiveness": 12.16,
+        "completion_pct": 65.58,
+        "comp_above_expected": -0.39,
+        "passer_rating": 92.8,
+        "int_rate": 2.18,
+        "avg_intended_air_yards": 7.58,
+        "sample": 81
+      },
+      "Moderate": {
+        "aggressiveness": 15.26,
+        "completion_pct": 64.38,
+        "comp_above_expected": -0.14,
+        "passer_rating": 91.3,
+        "int_rate": 2.18,
+        "avg_intended_air_yards": 8.06,
+        "sample": 84
+      },
+      "Aggressive": {
+        "aggressiveness": 18.74,
+        "completion_pct": 63.06,
+        "comp_above_expected": -0.19,
+        "passer_rating": 86.3,
+        "int_rate": 2.54,
+        "avg_intended_air_yards": 8.2,
+        "sample": 81
+      }
+    }
+  },
+  "cpoe": {
+    "distribution": {
+      "mean": -0.24,
+      "std": 3.17,
+      "min": -11.17,
+      "max": 8.53,
+      "p10": -3.9,
+      "p25": -2.14,
+      "p50": -0.13,
+      "p75": 1.92,
+      "p90": 3.45
+    },
+    "interpretation": {
+      "elite_threshold": 3.0,
+      "good_threshold": 1.0,
+      "bad_threshold": -2.0,
+      "note": "CPOE measures accuracy independent of target depth and pressure"
+    },
+    "by_tier": {
+      "Elite": {
+        "cpoe": 3.55,
+        "raw_completion": 67.59,
+        "expected_completion": 64.04,
+        "passer_rating": 99.4,
+        "avg_intended_air_yards": 8.09,
+        "sample": 62
+      },
+      "Above Avg": {
+        "cpoe": 0.94,
+        "raw_completion": 65.54,
+        "expected_completion": 64.6,
+        "passer_rating": 91.1,
+        "avg_intended_air_yards": 7.73,
+        "sample": 61
+      },
+      "Below Avg": {
+        "cpoe": -1.21,
+        "raw_completion": 64.07,
+        "expected_completion": 65.28,
+        "passer_rating": 88.9,
+        "avg_intended_air_yards": 7.96,
+        "sample": 61
+      },
+      "Poor": {
+        "cpoe": -4.22,
+        "raw_completion": 60.18,
+        "expected_completion": 64.41,
+        "passer_rating": 81.3,
+        "avg_intended_air_yards": 7.99,
+        "sample": 62
+      }
+    },
+    "correlations": {
+      "cpoe_vs_passer_rating": 0.649,
+      "cpoe_vs_raw_completion": 0.778,
+      "cpoe_vs_air_yards": 0.002
+    }
+  },
+  "interceptions": {
+    "overall_int_rate": 0.021199999377131462,
+    "int_by_air_yards": {
+      "Short": {
+        "int_rate": 0.013899999670684338,
+        "sample": 57771
+      },
+      "Medium": {
+        "int_rate": 0.03440000116825104,
+        "sample": 23666
+      },
+      "Deep": {
+        "int_rate": 0.06239999830722809,
+        "sample": 13240
+      }
+    },
+    "int_by_down": {
+      "1": {
+        "int_rate": 0.018699999898672104,
+        "sample": 44918
+      },
+      "2": {
+        "int_rate": 0.019200000911951065,
+        "sample": 41353
+      },
+      "3": {
+        "int_rate": 0.025699999183416367,
+        "sample": 32545
+      },
+      "4": {
+        "int_rate": 0.04179999977350235,
+        "sample": 2824
+      }
+    },
+    "int_by_score": {
+      "Down Big": {
+        "int_rate": 0.026499999687075615,
+        "sample": 18442
+      },
+      "Down": {
+        "int_rate": 0.023399999365210533,
+        "sample": 45723
+      },
+      "Close": {
+        "int_rate": 0.018200000748038292,
+        "sample": 37219
+      },
+      "Up": {
+        "int_rate": 0.01679999940097332,
+        "sample": 20837
+      }
+    },
+    "qb_int_distribution": {
+      "mean": 0.0205,
+      "std": 0.0073,
+      "min": 0.0031,
+      "max": 0.0445,
+      "p10": 0.0119,
+      "p90": 0.0299
+    }
+  },
+  "play_outcomes": {
+    "yards_distribution": {
+      "mean": 6.21999979019165,
+      "std": 9.899999618530273,
+      "median": 4.0,
+      "p10": 0.0,
+      "p25": 0.0,
+      "p75": 10.0,
+      "p90": 18.0,
+      "negative_rate": 0.0792,
+      "big_play_rate": 0.0838
+    },
+    "yards_by_result": {
+      "completed": {
+        "mean": 11.039999961853027,
+        "std": 9.930000305175781,
+        "median": 9.0
+      },
+      "incomplete": {
+        "mean": -1.100000023841858,
+        "note": "Includes sacks and throwaways"
+      }
+    },
+    "epa_distribution": {
+      "mean": 0.01899999938905239,
+      "std": 1.5959999561309814,
+      "median": -0.19699999690055847,
+      "p10": -1.516,
+      "p90": 1.931,
+      "negative_rate": 0.5494
+    }
+  },
+  "simulation_recommendations": {
+    "time_to_throw": {
+      "base_distribution": {
+        "mean": 2.789,
+        "std": 0.163
+      },
+      "simulation_guidance": [
+        "Model time to throw as normal distribution around QB baseline",
+        "Quick releases (2.2-2.5s) have slightly better outcomes",
+        "Holding ball >3.0s increases sack probability significantly",
+        "Adjust completion probability based on time in pocket"
+      ],
+      "formula": "time_to_throw = max(2.0, normal(qb_baseline, 0.3))"
+    },
+    "game_to_game": {
+      "completion_std": 0.0892,
+      "simulation_guidance": [
+        "Apply game-level modifier to QB baseline: normal(0, 0.08)",
+        "Consistent QBs: std ~0.06, Volatile QBs: std ~0.12",
+        "Game variance should stack with play-level variance"
+      ],
+      "formula": "game_modifier = normal(0, consistency_factor)"
+    },
+    "situational": {
+      "key_factors": [
+        "Down: 3rd down completion ~2% lower than 1st/2nd",
+        "Score: Trailing by 14+ increases INT rate ~50%",
+        "Field position: Red zone completion ~4% lower",
+        "Quarter: 4th quarter has most variance"
+      ],
+      "simulation_guidance": [
+        "Apply situational modifiers to base completion probability",
+        "Increase aggressiveness (air yards) when trailing",
+        "Reduce risk-taking when protecting lead"
+      ]
+    },
+    "air_yards": {
+      "distribution": {
+        "mean": 7.869999885559082,
+        "std": 10.140000343322754,
+        "median": 5.0,
+        "p10": -3.0,
+        "p25": 1.0,
+        "p75": 12.0,
+        "p90": 21.0,
+        "negative_rate": 0.1664,
+        "deep_rate": 0.1166
+      },
+      "simulation_guidance": [
+        "Model target selection as distribution based on situation",
+        "Each yard of additional air yards reduces completion ~1.5%",
+        "Deep passes (20+) have 4x INT rate of short passes",
+        "Air yards increase when trailing, decrease when ahead"
+      ]
+    },
+    "play_level_variance": {
+      "yards_std": 9.899999618530273,
+      "simulation_guidance": [
+        "Completion is binary: ~65% base rate",
+        "If complete, yards = air_yards + YAC",
+        "YAC follows separate distribution by receiver",
+        "Sack rate ~6%, INT rate ~2% on pass attempts"
+      ]
+    },
+    "cpoe_as_skill": {
+      "spread": {
+        "elite": 3.55,
+        "poor": -4.22
+      },
+      "simulation_guidance": [
+        "CPOE represents true QB accuracy skill",
+        "Elite QBs: +3% above expected, Poor: -3%",
+        "Use as modifier after calculating expected completion",
+        "Less correlated with air yards than raw completion"
+      ]
+    }
+  }
+}

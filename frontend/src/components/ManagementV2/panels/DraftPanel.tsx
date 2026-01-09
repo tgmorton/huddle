@@ -1,4 +1,4 @@
-// DraftPanel.tsx - Board, Scouts, Prospects tabs
+// DraftPanel.tsx - Board, Prospects, Scouts tabs
 
 import React, { useState, useCallback } from 'react';
 import { PlaceholderContent } from '../content/PlaceholderContent';
@@ -16,7 +16,7 @@ interface DraftPanelProps {
 }
 
 export const DraftPanel: React.FC<DraftPanelProps> = ({ onAddProspectToWorkspace, franchiseId }) => {
-  const [tab, setTab] = useState<DraftTab>('prospects');
+  const [tab, setTab] = useState<DraftTab>('board');
   const [prospectsView, setProspectsView] = useState<ProspectsView>({ type: 'list' });
 
   // Click row → show prospect detail
@@ -61,21 +61,21 @@ export const DraftPanel: React.FC<DraftPanelProps> = ({ onAddProspectToWorkspace
           Board
         </button>
         <button
-          className={`tabbed-panel__tab ${tab === 'scouts' ? 'tabbed-panel__tab--active' : ''}`}
-          onClick={() => handleTabChange('scouts')}
-        >
-          Scouts
-        </button>
-        <button
           className={`tabbed-panel__tab ${tab === 'prospects' ? 'tabbed-panel__tab--active' : ''}`}
           onClick={() => handleTabChange('prospects')}
         >
           Prospects
         </button>
+        <button
+          className={`tabbed-panel__tab ${tab === 'scouts' ? 'tabbed-panel__tab--active' : ''}`}
+          onClick={() => handleTabChange('scouts')}
+        >
+          Scouts
+        </button>
       </div>
 
       <div className="tabbed-panel__body">
-        {tab === 'board' && <DraftBoardContent />}
+        {tab === 'board' && <DraftBoardContent onPopoutProspect={onAddProspectToWorkspace} />}
         {tab === 'scouts' && <PlaceholderContent title="Scouts" />}
         {tab === 'prospects' && (
           prospectsView.type === 'list' ? (

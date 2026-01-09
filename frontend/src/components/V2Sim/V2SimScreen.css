@@ -1197,35 +1197,37 @@
   max-height: 100%;
 }
 
-/* Play Outcome Overlay - Big dramatic banner */
+/* Play Outcome Overlay - Below scoreboard (doesn't obstruct field view) */
 .broadcast-outcome {
   position: absolute;
-  top: 50%;
+  top: 140px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   z-index: 50;
-  animation: outcome-slam 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: outcome-slide-down 0.3s ease-out;
 }
 
-@keyframes outcome-slam {
+@keyframes outcome-slide-down {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(2) rotate(-5deg);
+    transform: translateX(-50%) translateY(-20px);
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1) rotate(0);
+    transform: translateX(-50%) translateY(0);
   }
 }
 
 .broadcast-outcome .outcome-label {
   font-family: 'Oswald', sans-serif;
-  font-size: 72px;
+  font-size: 36px;
   font-weight: 700;
-  letter-spacing: 8px;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  padding: 20px 60px;
+  padding: 10px 30px;
   position: relative;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
 }
 
 .broadcast-outcome.complete .outcome-label {
@@ -1552,8 +1554,8 @@
   }
 
   .broadcast-outcome .outcome-label {
-    font-size: 48px;
-    letter-spacing: 4px;
+    font-size: 28px;
+    letter-spacing: 3px;
   }
 }
 
@@ -1587,8 +1589,22 @@
   }
 
   .broadcast-outcome .outcome-label {
-    font-size: 32px;
-    padding: 12px 30px;
+    font-size: 22px;
+    padding: 8px 20px;
+  }
+
+  .v2-drive-result {
+    padding: 12px 20px;
+    gap: 12px;
+  }
+
+  .v2-drive-result .result-yards {
+    font-size: 1.1rem;
+  }
+
+  .v2-drive-result .result-btn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
   }
 }
 
@@ -1826,41 +1842,44 @@
   to { opacity: 0.6; }
 }
 
-/* Drive Result Overlay */
+/* Drive Result Overlay - Below scoreboard (doesn't obstruct field) */
 .v2-drive-result {
   position: absolute;
-  top: 50%;
+  top: 140px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.95);
   border: 2px solid #ffd700;
-  padding: 40px 60px;
+  padding: 16px 32px;
   text-align: center;
   z-index: 200;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .v2-drive-result .result-yards {
-  font-size: 2.2rem;
+  font-size: 1.4rem;
   font-weight: bold;
   color: #ffd700;
-  margin-bottom: 8px;
+  margin: 0;
 }
 
 .v2-drive-result .result-outcome {
-  font-size: 1rem;
+  font-size: 0.75rem;
   color: #888;
-  margin-bottom: 24px;
   text-transform: uppercase;
   letter-spacing: 2px;
+  margin: 0;
 }
 
 .v2-drive-result .result-btn {
-  padding: 14px 32px;
+  padding: 10px 20px;
   background: linear-gradient(135deg, #ffd700, #ffaa00);
   color: #000;
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -2102,10 +2121,13 @@
   }
 
   .v2-drive-result {
-    padding: 24px 32px;
+    padding: 10px 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .v2-drive-result .result-yards {
-    font-size: 1.6rem;
+    font-size: 1rem;
   }
 }

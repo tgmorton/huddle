@@ -51,7 +51,7 @@ import type { LogEntry } from './components';
 import { ReferencePanel } from './panels/ReferencePanel';
 import { WorkspaceItemComponent } from './workspace';
 import { useManagementWebSocket } from '../../hooks/useManagementWebSocket';
-import { useManagementStore } from '../../stores/managementStore';
+import { useManagementStore, selectTeamRecord, selectNextGame, type NextGameInfo } from '../../stores/managementStore';
 import { savePinnedItems, loadPinnedItems, eventsToWorkspaceItems, isModalEvent, eventToWorkspaceItem } from './utils';
 import { managementApi, type DrawerItem } from '../../api/managementClient';
 import { adminApi, type SavedLeague } from '../../api/adminClient';
@@ -152,7 +152,10 @@ export const ManagementV2: React.FC = () => {
     dismissEvent,
   } = useManagementWebSocket(wsOptions);
 
-  const { isConnected, calendar, events: storeEvents, updateCalendar, setEvents } = useManagementStore();
+  const { isConnected, calendar, events: storeEvents, updateCalendar, mergeEvents } = useManagementStore();
+  const teamRecord = useManagementStore(selectTeamRecord);
+  const nextGame = useManagementStore(selectNextGame);
+  const { setTeamAbbr, setSchedule, setTeamRecord, setNextGame } = useManagementStore();
 
   // Modal event state (for events that should display as blocking modals)
   const [modalEvent, setModalEvent] = useState<ManagementEvent | null>(null);
@@ -179,6 +182,62 @@ export const ManagementV2: React.FC = () => {
       addLog('WebSocket connected', 'success');
     }
   }, [isConnected, addLog]);
+
+  // Load schedule and standings when franchise is connected
+  useEffect(() => {
+    if (!franchiseId || !isConnected) return;
+
+    const loadScheduleData = async () => {
+      try {
+        // First get team abbreviation from financials endpoint (it has team_abbr)
+        const financials = await managementApi.getContracts(franchiseId);
+        const teamAbbr = financials.team_abbr;
+        setTeamAbbr(teamAbbr);
+
+        // Now fetch schedule filtered by team
+        const scheduleData = await managementApi.getTeamSchedule(teamAbbr);
+        // Note: scheduleData might not have is_divisional/is_conference fields, but that's ok for storage
+        setSchedule(scheduleData as any);
+
+        // Compute record from played games
+        let wins = 0, losses = 0, ties = 0;
+        let nextGameFound: NextGameInfo | null = null;
+
+        for (const game of scheduleData) {
+          if (game.is_played && game.winner) {
+            if (game.winner === teamAbbr) {
+              wins++;
+            } else {
+              losses++;
+            }
+          } else if (game.is_played && !game.winner) {
+            ties++;
+          }
+
+          // Find next unplayed game
+          if (!game.is_played && !nextGameFound) {
+            const isHome = game.home_team === teamAbbr;
+            const opponent = isHome ? game.away_team : game.home_team;
+            nextGameFound = {
+              week: game.week,
+              opponent,
+              is_home: isHome,
+              is_divisional: false,  // API may not have this
+              is_conference: false,  // API may not have this
+            };
+          }
+        }
+
+        setTeamRecord({ wins, losses, ties });
+        setNextGame(nextGameFound);
+        addLog(`Loaded schedule: ${wins}-${losses}${ties > 0 ? `-${ties}` : ''}, next: ${nextGameFound?.opponent ?? 'none'}`, 'info');
+      } catch (err) {
+        addLog(`Failed to load schedule: ${err}`, 'error');
+      }
+    };
+
+    loadScheduleData();
+  }, [franchiseId, isConnected, calendar?.current_week, setTeamAbbr, setSchedule, setTeamRecord, setNextGame, addLog]);
 
   // Workspace state
   const [workspaceItems, setWorkspaceItems] = useState<WorkspaceItem[]>(() => {
@@ -210,7 +269,13 @@ export const ManagementV2: React.FC = () => {
 
     // Find modal events - show the first one
     const modalEvents = pendingEvents.filter(isModalEvent);
-    if (modalEvents.length > 0 && !modalEvent) {
+
+    // Clear stale modal if current modal event is no longer in pending
+    if (modalEvent && !pendingEventIds.has(modalEvent.id)) {
+      // Current modal event was resolved elsewhere, switch to next modal or clear
+      setModalEvent(modalEvents.length > 0 ? modalEvents[0] : null);
+    } else if (modalEvents.length > 0 && !modalEvent) {
+      // No current modal, show the first pending modal event
       setModalEvent(modalEvents[0]);
     }
 
@@ -458,6 +523,49 @@ export const ManagementV2: React.FC = () => {
     setWorkspaceItems(items => [newItem, ...items]);
   }, []);
 
+  // Add a contract detail pane to workspace (pop-out from contracts list)
+  const addContractToWorkspace = useCallback((contract: { id: string; name: string; position: string; salary: number }) => {
+    const salaryStr = contract.salary >= 1000 ? `${(contract.salary / 1000).toFixed(1)}M` : `${contract.salary}K`;
+    const newItem: WorkspaceItem = {
+      id: `contract-${contract.id}-${Date.now()}`,
+      type: 'contract',
+      title: contract.name,
+      subtitle: `${contract.position} • ${salaryStr}`,
+      isOpen: true,
+      playerId: contract.id,
+      status: 'active',
+    };
+    setWorkspaceItems(items => [newItem, ...items]);
+  }, []);
+
+  // Add a negotiation pane to workspace (start negotiation with free agent)
+  const addNegotiationToWorkspace = useCallback((player: { id: string; name: string; position: string; overall: number }) => {
+    const newItem: WorkspaceItem = {
+      id: `negotiation-${player.id}-${Date.now()}`,
+      type: 'negotiation',
+      title: `Negotiate: ${player.name}`,
+      subtitle: `${player.position} • ${player.overall} OVR`,
+      isOpen: true,
+      playerId: player.id,
+      status: 'active',
+    };
+    setWorkspaceItems(items => [newItem, ...items]);
+  }, []);
+
+  // Add an auction pane to workspace (competitive bidding for elite free agent)
+  const addAuctionToWorkspace = useCallback((player: { id: string; name: string; position: string; overall: number }) => {
+    const newItem: WorkspaceItem = {
+      id: `auction-${player.id}-${Date.now()}`,
+      type: 'auction',
+      title: `Auction: ${player.name}`,
+      subtitle: `${player.position} • ${player.overall} OVR`,
+      isOpen: true,
+      playerId: player.id,
+      status: 'active',
+    };
+    setWorkspaceItems(items => [newItem, ...items]);
+  }, []);
+
   // Add a news item to workspace (click from ticker)
   const addNewsToWorkspace = useCallback((news: { id: string; text: string; isBreaking?: boolean }) => {
     // Check if this news item is already on the workspace
@@ -522,9 +630,9 @@ export const ManagementV2: React.FC = () => {
   const currentWeek = calendar?.current_week ?? 1;
   const dayName = calendar?.day_name ?? 'Tuesday';
 
-  // TODO: Get from schedule data
-  const record = { wins: 3, losses: 1 };
-  const nextOpponent = 'DAL';
+  // Use real schedule data from store
+  const record = teamRecord ?? { wins: 0, losses: 0, ties: 0 };
+  const nextOpponent = nextGame?.opponent ?? '---';
 
   const toggleSidebar = () => {
     const newVal = !sidebarExpanded;
@@ -605,13 +713,13 @@ export const ManagementV2: React.FC = () => {
         ...e,
         created_at: new Date(e.created_at).toISOString(),
       })) as ManagementEvent[];
-      setEvents(events);
+      mergeEvents(events);
 
       addLog(`Day advanced: ${response.calendar.day_name} - ${response.event_count} event(s)`, 'success');
     } catch (err) {
       addLog(`Failed to advance day: ${err}`, 'error');
     }
-  }, [franchiseId, addLog, updateCalendar, setEvents, getBlockingEvents]);
+  }, [franchiseId, addLog, updateCalendar, mergeEvents, getBlockingEvents]);
 
   // Clear blocking events warning when user handles them
   useEffect(() => {
@@ -790,8 +898,12 @@ export const ManagementV2: React.FC = () => {
             <span className="mgmt2__status-sep">·</span>
             <span className="mgmt2__status-item">{calendar?.phase?.replace(/_/g, ' ') || 'Regular Season'}</span>
             <span className="mgmt2__status-sep">·</span>
-            <span className="mgmt2__status-record">{record.wins}-{record.losses}</span>
-            <span className="mgmt2__status-opponent">vs {nextOpponent}</span>
+            <span className="mgmt2__status-record">
+              {record.wins}-{record.losses}{record.ties > 0 ? `-${record.ties}` : ''}
+            </span>
+            <span className="mgmt2__status-opponent">
+              {nextGame ? (nextGame.is_home ? 'vs' : '@') : 'vs'} {nextOpponent}
+            </span>
           </div>
 
           {/* Center: News Ticker */}
@@ -882,7 +994,7 @@ export const ManagementV2: React.FC = () => {
                   onUpdateNote={updateDrawerNote}
                 />
               ) : (
-                <ReferencePanel type={leftPanel} onAddPlayerToWorkspace={addPlayerToWorkspace} onAddProspectToWorkspace={addProspectToWorkspace} franchiseId={franchiseId} />
+                <ReferencePanel type={leftPanel} onAddPlayerToWorkspace={addPlayerToWorkspace} onAddProspectToWorkspace={addProspectToWorkspace} onAddContractToWorkspace={addContractToWorkspace} onStartNegotiation={addNegotiationToWorkspace} onResumeNegotiation={addNegotiationToWorkspace} onStartAuction={addAuctionToWorkspace} franchiseId={franchiseId} />
               )}
             </aside>
           )}

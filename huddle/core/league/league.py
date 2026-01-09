@@ -12,7 +12,7 @@ This module provides the League class - the top-level container for a
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID, uuid4
 import json
 from pathlib import Path
@@ -30,6 +30,11 @@ from huddle.core.models.team import Team
 from huddle.core.models.player import Player
 from huddle.core.models.stats import GameLog, PlayerSeasonStats
 from huddle.core.contracts import calculate_market_value, assign_contract
+
+if TYPE_CHECKING:
+    from huddle.core.transactions.transaction_log import TransactionLog
+    from huddle.core.calendar.league_calendar import LeagueCalendar as DayCalendar
+    from huddle.core.draft.picks import DraftPickInventory
 
 
 @dataclass
@@ -237,6 +242,15 @@ class League:
     # Season stats (keyed by player_id string)
     season_stats: dict[str, PlayerSeasonStats] = field(default_factory=dict)
 
+    # Transaction log (tracks all roster moves, trades, signings)
+    transactions: Optional["TransactionLog"] = None
+
+    # Day-based calendar (tracks dates, phases, key events)
+    calendar: Optional["DayCalendar"] = None
+
+    # League-wide draft pick inventory (all picks across all teams)
+    draft_picks: Optional["DraftPickInventory"] = None
+
     # ==========================================================================
     # Team Management
     # ==========================================================================
@@ -244,6 +258,13 @@ class League:
     def get_team(self, abbreviation: str) -> Optional[Team]:
         """Get a team by abbreviation."""
         return self.teams.get(abbreviation)
+
+    def get_team_by_id(self, team_id: UUID) -> Optional[Team]:
+        """Get a team by its UUID."""
+        for team in self.teams.values():
+            if team.id == team_id:
+                return team
+        return None
 
     def get_teams_in_division(self, division: Division) -> list[Team]:
         """Get all teams in a division."""
@@ -738,7 +759,7 @@ class League:
 
     def to_dict(self) -> dict:
         """Convert the entire league to a dictionary for saving."""
-        return {
+        data = {
             "id": str(self.id),
             "name": self.name,
             "current_season": self.current_season,
@@ -753,6 +774,16 @@ class League:
             "game_logs": {k: v.to_dict() for k, v in self.game_logs.items()},
             "season_stats": {k: v.to_dict() for k, v in self.season_stats.items()},
         }
+
+        # Include optional systems if present
+        if self.transactions:
+            data["transactions"] = self.transactions.to_dict()
+        if self.calendar:
+            data["calendar"] = self.calendar.to_dict()
+        if self.draft_picks:
+            data["draft_picks"] = self.draft_picks.to_dict()
+
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "League":
@@ -805,6 +836,21 @@ class League:
             k: PlayerSeasonStats.from_dict(v) for k, v in data.get("season_stats", {}).items()
         }
 
+        # Load transaction log if present
+        if "transactions" in data:
+            from huddle.core.transactions.transaction_log import TransactionLog
+            league.transactions = TransactionLog.from_dict(data["transactions"])
+
+        # Load day-based calendar if present
+        if "calendar" in data:
+            from huddle.core.calendar.league_calendar import LeagueCalendar as DayCalendar
+            league.calendar = DayCalendar.from_dict(data["calendar"])
+
+        # Load draft picks inventory if present
+        if "draft_picks" in data:
+            from huddle.core.draft.picks import DraftPickInventory
+            league.draft_picks = DraftPickInventory.from_dict(data["draft_picks"])
+
         return league
 
     def save(self, path: Path) -> None:
@@ -826,22 +872,115 @@ class League:
     @property
     def is_offseason(self) -> bool:
         """Check if it's the offseason."""
+        if self.calendar:
+            from huddle.core.calendar.league_calendar import LeaguePeriod
+            period = self.calendar.current_period
+            return period in {
+                LeaguePeriod.OFFSEASON_EARLY,
+                LeaguePeriod.FREE_AGENCY,
+                LeaguePeriod.DRAFT_PREP,
+                LeaguePeriod.DRAFT,
+                LeaguePeriod.POST_DRAFT,
+                LeaguePeriod.OTAs,
+                LeaguePeriod.TRAINING_CAMP,
+            }
         return self.current_week == 0
 
     @property
     def is_regular_season(self) -> bool:
         """Check if it's the regular season (weeks 1-18)."""
+        if self.calendar:
+            from huddle.core.calendar.league_calendar import LeaguePeriod
+            return self.calendar.current_period == LeaguePeriod.REGULAR_SEASON
         return 1 <= self.current_week <= 18
 
     @property
     def is_playoffs(self) -> bool:
         """Check if it's the playoffs (week 19+)."""
+        if self.calendar:
+            from huddle.core.calendar.league_calendar import LeaguePeriod
+            return self.calendar.current_period in {
+                LeaguePeriod.PLAYOFFS,
+                LeaguePeriod.SUPER_BOWL,
+            }
         return self.current_week >= 19
 
     @property
     def total_players(self) -> int:
         """Total number of players across all teams."""
         return sum(team.roster.size for team in self.teams.values())
+
+    @property
+    def current_date_display(self) -> str:
+        """Get current date string from calendar."""
+        if self.calendar:
+            return self.calendar.current_date.strftime("%B %d, %Y")
+        return f"Season {self.current_season}, Week {self.current_week}"
+
+    @property
+    def current_period_display(self) -> str:
+        """Get current league period display string."""
+        if self.calendar:
+            period = self.calendar.current_period
+            return period.name.replace("_", " ").title()
+        if self.is_playoffs:
+            return "Playoffs"
+        if self.is_regular_season:
+            return f"Week {self.current_week}"
+        return "Offseason"
+
+    def log_transaction(self, transaction_type: str, **kwargs) -> None:
+        """Log a transaction if transaction log is enabled."""
+        if self.transactions:
+            from huddle.core.transactions.transaction_log import create_transaction
+            txn = create_transaction(
+                transaction_type=transaction_type,
+                season=self.current_season,
+                **kwargs
+            )
+            self.transactions.add_transaction(txn)
+
+    def initialize_new_systems(self, year: int = None) -> None:
+        """
+        Initialize the new management systems for the league.
+
+        Call this when creating a new league or upgrading an existing one.
+        """
+        year = year or self.current_season
+
+        # Create transaction log
+        if not self.transactions:
+            from huddle.core.transactions.transaction_log import TransactionLog
+            self.transactions = TransactionLog(league_id=str(self.id))
+
+        # Create day-based calendar
+        if not self.calendar:
+            from huddle.core.calendar.league_calendar import LeagueCalendar, create_calendar_for_season
+            self.calendar = create_calendar_for_season(year)
+
+        # Create draft picks inventories for each team
+        from huddle.core.draft.picks import DraftPickInventory, create_league_draft_picks
+        for team in self.teams.values():
+            if not team.draft_picks:
+                team.draft_picks = DraftPickInventory(team_id=str(team.id))
+                # Create picks for current year and next few years
+                for draft_year in range(year, year + 4):
+                    picks = create_league_draft_picks(str(team.id), draft_year)
+                    team.draft_picks.picks.extend(picks)
+
+        # Create league-wide pick inventory by aggregating all teams
+        if not self.draft_picks:
+            # The league's draft_picks stores all picks from all teams
+            all_picks = []
+            for team in self.teams.values():
+                if team.draft_picks:
+                    all_picks.extend(team.draft_picks.picks)
+            # Use first team's ID as placeholder since league inventory needs one
+            # In practice, league-level queries should iterate through teams
+            if self.teams:
+                first_team_id = str(next(iter(self.teams.values())).id)
+                self.draft_picks = DraftPickInventory(team_id=first_team_id)
+                self.draft_picks.picks = all_picks
 
     def __str__(self) -> str:
         return f"{self.name} ({self.current_season}, Week {self.current_week})"

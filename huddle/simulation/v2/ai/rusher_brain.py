@@ -134,16 +134,72 @@ def _is_ball_being_handed(world: WorldState) -> bool:
 
 
 def _find_lead_block_target(world: WorldState) -> Optional[PlayerView]:
-    """Find defender to lead block."""
+    """Find defender to lead block based on scheme and gap.
+
+    Priority order:
+    1. Defender filling the designed gap (kick out or seal)
+    2. Linebacker scraping to the hole
+    3. Safety coming down into the box
+    4. Any defender in the path
+    """
     my_pos = world.me.pos
 
-    # Look for defender in or near the hole
-    for opp in world.opponents:
-        if opp.position in (Position.MLB, Position.ILB, Position.OLB, Position.SS):
-            dist = opp.pos.distance_to(my_pos)
-            if dist < 5 and opp.pos.y > world.los_y:
-                return opp
+    # Get designed gap from run concept
+    gap_x = 0.0
+    if hasattr(world, 'run_aiming_point') and world.run_aiming_point:
+        aiming = world.run_aiming_point
+        if "a" in aiming:
+            gap_x = 1.0
+        elif "b" in aiming:
+            gap_x = 3.0
+        elif "c" in aiming:
+            gap_x = 5.0
+        if "left" in aiming:
+            gap_x = -gap_x
+    elif hasattr(world, 'run_play_side') and world.run_play_side:
+        gap_x = 3.0 if world.run_play_side == "right" else -3.0
 
+    gap_pos = Vec2(gap_x, world.los_y + 2)
+
+    # Find defenders and score them
+    candidates = []
+    for opp in world.opponents:
+        if opp.position not in (Position.MLB, Position.ILB, Position.OLB, Position.SS, Position.LB):
+            continue
+
+        dist_to_gap = opp.pos.distance_to(gap_pos)
+        dist_to_me = opp.pos.distance_to(my_pos)
+
+        # Skip if too far
+        if dist_to_me > 8 or dist_to_gap > 6:
+            continue
+
+        # Score: prefer defenders closest to the gap
+        score = 10 - dist_to_gap
+
+        # Bonus for defenders filling downhill (moving toward LOS)
+        if opp.velocity.y < -1:
+            score += 3
+
+        # Bonus for linebackers over safeties (primary targets)
+        if opp.position in (Position.MLB, Position.ILB):
+            score += 2
+
+        candidates.append((opp, score))
+
+    # Return highest scored target
+    if candidates:
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        return candidates[0][0]
+
+    return None
+
+
+def _find_rb_position(world: WorldState) -> Optional[Vec2]:
+    """Find the RB we're lead blocking for."""
+    for tm in world.teammates:
+        if tm.position == Position.RB:
+            return tm.pos
     return None
 
 
@@ -286,44 +342,162 @@ def rusher_brain(world: WorldState) -> BrainDecision:
         )
 
     # =========================================================================
-    # Lead Blocking (FB)
+    # Lead Blocking (FB) - Timing is everything
     # =========================================================================
     if state.assignment == RusherAssignment.LEAD_BLOCK:
+        my_pos = world.me.pos
+        rb_pos = _find_rb_position(world)
+
+        # Get designed gap position
+        gap_x = 0.0
+        if hasattr(world, 'run_aiming_point') and world.run_aiming_point:
+            aiming = world.run_aiming_point
+            if "a" in aiming:
+                gap_x = 1.0
+            elif "b" in aiming:
+                gap_x = 3.0
+            elif "c" in aiming:
+                gap_x = 5.0
+            if "left" in aiming:
+                gap_x = -gap_x
+        elif hasattr(world, 'run_play_side') and world.run_play_side:
+            gap_x = 3.0 if world.run_play_side == "right" else -3.0
+
+        hole_pos = Vec2(gap_x, world.los_y + 2)
+
         # Find target to block
         target = _find_lead_block_target(world)
 
         if target:
-            dist = world.me.pos.distance_to(target.pos)
+            dist_to_target = my_pos.distance_to(target.pos)
 
+            # TIMING: Stay ahead of RB, but not too far
+            if rb_pos:
+                dist_rb_to_hole = rb_pos.distance_to(hole_pos)
+                dist_me_to_hole = my_pos.distance_to(hole_pos)
+
+                # If we're too far ahead, wait for RB to catch up
+                if dist_me_to_hole < dist_rb_to_hole - 2.0 and world.time_since_snap < 0.4:
+                    return BrainDecision(
+                        move_target=my_pos + Vec2(0, 1),
+                        move_type="run",
+                        intent="timing",
+                        reasoning="Timing - waiting for RB before engaging",
+                    )
+
+            # ENGAGED - Sustain the block, drive the defender
+            if dist_to_target < 2.0:
+                # Drive through, not just bump
+                drive_direction = (target.pos - my_pos).normalized()
+                drive_target = target.pos + drive_direction * 3  # Drive through!
+
+                return BrainDecision(
+                    move_target=drive_target,
+                    move_type="run",
+                    action="drive_block",
+                    target_id=target.id,
+                    intent="engaged",
+                    reasoning=f"Driving through block on {target.position.value}",
+                )
+
+            # APPROACH - Sprint to collision
             return BrainDecision(
                 move_target=target.pos,
                 move_type="sprint",
                 action="lead_block",
                 target_id=target.id,
                 intent="lead_block",
-                reasoning=f"Lead blocking on {target.position.value}",
+                reasoning=f"Lead blocking {target.position.value} ({dist_to_target:.1f}yd)",
             )
 
-        # No target - head to hole
-        hole_pos = Vec2(3, world.los_y + 3)  # Simplified
-
+        # No target yet - get to the hole ahead of RB
         return BrainDecision(
             move_target=hole_pos,
             move_type="sprint",
             intent="find_work",
-            reasoning="Lead blocking, looking for work",
+            reasoning=f"Sprinting to hole, looking for work",
         )
 
     # =========================================================================
-    # Run Path (Default)
+    # Run Path - Follow concept path or default mesh logic
     # =========================================================================
+
+    # Use concept path if available
+    if world.run_path and len(world.run_path) > 0:
+        return _follow_concept_path(world, state)
+
+    # Fallback to default mesh point logic
+    return _follow_default_path(world, state)
+
+
+def _follow_concept_path(world: WorldState, state: RusherState) -> BrainDecision:
+    """Follow the path defined in the run concept.
+
+    The path is a list of waypoints. RB follows them in order,
+    with the mesh point being near one of the waypoints.
+    """
+    my_pos = world.me.pos
+    path = world.run_path
+
+    # Find current waypoint - first one we haven't reached yet
+    current_waypoint_idx = 0
+    for i, wp in enumerate(path):
+        dist = my_pos.distance_to(wp)
+        if dist < 1.5:  # Reached this waypoint
+            current_waypoint_idx = i + 1
+        else:
+            break
+
+    # If we've passed all waypoints, go to last one
+    if current_waypoint_idx >= len(path):
+        current_waypoint_idx = len(path) - 1
+
+    target_waypoint = path[current_waypoint_idx]
+    dist_to_waypoint = my_pos.distance_to(target_waypoint)
+
+    # Setup phase (first 0.2s)
+    if world.time_since_snap < 0.2:
+        state.path_phase = PathPhase.SETUP
+        return BrainDecision(
+            move_target=target_waypoint,
+            move_type="run",
+            intent="setup",
+            reasoning=f"Starting run path (waypoint {current_waypoint_idx + 1}/{len(path)})",
+        )
+
+    # Approach phase - heading toward mesh area
+    state.path_phase = PathPhase.APPROACH
+
+    # Check if receiving handoff - keep moving toward next waypoint
+    if _is_ball_being_handed(world):
+        state.path_phase = PathPhase.MESH
+        # Continue toward the waypoint while receiving handoff
+        return BrainDecision(
+            move_target=target_waypoint,
+            move_type="run",
+            intent="receive_handoff",
+            reasoning="Receiving handoff, continuing to hole",
+        )
+
+    # Sprint to current waypoint
+    return BrainDecision(
+        move_target=target_waypoint,
+        move_type="sprint",
+        intent="approach_mesh",
+        reasoning=f"Following path to waypoint {current_waypoint_idx + 1}/{len(path)} ({dist_to_waypoint:.1f}yd)",
+    )
+
+
+def _follow_default_path(world: WorldState, state: RusherState) -> BrainDecision:
+    """Default mesh point logic when no concept path is defined."""
+    my_pos = world.me.pos
 
     # Setup phase
     if world.time_since_snap < 0.3:
         state.path_phase = PathPhase.SETUP
 
         # Initial steps
-        initial_target = world.me.pos + Vec2(0, 1)
+        initial_target = my_pos + Vec2(0, 1)
 
         return BrainDecision(
             move_target=initial_target,
@@ -334,7 +508,7 @@ def rusher_brain(world: WorldState) -> BrainDecision:
 
     # Approach phase - heading to mesh
     mesh_point = _get_mesh_point(world)
-    dist_to_mesh = world.me.pos.distance_to(mesh_point)
+    dist_to_mesh = my_pos.distance_to(mesh_point)
 
     if dist_to_mesh > 1.5:
         state.path_phase = PathPhase.APPROACH

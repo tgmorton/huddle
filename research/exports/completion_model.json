@@ -1,0 +1,139 @@
+{
+  "model_name": "completion_probability",
+  "version": "1.0",
+  "description": "Pass completion probability model",
+  "smooth_function": {
+    "air_yards": {
+      "-10": 0.581,
+      "-9": 0.581,
+      "-8": 0.679,
+      "-7": 0.778,
+      "-6": 0.805,
+      "-5": 0.832,
+      "-4": 0.843,
+      "-3": 0.854,
+      "-2": 0.8,
+      "-1": 0.747,
+      "0": 0.764,
+      "1": 0.781,
+      "2": 0.766,
+      "3": 0.752,
+      "4": 0.745,
+      "5": 0.738,
+      "6": 0.696,
+      "7": 0.653,
+      "8": 0.618,
+      "9": 0.583,
+      "10": 0.589,
+      "11": 0.595,
+      "12": 0.591,
+      "13": 0.588,
+      "14": 0.574,
+      "15": 0.56,
+      "16": 0.554,
+      "17": 0.547,
+      "18": 0.53,
+      "19": 0.512,
+      "20": 0.48,
+      "21": 0.447,
+      "22": 0.424,
+      "23": 0.402,
+      "24": 0.387,
+      "25": 0.372,
+      "26": 0.366,
+      "27": 0.36,
+      "28": 0.349,
+      "29": 0.337,
+      "30": 0.334,
+      "31": 0.331,
+      "32": 0.333,
+      "33": 0.335,
+      "34": 0.317,
+      "35": 0.299,
+      "36": 0.297,
+      "37": 0.295,
+      "38": 0.31,
+      "39": 0.326,
+      "40": 0.326,
+      "41": 0.325,
+      "42": 0.321,
+      "43": 0.317,
+      "44": 0.285,
+      "45": 0.253,
+      "46": 0.273,
+      "47": 0.294,
+      "48": 0.294,
+      "49": 0.295,
+      "50": 0.295
+    },
+    "description": "Base completion rate by air yards (clean pocket)"
+  },
+  "pressure_modifiers": {
+    "clean": {
+      "rate": 0.6724497415557086,
+      "count": 103117
+    },
+    "hit": {
+      "rate": 0.4110282874617737,
+      "count": 10464
+    }
+  },
+  "coefficients": {
+    "Intercept": 1.3188,
+    "C(pressure)[T.hit]": -1.0291,
+    "C(down)[T.2.0]": 0.0192,
+    "C(down)[T.3.0]": -0.1368,
+    "C(down)[T.4.0]": -0.2358,
+    "air_yards": -0.068,
+    "air_yards_sq": 0.0003,
+    "short_yardage": 0.0422,
+    "long_yardage": 0.1112,
+    "red_zone": -0.5883,
+    "trailing": -0.0538
+  },
+  "factor_mapping": {
+    "air_yards": {
+      "huddle_factor": "pass.air_yards",
+      "available": true
+    },
+    "pressure": {
+      "huddle_factor": "qb.pressure_level",
+      "available": true,
+      "mapping": {
+        "CLEAN": "clean",
+        "LIGHT": "clean",
+        "MODERATE": "hit",
+        "HEAVY": "hit",
+        "CRITICAL": "hit"
+      }
+    },
+    "separation": {
+      "huddle_factor": "receiver.separation",
+      "available": true,
+      "note": "Not in current model, high priority addition"
+    },
+    "time_to_throw": {
+      "huddle_factor": "play.time_in_pocket",
+      "available": true,
+      "note": "Limited NGS data, consider adding"
+    }
+  },
+  "implementation_candidates": [
+    {
+      "factor": "receiver_separation",
+      "importance": "HIGH",
+      "expected_coefficient": 0.25,
+      "note": "Add separation tracking to passing system"
+    },
+    {
+      "factor": "throw_location",
+      "importance": "MEDIUM",
+      "note": "Where in catch radius - affects contested catches"
+    },
+    {
+      "factor": "coverage_type",
+      "importance": "MEDIUM",
+      "note": "Man vs zone detection"
+    }
+  ]
+}

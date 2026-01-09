@@ -1,0 +1,69 @@
+{
+  "model_name": "interception_probability",
+  "version": "1.0",
+  "description": "P(INT | incomplete pass)",
+  "base_int_rate": 0.0647,
+  "depth_multipliers": {
+    "behind/short": 1.0,
+    "medium": 1.66,
+    "deep": 2.57,
+    "bomb": 3.16
+  },
+  "pressure_multipliers": {
+    "clean": 1.0,
+    "hit": 1.09
+  },
+  "situational_multipliers": {
+    "desperation": 1.43,
+    "trailing_big": 1.28
+  },
+  "int_rates_by_depth": {
+    "behind/short": 0.0311,
+    "medium": 0.0517,
+    "deep": 0.08,
+    "bomb": 0.0985
+  },
+  "factor_mapping": {
+    "air_yards": {
+      "huddle_factor": "pass.air_yards",
+      "available": true
+    },
+    "pressure": {
+      "huddle_factor": "qb.pressure_level",
+      "available": true
+    },
+    "desperation": {
+      "huddle_factor": "game.is_desperation_mode",
+      "available": false,
+      "derivation": "Q4 AND score_diff < -8 AND time < 5min"
+    }
+  },
+  "implementation_candidates": [
+    {
+      "factor": "throw_location_quality",
+      "importance": "HIGH",
+      "note": "Bad throw location is primary INT driver"
+    },
+    {
+      "factor": "defender_position",
+      "importance": "HIGH",
+      "note": "Defender in passing lane"
+    },
+    {
+      "factor": "forced_throw",
+      "importance": "MEDIUM",
+      "note": "Throwing into coverage under pressure"
+    }
+  ],
+  "coefficients": {
+    "Intercept": -3.4115,
+    "C(pressure)[T.hit]": 0.0911,
+    "C(down)[T.2.0]": 0.1865,
+    "C(down)[T.3.0]": 0.347,
+    "C(down)[T.4.0]": 0.5542,
+    "air_yards": 0.0271,
+    "long_yardage": 0.2263,
+    "trailing_big": 0.2035,
+    "desperation": 0.2188
+  }
+}

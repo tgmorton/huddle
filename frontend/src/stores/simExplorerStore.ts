@@ -22,7 +22,7 @@ import {
   getTeamRoster,
 } from '../api/historyClient';
 
-export type ViewMode = 'overview' | 'standings' | 'roster' | 'draft' | 'transactions';
+export type ViewMode = 'overview' | 'standings' | 'roster' | 'draft' | 'transactions' | 'profile' | 'strategy';
 
 interface SimExplorerState {
   // Simulation list
@@ -143,6 +143,9 @@ export const useSimExplorerStore = create<SimExplorerState>((set, get) => ({
         selectedRoster: null,
         isLoading: false,
       });
+
+      // Load standings for overview
+      await get().loadStandings();
     } catch (err) {
       set({ error: `Failed to load simulation: ${err}`, isLoading: false });
     }
@@ -154,7 +157,8 @@ export const useSimExplorerStore = create<SimExplorerState>((set, get) => ({
 
     // Reload data for current view
     const { viewMode, selectedTeamId, loadStandings, loadDraft, loadTransactions, loadRoster } = get();
-    if (viewMode === 'standings') await loadStandings();
+    // Always load standings for overview and standings views
+    if (viewMode === 'overview' || viewMode === 'standings') await loadStandings();
     if (viewMode === 'draft') await loadDraft();
     if (viewMode === 'transactions') await loadTransactions();
     if (viewMode === 'roster' && selectedTeamId) await loadRoster(selectedTeamId);
@@ -172,7 +176,7 @@ export const useSimExplorerStore = create<SimExplorerState>((set, get) => ({
 
     // Auto-load data for the view
     const { loadStandings, loadDraft, loadTransactions } = get();
-    if (mode === 'standings') loadStandings();
+    if (mode === 'overview' || mode === 'standings') loadStandings();
     if (mode === 'draft') loadDraft();
     if (mode === 'transactions') loadTransactions();
   },

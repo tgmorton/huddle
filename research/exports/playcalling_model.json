@@ -1,0 +1,239 @@
+{
+  "model_name": "play_calling",
+  "version": "1.0",
+  "description": "Situational play calling probabilities",
+  "overall_pass_rate": 0.5826,
+  "by_down": {
+    "1": {
+      "pass_rate": 0.4877,
+      "count": 92098
+    },
+    "2": {
+      "pass_rate": 0.595,
+      "count": 69502
+    },
+    "3": {
+      "pass_rate": 0.7634,
+      "count": 42631
+    },
+    "4": {
+      "pass_rate": 0.6203,
+      "count": 4553
+    }
+  },
+  "by_score": {
+    "down_14+": {
+      "pass_rate": 0.708,
+      "count": 25922
+    },
+    "down_7-14": {
+      "pass_rate": 0.6368,
+      "count": 38408
+    },
+    "down_1-7": {
+      "pass_rate": 0.6038,
+      "count": 34748
+    },
+    "tied": {
+      "pass_rate": 0.5591,
+      "count": 42362
+    },
+    "up_1-7": {
+      "pass_rate": 0.5382,
+      "count": 37298
+    },
+    "up_7-14": {
+      "pass_rate": 0.5013,
+      "count": 18819
+    },
+    "up_14+": {
+      "pass_rate": 0.4148,
+      "count": 11227
+    }
+  },
+  "lookup_tables": {
+    "down_distance": {
+      "1.0": {
+        "1-2": 0.2638,
+        "3-5": 0.37,
+        "6-7": 0.3565,
+        "8-10": 0.4882,
+        "11-15": 0.6251,
+        "16+": 0.7392
+      },
+      "2.0": {
+        "1-2": 0.3272,
+        "3-5": 0.4697,
+        "6-7": 0.5958,
+        "8-10": 0.6687,
+        "11-15": 0.7726,
+        "16+": 0.7919
+      },
+      "3.0": {
+        "1-2": 0.396,
+        "3-5": 0.8236,
+        "6-7": 0.881,
+        "8-10": 0.8943,
+        "11-15": 0.8712,
+        "16+": 0.811
+      },
+      "4.0": {
+        "1-2": 0.3841,
+        "3-5": 0.8867,
+        "6-7": 0.8892,
+        "8-10": 0.9276,
+        "11-15": 0.8977,
+        "16+": 0.9494
+      }
+    },
+    "score_quarter": {
+      "down_14+": {
+        "1": 0.5649,
+        "2": 0.6758,
+        "3": 0.6314,
+        "4": 0.7804
+      },
+      "down_7-14": {
+        "1": 0.5589,
+        "2": 0.6303,
+        "3": 0.572,
+        "4": 0.7537
+      },
+      "down_1-7": {
+        "1": 0.558,
+        "2": 0.6103,
+        "3": 0.5482,
+        "4": 0.6705,
+        "5": 0.7009
+      },
+      "tied": {
+        "1": 0.5464,
+        "2": 0.5993,
+        "3": 0.5412,
+        "4": 0.5698,
+        "5": 0.5788
+      },
+      "up_1-7": {
+        "1": 0.5444,
+        "2": 0.6039,
+        "3": 0.5331,
+        "4": 0.4359
+      },
+      "up_7-14": {
+        "1": 0.5637,
+        "2": 0.603,
+        "3": 0.5324,
+        "4": 0.3745
+      },
+      "up_14+": {
+        "1": 0.4103,
+        "2": 0.6398,
+        "3": 0.4936,
+        "4": 0.2861
+      }
+    },
+    "down_field_zone": {
+      "1.0": {
+        "goal_to_go": 0.3416,
+        "redzone": 0.4331,
+        "plus_territory": 0.4764,
+        "midfield": 0.5151,
+        "own_territory": 0.5222,
+        "backed_up": 0.4472
+      },
+      "2.0": {
+        "goal_to_go": 0.4964,
+        "redzone": 0.5695,
+        "plus_territory": 0.5841,
+        "midfield": 0.6049,
+        "own_territory": 0.615,
+        "backed_up": 0.6254
+      },
+      "3.0": {
+        "goal_to_go": 0.6754,
+        "redzone": 0.7414,
+        "plus_territory": 0.7231,
+        "midfield": 0.7692,
+        "own_territory": 0.8067,
+        "backed_up": 0.789
+      },
+      "4.0": {
+        "goal_to_go": 0.5692,
+        "redzone": 0.5894,
+        "plus_territory": 0.6463,
+        "midfield": 0.6439,
+        "own_territory": 0.5816,
+        "backed_up": 0.7021
+      }
+    }
+  },
+  "special_situations": {
+    "two_minute_pass_rate": 0.7463,
+    "late_trailing_pass_rate": 0.8093,
+    "late_leading_pass_rate": 0.2334
+  },
+  "factor_mapping": {
+    "down": {
+      "huddle_factor": "game.down",
+      "available": true
+    },
+    "distance": {
+      "huddle_factor": "game.distance",
+      "available": true
+    },
+    "score_diff": {
+      "huddle_factor": "game.score_diff",
+      "available": true
+    },
+    "quarter": {
+      "huddle_factor": "game.quarter",
+      "available": true
+    },
+    "time_remaining": {
+      "huddle_factor": "game.time_remaining",
+      "available": true
+    },
+    "field_position": {
+      "huddle_factor": "game.yard_line",
+      "available": true
+    }
+  },
+  "implementation_candidates": [
+    {
+      "factor": "coordinator_tendency",
+      "importance": "HIGH",
+      "note": "Sean McVay calls more pass, Shanahan more run"
+    },
+    {
+      "factor": "personnel_package",
+      "importance": "HIGH",
+      "note": "12 personnel = more run likely"
+    },
+    {
+      "factor": "previous_play_success",
+      "importance": "MEDIUM",
+      "note": "Hot hand effect on play calling"
+    },
+    {
+      "factor": "opponent_tendency",
+      "importance": "MEDIUM",
+      "note": "Adjust based on defensive expectations"
+    }
+  ],
+  "model_coefficients": {
+    "Intercept": -1.801,
+    "C(down)[T.2.0]": 0.8886,
+    "C(down)[T.3.0]": 1.9904,
+    "C(down)[T.4.0]": 1.4349,
+    "C(field_zone)[T.redzone]": -0.2016,
+    "C(field_zone)[T.plus_territory]": -0.0855,
+    "C(field_zone)[T.midfield]": 0.0693,
+    "C(field_zone)[T.own_territory]": 0.1025,
+    "C(field_zone)[T.backed_up]": -0.1688,
+    "ydstogo": 0.1617,
+    "score_diff": -0.0231,
+    "two_minute": 0.851,
+    "late_game_trailing": 0.7827,
+    "late_game_leading": -1.7402
+  }
+}

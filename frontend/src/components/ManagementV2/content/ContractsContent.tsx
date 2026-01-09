@@ -1,10 +1,10 @@
 // ContractsContent.tsx - Full team contracts list with filtering and year-by-year breakdown
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, ChevronDown, ChevronRight, Filter, ArrowUpDown, ExternalLink } from 'lucide-react';
-import { adminApi } from '../../../api/adminClient';
-import type { PlayerSummary } from '../../../types/admin';
-import { useManagementStore } from '../../../stores/managementStore';
+import { RefreshCw, ChevronDown, ChevronRight, Filter, ArrowUpDown, ExternalLink, AlertTriangle, Scissors, DollarSign, X } from 'lucide-react';
+import { managementApi } from '../../../api/managementClient';
+import type { PlayerContractInfo, RestructureContractResponse, CutPlayerResponse } from '../../../api/managementClient';
+import { useManagementStore, selectFranchiseId } from '../../../stores/managementStore';
 import { getOverallColor } from '../../../types/admin';
 
 // === Helpers ===
@@ -52,12 +52,14 @@ type SortDirection = 'asc' | 'desc';
 // === Main Component ===
 
 interface ContractsContentProps {
-  teamAbbr?: string;
   onPlayerClick?: (playerId: string, playerName: string, position: string, overall: number) => void;
+  onContractClick?: (playerId: string, playerName: string, position: string, salary: number) => void;
 }
 
-export const ContractsContent: React.FC<ContractsContentProps> = ({ teamAbbr: propTeamAbbr, onPlayerClick }) => {
-  const [players, setPlayers] = useState<PlayerSummary[]>([]);
+export const ContractsContent: React.FC<ContractsContentProps> = ({ onPlayerClick, onContractClick }) => {
+  const franchiseId = useManagementStore(selectFranchiseId);
+  const [contracts, setContracts] = useState<PlayerContractInfo[]>([]);
+  const [totalSalary, setTotalSalary] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,66 +74,57 @@ export const ContractsContent: React.FC<ContractsContentProps> = ({ teamAbbr: pr
   // Expanded rows
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  // Get team abbr from management store if not provided
-  const { state } = useManagementStore();
-  const [teamAbbr, setTeamAbbr] = useState<string>(propTeamAbbr || 'BUF');
+  // Modal state
+  const [restructureTarget, setRestructureTarget] = useState<PlayerContractInfo | null>(null);
+  const [cutTarget, setCutTarget] = useState<PlayerContractInfo | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionResult, setActionResult] = useState<{ type: 'restructure' | 'cut'; result: RestructureContractResponse | CutPlayerResponse } | null>(null);
 
   const loadContracts = useCallback(async () => {
-    if (!teamAbbr) return;
+    if (!franchiseId) return;
 
     setLoading(true);
     setError(null);
     try {
-      const roster = await adminApi.getTeamRoster(teamAbbr);
-      setPlayers(roster);
+      const data = await managementApi.getContracts(franchiseId);
+      setContracts(data.contracts);
+      setTotalSalary(data.total_salary);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load contracts');
     } finally {
       setLoading(false);
     }
-  }, [teamAbbr]);
+  }, [franchiseId]);
 
   useEffect(() => {
     loadContracts();
   }, [loadContracts]);
 
-  // Try to get team abbr from franchise state
-  useEffect(() => {
-    if (!propTeamAbbr && state?.player_team_id) {
-      adminApi.listTeams().then(teams => {
-        const team = teams.find(t => t.id === state.player_team_id);
-        if (team) {
-          setTeamAbbr(team.abbreviation);
-        }
-      }).catch(() => {});
-    }
-  }, [propTeamAbbr, state?.player_team_id]);
-
-  // Filter players
-  const filteredPlayers = players.filter(player => {
+  // Filter contracts
+  const filteredContracts = contracts.filter(contract => {
     // Position filter
     if (positionFilter) {
-      if (positionFilter === 'OFF' && !OFFENSE_POSITIONS.includes(player.position)) return false;
-      if (positionFilter === 'DEF' && !DEFENSE_POSITIONS.includes(player.position)) return false;
-      if (positionFilter === 'OL' && !OL_POSITIONS.includes(player.position)) return false;
-      if (positionFilter === 'DL' && !DL_POSITIONS.includes(player.position)) return false;
-      if (positionFilter === 'DB' && !DB_POSITIONS.includes(player.position)) return false;
-      if (positionFilter === 'LB' && !LB_POSITIONS.includes(player.position)) return false;
-      if (!['OFF', 'DEF', 'OL', 'DL', 'DB', 'LB'].includes(positionFilter) && player.position !== positionFilter) return false;
+      if (positionFilter === 'OFF' && !OFFENSE_POSITIONS.includes(contract.position)) return false;
+      if (positionFilter === 'DEF' && !DEFENSE_POSITIONS.includes(contract.position)) return false;
+      if (positionFilter === 'OL' && !OL_POSITIONS.includes(contract.position)) return false;
+      if (positionFilter === 'DL' && !DL_POSITIONS.includes(contract.position)) return false;
+      if (positionFilter === 'DB' && !DB_POSITIONS.includes(contract.position)) return false;
+      if (positionFilter === 'LB' && !LB_POSITIONS.includes(contract.position)) return false;
+      if (!['OFF', 'DEF', 'OL', 'DL', 'DB', 'LB'].includes(positionFilter) && contract.position !== positionFilter) return false;
     }
 
     // Expiring filter
-    if (expiringOnly && (player.contract_year_remaining || 0) > 1) return false;
+    if (expiringOnly && contract.years_remaining > 1) return false;
 
     return true;
   });
 
-  // Sort players
-  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
+  // Sort contracts
+  const sortedContracts = [...filteredContracts].sort((a, b) => {
     let comparison = 0;
     switch (sortField) {
       case 'name':
-        comparison = a.full_name.localeCompare(b.full_name);
+        comparison = a.name.localeCompare(b.name);
         break;
       case 'position':
         comparison = a.position.localeCompare(b.position);
@@ -140,10 +133,10 @@ export const ContractsContent: React.FC<ContractsContentProps> = ({ teamAbbr: pr
         comparison = a.overall - b.overall;
         break;
       case 'salary':
-        comparison = (a.salary || 0) - (b.salary || 0);
+        comparison = a.salary - b.salary;
         break;
       case 'years':
-        comparison = (a.contract_year_remaining || 0) - (b.contract_year_remaining || 0);
+        comparison = a.years_remaining - b.years_remaining;
         break;
     }
     return sortDirection === 'asc' ? comparison : -comparison;
@@ -168,9 +161,42 @@ export const ContractsContent: React.FC<ContractsContentProps> = ({ teamAbbr: pr
     setExpandedRows(newExpanded);
   };
 
-  // Calculate totals
-  const totalSalary = sortedPlayers.reduce((sum, p) => sum + (p.salary || 0), 0);
-  const expiringCount = sortedPlayers.filter(p => (p.contract_year_remaining || 0) === 1).length;
+  // Contract action handlers
+  const handleRestructure = async (playerId: string, amount: number) => {
+    if (!franchiseId) return;
+    setActionLoading(true);
+    try {
+      const result = await managementApi.restructureContract(franchiseId, playerId, amount);
+      setActionResult({ type: 'restructure', result });
+      setRestructureTarget(null);
+      // Reload contracts
+      await loadContracts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restructure contract');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCut = async (playerId: string, june1: boolean) => {
+    if (!franchiseId) return;
+    setActionLoading(true);
+    try {
+      const result = await managementApi.cutPlayer(franchiseId, playerId, june1);
+      setActionResult({ type: 'cut', result });
+      setCutTarget(null);
+      // Reload contracts
+      await loadContracts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cut player');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Calculate totals from filtered/sorted contracts
+  const expiringCount = sortedContracts.filter(c => c.years_remaining === 1).length;
+  const displayedSalary = sortedContracts.reduce((sum, c) => sum + c.salary, 0);
 
   if (loading) return null;
 
@@ -191,11 +217,15 @@ export const ContractsContent: React.FC<ContractsContentProps> = ({ teamAbbr: pr
       <div className="contracts-summary">
         <div className="contracts-summary__item">
           <span className="contracts-summary__label">Contracts</span>
-          <span className="contracts-summary__value">{sortedPlayers.length}</span>
+          <span className="contracts-summary__value">{sortedContracts.length}</span>
         </div>
         <div className="contracts-summary__item">
-          <span className="contracts-summary__label">Total</span>
+          <span className="contracts-summary__label">Total Cap</span>
           <span className="contracts-summary__value">{formatSalary(totalSalary)}</span>
+        </div>
+        <div className="contracts-summary__item">
+          <span className="contracts-summary__label">Showing</span>
+          <span className="contracts-summary__value">{formatSalary(displayedSalary)}</span>
         </div>
         <div className="contracts-summary__item">
           <span className="contracts-summary__label">Expiring</span>
@@ -250,68 +280,102 @@ export const ContractsContent: React.FC<ContractsContentProps> = ({ teamAbbr: pr
         </div>
 
         <div className="contracts-table__body">
-          {sortedPlayers.map(player => (
-            <div key={player.id} className="contracts-table__row-group">
+          {sortedContracts.map(contract => (
+            <div key={contract.player_id} className="contracts-table__row-group">
               <button
                 className="contracts-table__row"
-                onClick={() => toggleRow(player.id)}
+                onClick={() => toggleRow(contract.player_id)}
               >
                 <span className="contracts-table__name">
-                  {expandedRows.has(player.id) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                  {player.full_name}
+                  {expandedRows.has(contract.player_id) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  {contract.name}
                 </span>
-                <span className="contracts-table__cell">{player.position}</span>
-                <span className="contracts-table__cell" style={{ color: getOverallColor(player.overall) }}>
-                  {player.overall}
+                <span className="contracts-table__cell">{contract.position}</span>
+                <span className="contracts-table__cell" style={{ color: getOverallColor(contract.overall) }}>
+                  {contract.overall}
                 </span>
                 <span className="contracts-table__cell contracts-table__cell--mono">
-                  {formatSalary(player.salary)}
+                  {formatSalary(contract.salary)}
                 </span>
-                <span className="contracts-table__cell contracts-table__cell--mono" style={{ color: getYearsColor(player.contract_year_remaining) }}>
-                  {player.contract_year_remaining || '—'}
+                <span className="contracts-table__cell contracts-table__cell--mono" style={{ color: getYearsColor(contract.years_remaining) }}>
+                  {contract.years_remaining || '—'}
                 </span>
               </button>
 
               {/* Expanded detail */}
-              {expandedRows.has(player.id) && (
+              {expandedRows.has(contract.player_id) && (
                 <div className="contracts-table__detail">
                   <div className="contracts-detail">
                     <div className="contracts-detail__row">
                       <span className="contracts-detail__label">Annual Salary</span>
-                      <span className="contracts-detail__value">{formatSalary(player.salary)}</span>
+                      <span className="contracts-detail__value">{formatSalary(contract.salary)}</span>
+                    </div>
+                    <div className="contracts-detail__row">
+                      <span className="contracts-detail__label">Signing Bonus</span>
+                      <span className="contracts-detail__value">{formatSalary(contract.signing_bonus)}</span>
                     </div>
                     <div className="contracts-detail__row">
                       <span className="contracts-detail__label">Years Remaining</span>
-                      <span className="contracts-detail__value">{player.contract_year_remaining || 0}</span>
+                      <span className="contracts-detail__value">{contract.years_remaining} of {contract.years_total}</span>
                     </div>
                     <div className="contracts-detail__row">
                       <span className="contracts-detail__label">Total Remaining</span>
                       <span className="contracts-detail__value">
-                        {formatSalary((player.salary || 0) * (player.contract_year_remaining || 0))}
+                        {formatSalary(contract.salary * contract.years_remaining)}
                       </span>
                     </div>
                     <div className="contracts-detail__row">
                       <span className="contracts-detail__label">Age</span>
-                      <span className="contracts-detail__value">{player.age}</span>
+                      <span className="contracts-detail__value">{contract.age}</span>
                     </div>
-                    <div className="contracts-detail__row">
-                      <span className="contracts-detail__label">Experience</span>
-                      <span className="contracts-detail__value">{player.experience} yr{player.experience !== 1 ? 's' : ''}</span>
+                    <div className="contracts-detail__row contracts-detail__row--warning">
+                      <span className="contracts-detail__label">
+                        <AlertTriangle size={10} /> Dead Money if Cut
+                      </span>
+                      <span className="contracts-detail__value" style={{ color: contract.dead_money_if_cut > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
+                        {formatSalary(contract.dead_money_if_cut)}
+                      </span>
                     </div>
                   </div>
-                  {onPlayerClick && (
+                  <div className="contracts-detail__actions">
+                    {onContractClick && (
+                      <button
+                        className="contracts-detail__action contracts-detail__action--primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onContractClick(contract.player_id, contract.name, contract.position, contract.salary);
+                        }}
+                        title="Open contract details"
+                      >
+                        <ExternalLink size={12} />
+                        <span>Details</span>
+                      </button>
+                    )}
+                    {contract.years_remaining >= 2 && (
+                      <button
+                        className="contracts-detail__action contracts-detail__action--restructure"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRestructureTarget(contract);
+                        }}
+                        title="Restructure contract"
+                      >
+                        <DollarSign size={12} />
+                        <span>Restructure</span>
+                      </button>
+                    )}
                     <button
-                      className="contracts-detail__popout"
+                      className="contracts-detail__action contracts-detail__action--cut"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onPlayerClick(player.id, player.full_name, player.position, player.overall);
+                        setCutTarget(contract);
                       }}
-                      title="Open in workspace"
+                      title="Cut player"
                     >
-                      <ExternalLink size={12} />
-                      <span>Open</span>
+                      <Scissors size={12} />
+                      <span>Cut</span>
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
@@ -319,8 +383,122 @@ export const ContractsContent: React.FC<ContractsContentProps> = ({ teamAbbr: pr
         </div>
       </div>
 
-      {sortedPlayers.length === 0 && (
+      {sortedContracts.length === 0 && (
         <div className="contracts-empty">No contracts match filters</div>
+      )}
+
+      {/* Restructure Modal */}
+      {restructureTarget && (
+        <div className="contracts-modal-overlay" onClick={() => setRestructureTarget(null)}>
+          <div className="contracts-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="contracts-modal__header">
+              <h3>Restructure Contract</h3>
+              <button className="contracts-modal__close" onClick={() => setRestructureTarget(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="contracts-modal__body">
+              <p className="contracts-modal__player">{restructureTarget.name} ({restructureTarget.position})</p>
+              <div className="contracts-modal__info">
+                <div className="contracts-modal__info-row">
+                  <span>Current Salary</span>
+                  <span>{formatSalary(restructureTarget.salary)}</span>
+                </div>
+                <div className="contracts-modal__info-row">
+                  <span>Years Remaining</span>
+                  <span>{restructureTarget.years_remaining}</span>
+                </div>
+              </div>
+              <p className="contracts-modal__help">
+                Converting salary to signing bonus creates immediate cap savings but increases future dead money risk.
+              </p>
+              <div className="contracts-modal__input-group">
+                <label>Amount to Convert</label>
+                <div className="contracts-modal__presets">
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => handleRestructure(restructureTarget.player_id, Math.floor(restructureTarget.salary * 0.25))}
+                  >
+                    25% ({formatSalary(Math.floor(restructureTarget.salary * 0.25))})
+                  </button>
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => handleRestructure(restructureTarget.player_id, Math.floor(restructureTarget.salary * 0.5))}
+                  >
+                    50% ({formatSalary(Math.floor(restructureTarget.salary * 0.5))})
+                  </button>
+                  <button
+                    disabled={actionLoading}
+                    onClick={() => handleRestructure(restructureTarget.player_id, Math.floor(restructureTarget.salary * 0.75))}
+                  >
+                    75% ({formatSalary(Math.floor(restructureTarget.salary * 0.75))})
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cut Modal */}
+      {cutTarget && (
+        <div className="contracts-modal-overlay" onClick={() => setCutTarget(null)}>
+          <div className="contracts-modal contracts-modal--danger" onClick={(e) => e.stopPropagation()}>
+            <div className="contracts-modal__header">
+              <h3>Cut Player</h3>
+              <button className="contracts-modal__close" onClick={() => setCutTarget(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="contracts-modal__body">
+              <p className="contracts-modal__player">{cutTarget.name} ({cutTarget.position})</p>
+              <div className="contracts-modal__info contracts-modal__info--warning">
+                <div className="contracts-modal__info-row">
+                  <span>Dead Money</span>
+                  <span style={{ color: 'var(--warning)' }}>{formatSalary(cutTarget.dead_money_if_cut)}</span>
+                </div>
+                <div className="contracts-modal__info-row">
+                  <span>Cap Savings</span>
+                  <span style={{ color: 'var(--success)' }}>{formatSalary(cutTarget.salary - cutTarget.dead_money_if_cut)}</span>
+                </div>
+              </div>
+              <div className="contracts-modal__buttons">
+                <button
+                  className="contracts-modal__btn contracts-modal__btn--danger"
+                  disabled={actionLoading}
+                  onClick={() => handleCut(cutTarget.player_id, false)}
+                >
+                  Cut Now
+                </button>
+                <button
+                  className="contracts-modal__btn contracts-modal__btn--secondary"
+                  disabled={actionLoading}
+                  onClick={() => handleCut(cutTarget.player_id, true)}
+                  title="Split dead money between this year and next"
+                >
+                  June 1 Designation
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result Toast */}
+      {actionResult && (
+        <div className="contracts-toast" onClick={() => setActionResult(null)}>
+          {actionResult.type === 'restructure' ? (
+            <p>
+              Restructured {(actionResult.result as RestructureContractResponse).player_name}.
+              Cap savings: {formatSalary((actionResult.result as RestructureContractResponse).cap_savings)}
+            </p>
+          ) : (
+            <p>
+              Released {(actionResult.result as CutPlayerResponse).player_name}.
+              Dead money: {formatSalary((actionResult.result as CutPlayerResponse).dead_money_this_year)}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

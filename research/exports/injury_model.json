@@ -1,0 +1,174 @@
+{
+  "position_injury_rates": {
+    "CB": {
+      "per_game_rate": 0.0715,
+      "modifier": 1.3
+    },
+    "DL": {
+      "per_game_rate": 0.078,
+      "modifier": 1.419
+    },
+    "LB": {
+      "per_game_rate": 0.0745,
+      "modifier": 1.354
+    },
+    "OL": {
+      "per_game_rate": 0.0588,
+      "modifier": 1.07
+    },
+    "QB": {
+      "per_game_rate": 0.033,
+      "modifier": 0.6
+    },
+    "RB": {
+      "per_game_rate": 0.0468,
+      "modifier": 0.851
+    },
+    "S": {
+      "per_game_rate": 0.0469,
+      "modifier": 0.852
+    },
+    "ST": {
+      "per_game_rate": 0.0139,
+      "modifier": 0.253
+    },
+    "TE": {
+      "per_game_rate": 0.0626,
+      "modifier": 1.138
+    },
+    "WR": {
+      "per_game_rate": 0.0778,
+      "modifier": 1.415
+    }
+  },
+  "injury_type_probabilities": {
+    "Unknown": 0.5335,
+    "Leg Muscle": 0.1114,
+    "Knee (Other)": 0.0787,
+    "Ankle": 0.0699,
+    "Shoulder": 0.0316,
+    "Concussion": 0.028,
+    "Foot": 0.0266,
+    "Illness": 0.02,
+    "Back": 0.0168,
+    "Hip": 0.0145,
+    "Chest/Ribs": 0.0143,
+    "Hand/Wrist": 0.013,
+    "Other": 0.0117,
+    "Neck": 0.0104,
+    "Arm": 0.0066
+  },
+  "duration_distributions": {
+    "Knee Ligament": {
+      "min_weeks": 6,
+      "typical_weeks": 12,
+      "season_ending_rate": 0.65
+    },
+    "Achilles": {
+      "min_weeks": 6,
+      "typical_weeks": 16,
+      "season_ending_rate": 0.8
+    },
+    "Concussion": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.05
+    },
+    "Ankle": {
+      "min_weeks": 1,
+      "typical_weeks": 3,
+      "season_ending_rate": 0.1
+    },
+    "Shoulder": {
+      "min_weeks": 2,
+      "typical_weeks": 4,
+      "season_ending_rate": 0.15
+    },
+    "Leg Muscle": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.05
+    },
+    "Back": {
+      "min_weeks": 1,
+      "typical_weeks": 3,
+      "season_ending_rate": 0.08
+    },
+    "Foot": {
+      "min_weeks": 2,
+      "typical_weeks": 4,
+      "season_ending_rate": 0.2
+    },
+    "Hand/Wrist": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.05
+    },
+    "Hip": {
+      "min_weeks": 1,
+      "typical_weeks": 3,
+      "season_ending_rate": 0.1
+    },
+    "Chest/Ribs": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.05
+    },
+    "Core": {
+      "min_weeks": 1,
+      "typical_weeks": 3,
+      "season_ending_rate": 0.08
+    },
+    "Neck": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.1
+    },
+    "Knee (Other)": {
+      "min_weeks": 1,
+      "typical_weeks": 3,
+      "season_ending_rate": 0.12
+    },
+    "Arm": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.05
+    },
+    "Illness": {
+      "min_weeks": 1,
+      "typical_weeks": 1,
+      "season_ending_rate": 0.01
+    },
+    "Rest/Personal": {
+      "min_weeks": 1,
+      "typical_weeks": 1,
+      "season_ending_rate": 0.01
+    },
+    "Other": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.05
+    },
+    "Unknown": {
+      "min_weeks": 1,
+      "typical_weeks": 2,
+      "season_ending_rate": 0.05
+    }
+  },
+  "special_rules": {
+    "concussion_protocol": {
+      "min_days": 5,
+      "typical_days": 10,
+      "requires_clearance": true
+    },
+    "ir_rules": {
+      "min_weeks": 4,
+      "max_returns": 8
+    },
+    "soft_tissue_regression": {
+      "hamstring": 0.25,
+      "groin": 0.2,
+      "calf": 0.2
+    }
+  }
+}

@@ -50,23 +50,31 @@ BASE_ACCURACY_VARIANCE = 1.5  # Max inaccuracy for poor QB
 MIN_ACCURACY_VARIANCE = 0.2   # Best case for elite QB
 
 # Catch resolution
-CONTESTED_CATCH_RADIUS = 2.0  # Defender within this = contested
-REACH_FALLOFF_CENTER = 1.0    # 50% catch at this distance
-REACH_FALLOFF_RATE = 0.3      # Steepness of falloff
+# Aligned with QB brain's CONTESTED_THRESHOLD (1.5 yards)
+# If QB considers a throw "contested but throwable", catch resolution should agree
+CONTESTED_CATCH_RADIUS = 1.5  # Defender within this = contested
+REACH_FALLOFF_CENTER = 1.5    # 50% catch at this distance (yards from ball)
+REACH_FALLOFF_RATE = 0.5      # Steepness of falloff (higher = more gradual)
 
-# Contest factors
-CONTEST_BASE = 0.58           # Offense advantage at equal position
-CONTEST_SEPARATION_WEIGHT = 0.20
-CONTEST_SKILL_WEIGHT = 0.20
+# Contest factors - calibrated to NFL contested catch rates (~45-50%)
+CONTEST_BASE = 0.45           # Offense advantage at equal position
+CONTEST_SEPARATION_WEIGHT = 0.15
+CONTEST_SKILL_WEIGHT = 0.15
 
 # Interception
 INT_BASE_CHANCE = 0.10
 INT_MIN_CHANCE = 0.03
 INT_MAX_CHANCE = 0.20
 
-# Uncontested catch
-UNCONTESTED_BASE_CATCH = 0.90
-UNCONTESTED_SKILL_BONUS = 0.06
+# Uncontested catch - calibrated to NFL completion rates
+# NFL data: 0-5 yards = 74%, 6-10 = 63%, 11-15 = 57%, 16-20 = 52%, 20+ = 35%
+# These are BASE rates before accuracy/skill modifiers
+UNCONTESTED_BASE_CATCH = 0.72  # Base catch rate (adjusted down from 0.90)
+UNCONTESTED_SKILL_BONUS = 0.08  # Bonus for good receivers
+
+# Depth-based catch penalty (per 10 yards of depth)
+# Deeper passes are harder to complete even when open
+DEPTH_CATCH_PENALTY_PER_10YDS = 0.08  # 8% penalty per 10 yards
 
 # Ball tracking for defenders
 BALL_TRACK_REACTION_TICKS = 3  # Ticks before defender reacts to ball
@@ -339,19 +347,21 @@ class PassingSystem:
         ball_speed = vel_min + arm_factor * (vel_max - vel_min)
 
         # Calculate target position
-        # Key insight: Only use anticipated_target_pos directly when receiver is STATIONARY
-        # If receiver is still moving, we need intercept calculation to lead them properly
-        if receiver_speed < 0.5:
-            # Receiver is stationary (or nearly so) - throw directly to target position
-            # Use anticipated position if provided (e.g., settle point), else current pos
-            target_pos = anticipated_target_pos if anticipated_target_pos else target_receiver.pos
+        # If anticipated_target_pos is provided, the QB brain has already calculated
+        # the correct lead position accounting for route type (settling vs continuing).
+        # Trust that calculation - don't override it.
+        if anticipated_target_pos:
+            # QB brain provided a specific target - use it directly
+            target_pos = anticipated_target_pos
+            flight_time = thrower.pos.distance_to(target_pos) / ball_speed
+        elif receiver_speed < 0.5:
+            # Receiver is stationary - throw directly at them
+            target_pos = target_receiver.pos
             flight_time = thrower.pos.distance_to(target_pos) / ball_speed
         else:
-            # Receiver is moving - ALWAYS calculate intercept to lead them
-            # Use anticipated starting position if provided, else current position
-            start_pos = anticipated_target_pos if anticipated_target_pos else target_receiver.pos
+            # No anticipated target and receiver is moving - calculate intercept
             target_pos, flight_time = self._calculate_intercept_point(
-                thrower.pos, start_pos, receiver_velocity, ball_speed
+                thrower.pos, target_receiver.pos, receiver_velocity, ball_speed
             )
 
         # Calculate peak height based on throw type and distance
@@ -639,22 +649,38 @@ class PassingSystem:
         accuracy_mod = (ctx.throw_accuracy - 0.5) * 0.06
         base_catch += accuracy_mod
 
-        catch_prob = clamp(reach_prob * base_catch, 0, 0.98)
+        # Depth penalty - deeper passes are harder to complete
+        # Calculate throw distance from velocity and flight time
+        throw_depth = 0.0
+        if self.throw_result:
+            throw_depth = self.throw_result.velocity * self.throw_result.flight_time
+        depth_penalty = (throw_depth / 10.0) * DEPTH_CATCH_PENALTY_PER_10YDS
+        base_catch -= depth_penalty
+
+        catch_prob = clamp(reach_prob * base_catch, 0.15, 0.92)
+
+        # Small interception chance even on uncontested (bad reads, tipped balls)
+        # Increases with depth
+        int_prob = 0.01 + (throw_depth / 40.0) * 0.03  # 1-4% based on depth
+        int_prob = clamp(int_prob, 0.01, 0.05)
 
         roll = random.random()
 
         if roll < catch_prob:
             result = CatchResult.COMPLETE
             probability = catch_prob
+        elif roll < catch_prob + int_prob:
+            result = CatchResult.INTERCEPTION
+            probability = int_prob
         else:
             result = CatchResult.INCOMPLETE
-            probability = 1 - catch_prob
+            probability = 1 - catch_prob - int_prob
 
         return CatchResolution(
             result=result,
             probability=probability,
             catch_probability=catch_prob,
-            int_probability=0.0,
+            int_probability=int_prob,
             context=ctx,
             roll=roll,
         )

@@ -1,0 +1,397 @@
+{
+  "model_name": "fourth_down",
+  "version": "1.0",
+  "source": "nfl_data_py play-by-play 2019-2024",
+  "go_for_it": {
+    "overall_rate": 0.1924,
+    "by_field_position": {
+      "1-30": {
+        "go_rate": 0.2579,
+        "count": 6325
+      },
+      "31-40": {
+        "go_rate": 0.3632,
+        "count": 2390
+      },
+      "41-50": {
+        "go_rate": 0.3014,
+        "count": 2585
+      },
+      "51-60": {
+        "go_rate": 0.1647,
+        "count": 3079
+      },
+      "61-70": {
+        "go_rate": 0.121,
+        "count": 3892
+      },
+      "71-80": {
+        "go_rate": 0.0603,
+        "count": 3367
+      },
+      "81-90": {
+        "go_rate": 0.0518,
+        "count": 1582
+      },
+      "91-100": {
+        "go_rate": 0.0267,
+        "count": 450
+      }
+    },
+    "by_distance": {
+      "1": {
+        "go_rate": 0.6612,
+        "count": 2721
+      },
+      "2": {
+        "go_rate": 0.3756,
+        "count": 1789
+      },
+      "3": {
+        "go_rate": 0.2307,
+        "count": 1760
+      },
+      "4-5": {
+        "go_rate": 0.1638,
+        "count": 3662
+      },
+      "6-7": {
+        "go_rate": 0.0952,
+        "count": 3318
+      },
+      "8-10": {
+        "go_rate": 0.0878,
+        "count": 4407
+      },
+      "11+": {
+        "go_rate": 0.062,
+        "count": 6013
+      }
+    },
+    "lookup_table": {
+      "1-30_1": {
+        "go_rate": 0.7892,
+        "count": 963.0
+      },
+      "1-30_2": {
+        "go_rate": 0.4637,
+        "count": 606.0
+      },
+      "1-30_3": {
+        "go_rate": 0.2491,
+        "count": 586.0
+      },
+      "1-30_4-5": {
+        "go_rate": 0.1629,
+        "count": 1136.0
+      },
+      "1-30_6-7": {
+        "go_rate": 0.0963,
+        "count": 955.0
+      },
+      "1-30_8-10": {
+        "go_rate": 0.0857,
+        "count": 1085.0
+      },
+      "1-30_11+": {
+        "go_rate": 0.0744,
+        "count": 994.0
+      },
+      "31-40_1": {
+        "go_rate": 0.8841,
+        "count": 328.0
+      },
+      "31-40_2": {
+        "go_rate": 0.6598,
+        "count": 194.0
+      },
+      "31-40_3": {
+        "go_rate": 0.5347,
+        "count": 202.0
+      },
+      "31-40_4-5": {
+        "go_rate": 0.3885,
+        "count": 381.0
+      },
+      "31-40_6-7": {
+        "go_rate": 0.2363,
+        "count": 347.0
+      },
+      "31-40_8-10": {
+        "go_rate": 0.1519,
+        "count": 428.0
+      },
+      "31-40_11+": {
+        "go_rate": 0.0922,
+        "count": 510.0
+      },
+      "41-50_1": {
+        "go_rate": 0.893,
+        "count": 299.0
+      },
+      "41-50_2": {
+        "go_rate": 0.6552,
+        "count": 203.0
+      },
+      "41-50_3": {
+        "go_rate": 0.4511,
+        "count": 184.0
+      },
+      "41-50_4-5": {
+        "go_rate": 0.3073,
+        "count": 371.0
+      },
+      "41-50_6-7": {
+        "go_rate": 0.1369,
+        "count": 358.0
+      },
+      "41-50_8-10": {
+        "go_rate": 0.1455,
+        "count": 488.0
+      },
+      "41-50_11+": {
+        "go_rate": 0.0909,
+        "count": 682.0
+      },
+      "51-60_1": {
+        "go_rate": 0.6364,
+        "count": 330.0
+      },
+      "51-60_2": {
+        "go_rate": 0.2601,
+        "count": 223.0
+      },
+      "51-60_3": {
+        "go_rate": 0.1228,
+        "count": 228.0
+      },
+      "51-60_4-5": {
+        "go_rate": 0.1202,
+        "count": 491.0
+      },
+      "51-60_6-7": {
+        "go_rate": 0.0947,
+        "count": 454.0
+      },
+      "51-60_8-10": {
+        "go_rate": 0.0832,
+        "count": 589.0
+      },
+      "51-60_11+": {
+        "go_rate": 0.0785,
+        "count": 764.0
+      },
+      "61-70_1": {
+        "go_rate": 0.4054,
+        "count": 518.0
+      },
+      "61-70_2": {
+        "go_rate": 0.1479,
+        "count": 338.0
+      },
+      "61-70_3": {
+        "go_rate": 0.0845,
+        "count": 343.0
+      },
+      "61-70_4-5": {
+        "go_rate": 0.0814,
+        "count": 774.0
+      },
+      "61-70_6-7": {
+        "go_rate": 0.0447,
+        "count": 403.0
+      },
+      "61-70_8-10": {
+        "go_rate": 0.0889,
+        "count": 630.0
+      },
+      "61-70_11+": {
+        "go_rate": 0.0508,
+        "count": 886.0
+      },
+      "71-80_1": {
+        "go_rate": 0.2595,
+        "count": 185.0
+      },
+      "71-80_2": {
+        "go_rate": 0.1189,
+        "count": 143.0
+      },
+      "71-80_3": {
+        "go_rate": 0.0479,
+        "count": 146.0
+      },
+      "71-80_4-5": {
+        "go_rate": 0.0641,
+        "count": 312.0
+      },
+      "71-80_6-7": {
+        "go_rate": 0.0473,
+        "count": 592.0
+      },
+      "71-80_8-10": {
+        "go_rate": 0.0502,
+        "count": 857.0
+      },
+      "71-80_11+": {
+        "go_rate": 0.0353,
+        "count": 1132.0
+      },
+      "81-90_1": {
+        "go_rate": 0.1429,
+        "count": 98.0
+      },
+      "81-90_2": {
+        "go_rate": 0.0633,
+        "count": 79.0
+      },
+      "81-90_3": {
+        "go_rate": 0.0667,
+        "count": 60.0
+      },
+      "81-90_4-5": {
+        "go_rate": 0.0621,
+        "count": 161.0
+      },
+      "81-90_6-7": {
+        "go_rate": 0.0186,
+        "count": 161.0
+      },
+      "81-90_8-10": {
+        "go_rate": 0.0356,
+        "count": 225.0
+      },
+      "81-90_11+": {
+        "go_rate": 0.0476,
+        "count": 798.0
+      },
+      "91-100_3": {
+        "go_rate": 0.0909,
+        "count": 11.0
+      },
+      "91-100_4-5": {
+        "go_rate": 0.0278,
+        "count": 36.0
+      },
+      "91-100_6-7": {
+        "go_rate": 0.0208,
+        "count": 48.0
+      },
+      "91-100_8-10": {
+        "go_rate": 0.019,
+        "count": 105.0
+      },
+      "91-100_11+": {
+        "go_rate": 0.0283,
+        "count": 247.0
+      }
+    }
+  },
+  "conversion": {
+    "overall_rate": 0.5342,
+    "by_distance": {
+      "1": {
+        "success_rate": 0.6754,
+        "attempts": 1799
+      },
+      "2": {
+        "success_rate": 0.5833,
+        "attempts": 672
+      },
+      "3": {
+        "success_rate": 0.5148,
+        "attempts": 406
+      },
+      "4-5": {
+        "success_rate": 0.4883,
+        "attempts": 600
+      },
+      "6-7": {
+        "success_rate": 0.4051,
+        "attempts": 316
+      },
+      "8-10": {
+        "success_rate": 0.323,
+        "attempts": 387
+      },
+      "11+": {
+        "success_rate": 0.1877,
+        "attempts": 373
+      }
+    },
+    "by_play_type": {
+      "pass": {
+        "success_rate": 0.4419,
+        "attempts": 2824
+      },
+      "run": {
+        "success_rate": 0.6848,
+        "attempts": 1729
+      }
+    },
+    "total_attempts": 4553
+  },
+  "decision_thresholds": {
+    "fg_range": {
+      "min_yardline": 1,
+      "max_yardline": 49,
+      "median_yardline": 21.0,
+      "typical_max_distance": 116
+    },
+    "go_rate_thresholds": {
+      "short_yardage_1-2": "High go rate inside opponent 40",
+      "medium_yardage_3-5": "Moderate go rate inside opponent 50",
+      "long_yardage_6+": "Low go rate except desperate situations"
+    }
+  },
+  "team_variance": {
+    "mean_go_rate": 0.192,
+    "std_go_rate": 0.0343,
+    "range": [
+      0.1385,
+      0.2675
+    ],
+    "aggressive_teams": [
+      "DET",
+      "CLE",
+      "PHI",
+      "ARI",
+      "CAR"
+    ],
+    "conservative_teams": [
+      "KC",
+      "NE",
+      "NO",
+      "SF",
+      "PIT"
+    ]
+  },
+  "decision_rules": {
+    "go_threshold_by_field_position": {
+      "inside_opponent_5": 0.9,
+      "inside_opponent_10": 0.75,
+      "inside_opponent_40": 0.4,
+      "opponent_territory": 0.25,
+      "own_territory": 0.05
+    },
+    "distance_modifiers": {
+      "1": 2.0,
+      "2": 1.5,
+      "3": 1.0,
+      "4-5": 0.5,
+      "6+": 0.2
+    },
+    "fg_range": {
+      "max_distance": 57,
+      "comfortable_distance": 45,
+      "long_distance": 50
+    },
+    "punt_threshold": {
+      "always_punt_beyond": 55,
+      "consider_go_inside": 40
+    }
+  },
+  "implementation_hints": {
+    "fourth_down_decision": "\ndef fourth_down_decision(yard_line: int, yards_to_go: int, score_diff: int, time_remaining: int, aggression: float = 0.0) -> str:\n    \"\"\"\n    Decide: 'go', 'punt', or 'fg'\n\n    Args:\n        yard_line: Yards from own goal line (1-99)\n        yards_to_go: Yards needed for first down\n        score_diff: Our score - opponent score\n        time_remaining: Seconds remaining in game\n        aggression: Team aggression modifier (-1 to +1)\n\n    Returns:\n        'go', 'punt', or 'fg'\n    \"\"\"\n    # Field goal range check\n    fg_distance = 100 - yard_line + 17  # Add snap/hold distance\n    in_fg_range = fg_distance <= 55\n\n    # Base go probability from lookup table\n    base_go_prob = get_go_probability(yard_line, yards_to_go)\n\n    # Adjust for aggression\n    go_prob = base_go_prob * (1 + aggression * 0.5)\n\n    # Adjust for game situation\n    if score_diff < 0 and time_remaining < 300:  # Trailing, under 5 min\n        go_prob *= 1.5  # More aggressive\n    if score_diff > 7 and time_remaining < 300:  # Leading, under 5 min\n        go_prob *= 0.5  # More conservative\n\n    # Decision\n    if yard_line >= 97:  # Inside opponent 3\n        return 'go'  # Almost always go\n    elif in_fg_range and yards_to_go >= 3:\n        return 'fg' if random.random() > go_prob else 'go'\n    elif random.random() < go_prob:\n        return 'go'\n    else:\n        return 'punt'\n"
+  }
+}

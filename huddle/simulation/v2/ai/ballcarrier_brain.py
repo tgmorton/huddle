@@ -1,12 +1,19 @@
 """Ballcarrier Brain - Universal brain for any player with the ball.
 
+YARDS-FIRST PHILOSOPHY:
+The primary goal is GAINING YARDS toward the endzone. Defenders are
+obstacles between us and our target - we go around, through, or away
+from them. Every decision is "what gets me more yards" not "how do I
+beat this defender".
+
 The ballcarrier brain controls:
 - Running backs after handoff
 - Wide receivers after catch
 - Quarterbacks scrambling
 - Defenders after interception/fumble recovery
 
-Responsibilities: Find daylight, execute moves, maximize yards, protect ball
+Key insight: We don't "beat defenders" - we ADVANCE THE BALL.
+Moves and evasions are tools to gain MORE YARDS, not to win 1v1s.
 """
 
 from __future__ import annotations
@@ -18,7 +25,18 @@ from typing import List, Optional, Tuple
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
+from ..core.trace import get_trace_system, TraceCategory
 from .shared.perception import calculate_effective_vision, angle_between as shared_angle_between
+
+
+# =============================================================================
+# Trace Helper
+# =============================================================================
+
+def _trace(world: WorldState, msg: str, category: TraceCategory = TraceCategory.DECISION):
+    """Add a trace for this ballcarrier."""
+    trace = get_trace_system()
+    trace.trace(world.me.id, world.me.name, category, msg)
 
 
 # =============================================================================
@@ -58,6 +76,12 @@ class BallcarrierState:
     last_move_time: float = -1.0
     moves_used: List[str] = None
     in_contact: bool = False
+    # Yards-first tracking
+    target_endzone_y: float = 100.0  # Where we're trying to get to
+    current_lane: Optional[Vec2] = None  # Current lane we're running through
+    # Commitment tracking to prevent oscillation
+    committed_direction: Optional[Vec2] = None  # Direction we're committed to
+    commitment_time: float = 0.0  # When we committed
 
     def __post_init__(self):
         if self.moves_used is None:
@@ -295,12 +319,143 @@ def _analyze_threats(world: WorldState) -> List[Threat]:
     return threats
 
 
+# =============================================================================
+# Yards-First Target Calculation
+# =============================================================================
+
+def _calculate_yards_target(world: WorldState, state: BallcarrierState) -> Vec2:
+    """Calculate our primary target - always the endzone direction.
+
+    The ballcarrier's target is ALWAYS about gaining yards toward the endzone.
+    Everything else (holes, moves, cuts) is about how to GET THERE.
+
+    Returns:
+        Target position toward the endzone
+    """
+    my_pos = world.me.pos
+
+    # Determine goal direction based on team
+    if world.me.team == Team.DEFENSE:
+        # Defense on return runs toward negative Y
+        endzone_y = world.los_y - 100  # Opponent's endzone
+        y_dir = -1
+    else:
+        # Offense runs toward positive Y
+        endzone_y = world.los_y + 100
+        y_dir = 1
+
+    state.target_endzone_y = endzone_y
+
+    # Target is 10 yards ahead in endzone direction (intermediate goal)
+    return Vec2(my_pos.x, my_pos.y + y_dir * 10)
+
+
+def _find_best_path_to_target(
+    world: WorldState,
+    target: Vec2,
+    obstacles: List["Threat"],
+) -> tuple[Vec2, float, str]:
+    """Find the best path toward our yards target, treating defenders as obstacles.
+
+    This is NOT about "which defender to beat" - it's about "what path gains
+    the most yards toward the endzone".
+
+    Returns:
+        (path_direction, clearance, reasoning)
+    """
+    my_pos = world.me.pos
+
+    # Direction to our yards target
+    to_target = (target - my_pos).normalized()
+    y_dir = 1 if to_target.y > 0 else -1
+
+    # Field boundaries
+    field_half_width = 26.65
+
+    # Sample paths toward target - all prioritize forward progress
+    paths = [
+        (Vec2(0, y_dir), "straight"),                      # Straight to endzone
+        (Vec2(0.25, y_dir).normalized(), "slight_right"),  # Slight angle right
+        (Vec2(-0.25, y_dir).normalized(), "slight_left"),  # Slight angle left
+        (Vec2(0.5, y_dir).normalized(), "angle_right"),    # Moderate right
+        (Vec2(-0.5, y_dir).normalized(), "angle_left"),    # Moderate left
+        (Vec2(0.75, y_dir * 0.5).normalized(), "bounce_right"),  # Bounce outside right
+        (Vec2(-0.75, y_dir * 0.5).normalized(), "bounce_left"),  # Bounce outside left
+    ]
+
+    best_path = None
+    best_score = -float('inf')
+    best_reasoning = "north_south"
+
+    for direction, name in paths:
+        # Check 5 yards ahead on this path
+        check_pos = my_pos + direction * 5
+
+        # Skip if out of bounds
+        if abs(check_pos.x) > field_half_width - 2:
+            continue
+
+        # Calculate clearance from obstacles (defenders)
+        min_clearance = float('inf')
+        for obstacle in obstacles:
+            dist = obstacle.player.pos.distance_to(check_pos)
+            # Also consider path intersection - is defender in the way?
+            path_dist = _point_to_line_distance(obstacle.player.pos, my_pos, check_pos)
+            effective_dist = min(dist, path_dist + 1)  # +1 for some tolerance
+            min_clearance = min(min_clearance, effective_dist)
+
+        # Score the path: prioritize forward progress + clearance
+        # Forward component (how much Y progress)
+        forward_progress = direction.y * y_dir  # 1.0 for straight, less for angled
+
+        # Clearance component (how open is the path)
+        clearance_score = min(1.0, min_clearance / 5.0)
+
+        # Sideline penalty
+        sideline_dist = min(check_pos.x + field_half_width, field_half_width - check_pos.x)
+        sideline_factor = min(1.0, sideline_dist / 8.0)
+
+        # Total score: 50% forward progress, 40% clearance, 10% sideline
+        score = forward_progress * 0.5 + clearance_score * 0.4 + sideline_factor * 0.1
+
+        if score > best_score:
+            best_score = score
+            best_path = direction
+            best_reasoning = name
+
+    if best_path is None:
+        best_path = Vec2(0, y_dir)
+        best_reasoning = "north_south"
+
+    # Calculate actual clearance for the chosen path
+    check_pos = my_pos + best_path * 5
+    clearance = float('inf')
+    for obstacle in obstacles:
+        dist = obstacle.player.pos.distance_to(check_pos)
+        clearance = min(clearance, dist)
+
+    return best_path, clearance, best_reasoning
+
+
+def _point_to_line_distance(point: Vec2, line_start: Vec2, line_end: Vec2) -> float:
+    """Calculate perpendicular distance from point to line segment."""
+    line_vec = line_end - line_start
+    line_len = line_vec.length()
+    if line_len < 0.01:
+        return point.distance_to(line_start)
+
+    # Project point onto line
+    t = max(0, min(1, (point - line_start).dot(line_vec) / (line_len * line_len)))
+    projection = line_start + line_vec * t
+    return point.distance_to(projection)
+
+
 @dataclass
 class Hole:
-    """A potential running lane."""
+    """A potential running lane toward the endzone."""
     position: Vec2
     width: float
-    quality: float  # 0-1 score
+    quality: float  # 0-1 score - how good is this path for gaining yards
     direction: Vec2
     threats_beyond: int
 
@@ -312,6 +467,8 @@ def _find_holes(world: WorldState, threats: List[Threat]) -> List[Hole]:
     runs toward negative Y.
 
     Sideline-aware: Penalizes holes near sidelines to avoid running out of bounds.
+
+    Run-concept-aware: Prioritizes the designed hole direction if available.
     """
     my_pos = world.me.pos
     holes = []
@@ -324,13 +481,28 @@ def _find_holes(world: WorldState, threats: List[Threat]) -> List[Hole]:
     else:
         y_dir = 1   # Offensive direction
 
+    # Determine designed hole bias from run concept
+    # Gap names: a_right, b_right, c_right, a_left, b_left, c_left
+    designed_x_bias = 0.0
+    if world.is_run_play and world.run_aiming_point:
+        if "right" in world.run_aiming_point:
+            designed_x_bias = 1.0  # Prefer right side
+        elif "left" in world.run_aiming_point:
+            designed_x_bias = -1.0  # Prefer left side
+    elif world.is_run_play and world.run_play_side:
+        if world.run_play_side == "right":
+            designed_x_bias = 1.0
+        elif world.run_play_side == "left":
+            designed_x_bias = -1.0
+
     # Sample directions (flipped based on team)
+    # Keep directions mostly north-south to avoid running sideways
     directions = [
         Vec2(0, y_dir),                          # Straight ahead
-        Vec2(0.5, y_dir).normalized(),           # Slight right
-        Vec2(-0.5, y_dir).normalized(),          # Slight left
-        Vec2(1, 0.5 * y_dir).normalized(),       # Hard right
-        Vec2(-1, 0.5 * y_dir).normalized(),      # Hard left
+        Vec2(0.3, y_dir).normalized(),           # Slight right
+        Vec2(-0.3, y_dir).normalized(),          # Slight left
+        Vec2(0.6, y_dir).normalized(),           # Moderate right
+        Vec2(-0.6, y_dir).normalized(),          # Moderate left
     ]
 
     # Field boundaries (field is 53.3 yards wide, centered at x=0)
@@ -356,15 +528,29 @@ def _find_holes(world: WorldState, threats: List[Threat]) -> List[Hole]:
 
             quality = min(1.0, min_dist / 5.0) * (1.0 - beyond * 0.2)
 
+            # Designed hole bonus - boost quality for holes in the designed direction
+            if designed_x_bias != 0.0:
+                # Calculate alignment with designed direction
+                # dir.x ranges from -1 to 1, designed_x_bias is -1 or 1
+                alignment = dir.x * designed_x_bias  # Positive if same direction
+                # Give up to 50% bonus for perfect alignment with designed hole
+                design_bonus = max(0, alignment * 0.5)
+                quality *= (1.0 + design_bonus)
+
             # Sideline penalty - penalize holes near boundaries
             distance_to_sideline = min(
                 check_pos.x + field_half_width,   # Distance to left sideline
                 field_half_width - check_pos.x    # Distance to right sideline
             )
-            if distance_to_sideline < 5:
+            if distance_to_sideline < 8:
                 # Heavy penalty near sideline - risk of running out of bounds
-                sideline_penalty = distance_to_sideline / 5.0  # 0.0 at sideline, 1.0 at 5 yards
+                # More aggressive: 0.0 at sideline, ramps up to 1.0 at 8 yards
+                sideline_penalty = (distance_to_sideline / 8.0) ** 2  # Quadratic for stronger penalty
                 quality *= sideline_penalty
+
+            # Skip holes that would take us out of bounds
+            if distance_to_sideline < 1:
+                continue
 
             holes.append(Hole(
                 position=check_pos,
@@ -380,53 +566,73 @@ def _find_holes(world: WorldState, threats: List[Threat]) -> List[Hole]:
 
 def _select_move(
     world: WorldState,
-    threat: Threat,
+    obstacle: Threat,
     state: BallcarrierState,
+    best_path: Vec2,
 ) -> Optional[Tuple[MoveType, str]]:
-    """Select the best move for the situation.
+    """Select a move to gain MORE YARDS - not to "beat" the defender.
+
+    YARDS-FIRST: The question is not "how do I beat this guy" but
+    "which move lets me advance the ball further".
 
     Returns:
-        (move_type, reasoning) or None if no move appropriate
+        (move_type, reasoning) or None if no move needed
     """
     attrs = world.me.attributes
     current_time = world.current_time
+    my_pos = world.me.pos
 
     # Cooldowns
     move_cooldown = 0.5
     if state.last_move_time > 0 and current_time - state.last_move_time < move_cooldown:
         return None
 
-    # Speed burst - if we have speed advantage
-    speed_diff = attrs.speed - 75  # Assume average defender
-    if speed_diff >= 3 and threat.distance > 2.0:
-        return MoveType.SPEED_BURST, f"Speed advantage (+{speed_diff}), bursting past"
+    # Is the obstacle actually in our path to the endzone?
+    path_blocked = _point_to_line_distance(
+        obstacle.player.pos, my_pos, my_pos + best_path * 5
+    ) < 2.0
 
-    # Hurdle - if defender is low
-    if attrs.agility >= 85 and threat.distance < 2.0:
-        # Would need info about defender's height/dive, simplified check
-        pass
+    if not path_blocked:
+        # Obstacle not in our path - no move needed, just keep going
+        return None
 
-    # Stiff arm - if defender reaching from side
-    if attrs.strength >= 75 and threat.distance < 2.0:
-        if threat.approach_angle < 0.5:  # Not head-on
-            return MoveType.STIFF_ARM, "Defender reaching, extending stiff arm"
+    # Speed burst - can we just outrun them to gain more yards?
+    speed_diff = attrs.speed - 75
+    if speed_diff >= 3 and obstacle.distance > 2.0:
+        return MoveType.SPEED_BURST, f"Open space ahead - bursting for extra yards"
 
-    # Juke - if lateral space
-    if attrs.agility >= 70 and threat.distance < 3.0:
-        return MoveType.JUKE, f"Defender at {threat.distance:.1f}yd, juking"
+    # Juke/cut - can we angle around them to keep advancing?
+    if attrs.agility >= 70 and obstacle.distance < 3.0:
+        # Determine which direction gains more yards
+        left_clear = True
+        right_clear = True
+        for opp in world.opponents:
+            if opp.pos.x < my_pos.x and opp.pos.distance_to(my_pos) < 4:
+                left_clear = False
+            if opp.pos.x > my_pos.x and opp.pos.distance_to(my_pos) < 4:
+                right_clear = False
 
-    # Spin - if defender committed
-    if attrs.agility >= 80 and threat.distance < 2.0:
-        if threat.approach_angle > 0.7:  # Coming fast and straight
-            return MoveType.SPIN, "Defender committed, spinning"
+        if left_clear or right_clear:
+            direction = "left" if left_clear else "right"
+            return MoveType.JUKE, f"Obstacle at {obstacle.distance:.1f}yd - cutting {direction} for yards"
 
-    # Truck - if smaller defender or no other option
-    if attrs.strength >= 80 and threat.distance < 1.5:
-        return MoveType.TRUCK, "Lowering shoulder through contact"
+    # Spin - can we spin past to continue forward?
+    if attrs.agility >= 80 and obstacle.distance < 2.0:
+        if obstacle.approach_angle > 0.7:  # Obstacle coming straight
+            return MoveType.SPIN, "Spinning past obstacle to continue forward"
 
-    # Dead leg - subtle move
-    if attrs.agility >= 70 and threat.distance < 3.0:
-        return MoveType.DEAD_LEG, "Subtle hesitation move"
+    # Stiff arm - can we fend off while maintaining forward progress?
+    if attrs.strength >= 75 and obstacle.distance < 2.0:
+        if obstacle.approach_angle < 0.5:  # Coming from angle
+            return MoveType.STIFF_ARM, "Extending arm to maintain forward progress"
+
+    # Truck - plow through to gain yards (contact as last resort)
+    if attrs.strength >= 80 and obstacle.distance < 1.5:
+        return MoveType.TRUCK, "Lowering shoulder for extra yards through contact"
+
+    # Dead leg - subtle move to maintain yards
+    if attrs.agility >= 70 and obstacle.distance < 3.0:
+        return MoveType.DEAD_LEG, "Hesitation to slip past for more yards"
 
     return None
 
@@ -464,7 +670,10 @@ def _get_situation(threats: List[Threat], holes: List[Hole]) -> Situation:
 # =============================================================================
 
 def ballcarrier_brain(world: WorldState) -> BrainDecision:
-    """Ballcarrier brain - controls any player with the ball.
+    """Ballcarrier brain - YARDS-FIRST approach.
+
+    Every decision is about GAINING YARDS toward the endzone.
+    Defenders are obstacles - we go around, through, or away from them.
 
     Args:
         world: Complete world state
@@ -482,194 +691,279 @@ def ballcarrier_brain(world: WorldState) -> BrainDecision:
     state.time_with_ball = world.time_since_snap
     state.yards_gained = world.me.pos.y - world.los_y
 
-    # Analyze situation - filter by vision
-    all_threats = _analyze_threats(world)
-    perceived_threats = _filter_threats_by_vision(world, all_threats)
+    # =========================================================================
+    # STEP 1: Calculate our yards target (ALWAYS the endzone)
+    # =========================================================================
+    yards_target = _calculate_yards_target(world, state)
+    y_dir = 1 if world.me.team != Team.DEFENSE else -1
 
-    # Find holes using only perceived threats
-    holes = _find_holes(world, perceived_threats)
-
-    # Can we see cutback lanes? (vision-dependent)
+    # =========================================================================
+    # PATIENCE PHASE - Trust the blocking to create yards opportunities
+    # =========================================================================
     vision = world.me.attributes.vision
-    _, _, _, can_see_cutback = _get_vision_params(vision)
-    if not can_see_cutback:
-        # Low vision backs focus on primary hole, filter cutback options
-        holes = [h for h in holes if h.direction.x * world.me.velocity.x >= 0] or holes
+    patience_time = 0.5 - (vision - 70) * 0.005
+    patience_time = max(0.25, min(0.55, patience_time))
 
-    situation = _get_situation(perceived_threats, holes)
+    time_since_handoff = world.time_since_snap
+    in_backfield = world.me.pos.y < world.los_y
+
+    if in_backfield and time_since_handoff < patience_time:
+        # Trust blocking scheme - follow designed path toward yards
+        designed_target = None
+        if hasattr(world, 'run_aiming_point') and world.run_aiming_point:
+            aiming = world.run_aiming_point
+            gap_x = 0.0
+            if "a" in aiming:
+                gap_x = 1.0
+            elif "b" in aiming:
+                gap_x = 3.0
+            elif "c" in aiming:
+                gap_x = 5.0
+            if "left" in aiming:
+                gap_x = -gap_x
+            designed_target = Vec2(gap_x, world.los_y + 2)
+        elif hasattr(world, 'run_play_side') and world.run_play_side:
+            gap_x = 3.0 if world.run_play_side == "right" else -3.0
+            designed_target = Vec2(gap_x, world.los_y + 2)
+
+        if designed_target:
+            blocker = _find_blocker_to_follow(world)
+            if blocker:
+                follow_pos = blocker.pos + Vec2(0, -1.5)
+                return BrainDecision(
+                    move_target=follow_pos,
+                    move_type="run",
+                    intent="patience",
+                    reasoning=f"Following blocker toward designed lane",
+                )
+            return BrainDecision(
+                move_target=designed_target,
+                move_type="run",
+                intent="patience",
+                reasoning=f"Pressing toward designed lane",
+            )
 
     # =========================================================================
-    # Ball Security Check - Protect ball in high-risk situations
+    # STEP 2: Identify obstacles (defenders) between us and yards
     # =========================================================================
-    multiple_close_tacklers = len([t for t in perceived_threats if t.distance < 2.5]) >= 2
-    if multiple_close_tacklers:
+    all_obstacles = _analyze_threats(world)
+    perceived_obstacles = _filter_threats_by_vision(world, all_obstacles)
+
+    # =========================================================================
+    # STEP 3: Find best path to gain yards (treating defenders as obstacles)
+    # =========================================================================
+    best_path, clearance, path_type = _find_best_path_to_target(
+        world, yards_target, perceived_obstacles
+    )
+
+    # Also find holes for compatibility with existing logic
+    holes = _find_holes(world, perceived_obstacles)
+
+    # Determine situation based on path clearance
+    if clearance > 7:
+        situation = Situation.OPEN_FIELD
+    elif clearance < 2:
+        situation = Situation.CONTACT
+    elif clearance < 4:
+        situation = Situation.CONGESTED
+    else:
+        situation = Situation.OPEN_FIELD
+
+    # =========================================================================
+    # Ball Security - Multiple obstacles converging limits yards potential
+    # =========================================================================
+    close_obstacles = [o for o in perceived_obstacles if o.distance < 2.5]
+    if len(close_obstacles) >= 2:
+        # Protect ball while still pressing forward
         return BrainDecision(
-            move_target=world.me.pos + Vec2(0, 2),
+            move_target=world.me.pos + Vec2(0, y_dir * 2),
             move_type="run",
             action="protect_ball",
             intent="ball_security",
-            reasoning="Multiple tacklers converging, protecting ball",
+            reasoning="Multiple obstacles converging - securing ball while gaining what I can",
         )
 
     # =========================================================================
-    # Scoring Position (within 5 yards of goal)
+    # Scoring Position - Maximum yards available
     # =========================================================================
-    goal_line_y = world.los_y + 100  # Use relative to LOS, not hardcoded
-    dist_to_goal = goal_line_y - world.me.pos.y
+    dist_to_endzone = abs(state.target_endzone_y - world.me.pos.y)
 
-    if dist_to_goal < 5:
-        # Near goal line
-        if not perceived_threats or perceived_threats[0].distance > 3:
-            # Clear path
+    if dist_to_endzone < 5:
+        endzone_pos = Vec2(world.me.pos.x, state.target_endzone_y)
+        if not perceived_obstacles or perceived_obstacles[0].distance > 3:
             return BrainDecision(
-                move_target=Vec2(world.me.pos.x, goal_line_y),
+                move_target=endzone_pos,
                 move_type="sprint",
                 intent="score",
-                reasoning="Clear path to end zone, sprinting!",
+                reasoning="Clear path to endzone - maximum yards!",
             )
-
-        # Fight for it
         return BrainDecision(
-            move_target=Vec2(world.me.pos.x, goal_line_y),
+            move_target=endzone_pos,
             move_type="sprint",
             intent="score",
-            action="dive" if dist_to_goal < 2 else None,
-            reasoning="Fighting for the goal line",
+            action="dive" if dist_to_endzone < 2 else None,
+            reasoning="Fighting for endzone yards!",
         )
 
     # =========================================================================
-    # Contact Imminent
+    # Obstacle in path - use move to GAIN MORE YARDS
     # =========================================================================
-    if situation == Situation.CONTACT and perceived_threats:
-        nearest_threat = perceived_threats[0]
+    if situation == Situation.CONTACT and perceived_obstacles:
+        nearest_obstacle = perceived_obstacles[0]
 
-        # Try to make a move
-        move_result = _select_move(world, nearest_threat, state)
+        # Select move based on what gains MORE YARDS (not what beats defender)
+        move_result = _select_move(world, nearest_obstacle, state, best_path)
 
         if move_result:
             move_type, reasoning = move_result
             state.last_move_time = world.current_time
             state.moves_used.append(move_type.value)
 
-            # Calculate move direction
+            # Calculate move target - always prioritizing forward progress
             if move_type == MoveType.JUKE:
-                # Juke opposite of defender approach
-                threat_dir = (world.me.pos - nearest_threat.player.pos).normalized()
-                juke_dir = Vec2(-threat_dir.y, threat_dir.x)  # Perpendicular
-                move_target = world.me.pos + juke_dir * 2
+                # Juke to the clearer side while maintaining forward progress
+                obstacle_side = 1 if nearest_obstacle.player.pos.x > world.me.pos.x else -1
+                juke_dir = Vec2(-obstacle_side * 0.7, y_dir * 0.7).normalized()
+                move_target = world.me.pos + juke_dir * 3
             elif move_type == MoveType.SPIN:
-                # Spin away from defender
-                move_target = world.me.pos + Vec2(0, 2)  # Continue upfield after spin
+                # Spin and continue forward
+                move_target = world.me.pos + Vec2(0, y_dir * 3)
             else:
-                move_target = world.me.pos + Vec2(0, 3)
+                # Continue toward yards target
+                move_target = world.me.pos + best_path * 3
 
             return BrainDecision(
                 move_target=move_target,
                 move_type="sprint",
                 action=move_type.value,
-                target_id=nearest_threat.player.id,
-                intent="evasion",
+                intent="yards_move",
                 reasoning=reasoning,
             )
 
-        # No move available - brace for contact
+        # No move - lower pad and fight for yards
         return BrainDecision(
-            move_target=world.me.pos + Vec2(0, 2),
+            move_target=world.me.pos + Vec2(0, y_dir * 2),
             move_type="run",
-            intent="lower_pad",
-            reasoning="Contact imminent, lowering pad level",
+            intent="fight_forward",
+            reasoning="Obstacle ahead - fighting forward for yards",
         )
 
     # =========================================================================
-    # Open Field Running
+    # Open field - Sprint toward yards target
     # =========================================================================
     if situation == Situation.OPEN_FIELD:
-        # Find best lane
-        if holes:
-            best_hole = holes[0]
-            return BrainDecision(
-                move_target=best_hole.position,
-                move_type="sprint",
-                intent="open_field",
-                reasoning=f"Open field! Taking lane with {best_hole.width:.1f}yd clearance",
+        commitment_duration = 0.5
+
+        # Initialize commitment toward yards
+        if state.committed_direction is None:
+            state.committed_direction = best_path
+            state.commitment_time = world.current_time
+
+        time_since_commit = world.current_time - state.commitment_time
+
+        if time_since_commit < commitment_duration:
+            # Stay committed to current path toward yards
+            committed_target = world.me.pos + state.committed_direction * 7
+            path_blocked = any(
+                o.distance < 2.5 and o.player.pos.distance_to(committed_target) < 3
+                for o in perceived_obstacles
             )
 
-        # Just run north
+            if not path_blocked:
+                return BrainDecision(
+                    move_target=committed_target,
+                    move_type="sprint",
+                    intent="yards_sprint",
+                    reasoning=f"Open field - sprinting for yards ({clearance:.1f}yd clearance)",
+                )
+
+        # Update path to best yards opportunity
+        state.committed_direction = best_path
+        state.commitment_time = world.current_time
+
+        sprint_target = world.me.pos + best_path * 7
         return BrainDecision(
-            move_target=world.me.pos + Vec2(0, 10),
+            move_target=sprint_target,
             move_type="sprint",
-            intent="north_south",
-            reasoning="Open field, running north",
+            intent="yards_sprint",
+            reasoning=f"Taking best path toward endzone ({path_type})",
         )
 
     # =========================================================================
-    # Congested Running
+    # Congested - Work through traffic for yards
     # =========================================================================
     if situation == Situation.CONGESTED:
-        # Try to find or create a hole
-        if holes and holes[0].quality > 0.4:
-            best_hole = holes[0]
+        commitment_duration = 0.5
 
-            # Is the hole closing?
-            closing = False
-            for threat in perceived_threats:
-                if threat.player.pos.distance_to(best_hole.position) < 3:
-                    closing = True
-                    break
+        if state.committed_direction is None and world.is_run_play:
+            if world.run_aiming_point:
+                design_x = 1.0 if "right" in world.run_aiming_point else -1.0 if "left" in world.run_aiming_point else 0.0
+                state.committed_direction = Vec2(design_x * 0.4, y_dir * 0.9).normalized()
+            else:
+                state.committed_direction = best_path
+            state.commitment_time = world.current_time
 
-            if closing:
+        time_since_commit = world.current_time - state.commitment_time
+
+        if state.committed_direction and time_since_commit < commitment_duration:
+            press_target = world.me.pos + state.committed_direction * 3
+            return BrainDecision(
+                move_target=press_target,
+                move_type="run",
+                intent="press_yards",
+                reasoning=f"Pressing through traffic for yards",
+            )
+
+        # Check for cutback - more open path to yards
+        _, _, _, can_see_cutback = _get_vision_params(vision)
+        if can_see_cutback and holes:
+            cutback_holes = [h for h in holes if h.direction.x * world.me.velocity.x < 0]
+            if cutback_holes and cutback_holes[0].quality > 0.5:
+                state.committed_direction = cutback_holes[0].direction
+                state.commitment_time = world.current_time
                 return BrainDecision(
-                    move_target=best_hole.position,
+                    move_target=cutback_holes[0].position,
                     move_type="sprint",
-                    intent="hit_hole",
-                    reasoning=f"Hole closing, hitting it NOW",
+                    action="cut",
+                    intent="cutback_yards",
+                    reasoning="Cutback open - better path to yards!",
                 )
 
+        # Find best path through traffic
+        if holes and holes[0].quality > 0.3:
+            best_hole = holes[0]
             return BrainDecision(
                 move_target=best_hole.position,
                 move_type="run",
-                intent="find_hole",
-                reasoning=f"Traffic ahead, working toward {best_hole.width:.1f}yd hole",
+                intent="work_yards",
+                reasoning=f"Working toward {best_hole.width:.1f}yd opening for yards",
             )
 
-        # Check for cutback
-        cutback_holes = [h for h in holes if h.direction.x * world.me.velocity.x < 0]
-        if cutback_holes and cutback_holes[0].quality > 0.5:
-            return BrainDecision(
-                move_target=cutback_holes[0].position,
-                move_type="sprint",
-                action="cut",
-                intent="cutback",
-                reasoning="Cutback lane open!",
-            )
-
-        # No lanes - go north-south and churn
+        # Churn forward for whatever yards available
         return BrainDecision(
-            move_target=world.me.pos + Vec2(0, 2),
+            move_target=world.me.pos + Vec2(0, y_dir * 2),
             move_type="run",
-            intent="churn",
-            reasoning="No lanes, churning for yards",
+            intent="churn_yards",
+            reasoning="Churning forward for yards",
         )
 
     # =========================================================================
-    # Follow Blocker
+    # Follow blocker - They're creating yards opportunities
     # =========================================================================
     blocker = _find_blocker_to_follow(world)
     if blocker:
-        # Position behind blocker
-        follow_pos = blocker.pos - Vec2(0, 2)
-
+        follow_pos = blocker.pos + Vec2(0, -y_dir * 2)
         return BrainDecision(
             move_target=follow_pos,
             move_type="run",
-            intent="follow_block",
-            reasoning=f"Following blocker {blocker.id}",
+            intent="follow_yards",
+            reasoning="Following blocker to yards",
         )
 
-    # Default: run upfield
+    # Default: Press toward endzone
     return BrainDecision(
-        move_target=world.me.pos + Vec2(0, 5),
+        move_target=world.me.pos + Vec2(0, y_dir * 5),
         move_type="sprint",
-        intent="north_south",
-        reasoning="Running north-south",
+        intent="yards_forward",
+        reasoning="Pressing forward for yards",
     )

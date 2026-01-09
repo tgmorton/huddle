@@ -103,6 +103,26 @@ class RouteAssignment:
         wp = self.current_waypoint
         return wp is not None and wp.is_break
 
+    @property
+    def has_passed_break(self) -> bool:
+        """Has receiver already passed the break point?
+
+        Returns True if receiver's current waypoint index is beyond the break waypoint.
+        """
+        # Find the break waypoint index
+        break_idx = None
+        for i, wp in enumerate(self.route.waypoints):
+            if wp.is_break:
+                break_idx = i
+                break
+
+        if break_idx is None:
+            # No break defined - always "pre-break" (use velocity for leading)
+            return False
+
+        # Receiver has passed break if current_waypoint_idx > break_idx
+        return self.current_waypoint_idx > break_idx
+
     def advance_waypoint(self) -> bool:
         """Advance to next waypoint.
 
@@ -393,7 +413,8 @@ class RouteRunner:
         # Determine max speed based on waypoint
         max_speed = profile.max_speed * waypoint.speed_factor
 
-        # Move toward waypoint
+        # Move toward waypoint (pass agility for cut variance)
+        agility = getattr(player.attributes, 'agility', None)
         result, arrived = self.solver.solve_with_arrival(
             current_pos=player.pos,
             current_vel=player.velocity,
@@ -402,6 +423,7 @@ class RouteRunner:
             dt=dt,
             arrival_threshold=0.5,
             max_speed_override=max_speed if max_speed < profile.max_speed else None,
+            agility=agility,
         )
 
         # Build reasoning string

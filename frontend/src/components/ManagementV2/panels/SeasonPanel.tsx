@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ScheduleContent } from '../content/ScheduleContent';
 import { StandingsContent } from '../content/StandingsContent';
-import { PlaceholderContent } from '../content/PlaceholderContent';
+import { PlayoffsContent } from '../content/PlayoffsContent';
 
 type SeasonTab = 'schedule' | 'standings' | 'playoffs';
 
@@ -20,7 +20,7 @@ export const SeasonPanel: React.FC = () => {
       <div className="tabbed-panel__content">
         {tab === 'schedule' && <ScheduleContent />}
         {tab === 'standings' && <StandingsContent />}
-        {tab === 'playoffs' && <PlaceholderContent title="Playoff Picture" />}
+        {tab === 'playoffs' && <PlayoffsContent />}
       </div>
     </div>
   );

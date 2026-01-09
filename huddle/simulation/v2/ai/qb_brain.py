@@ -1,20 +1,22 @@
 """QB Brain - Decision-making for quarterbacks.
 
+COMPLETION-FIRST PHILOSOPHY:
+The QB's goal is to COMPLETE PASSES and ADVANCE THE BALL. Everything else
+is in service of that goal:
+- Reads find WHO IS OPEN (not which matchup to exploit)
+- Pressure affects throw quality (it's an obstacle, not something to "beat")
+- Scrambling = extend play to find open receiver OR gain yards
+- Checkdowns happen when primary options are covered
+
 The QB brain manages:
-- Pre-snap reads (coverage shell, blitz detection)
-- Hot route calls and protection adjustments
-- Dropback execution
-- Read progression through receivers
-- Pressure response (pocket movement, scramble)
-- Throw/scramble decision
+- Pre-snap reads: Identify where open receivers will be
+- Hot route calls: Quick throws when pressure threatens completion
+- Dropback execution: Get to throwing platform
+- Read progression: Find the open receiver to complete the pass
+- Platform stability: Pressure affects throw quality (move to maintain)
+- Throw/scramble: Complete the pass or gain yards
 
 Lifecycle: PRE_SNAP → SNAP → DROPBACK → POCKET → THROW/SCRAMBLE/SACK
-
-Pre-snap intelligence:
-- _identify_coverage_shell(): Identifies Cover 0/1/2/3/4 based on safety alignment
-- _detect_blitz_look(): Detects walked-up LBs, safety creep
-- _get_hot_route_for_blitz(): Converts routes to beat blitz
-- _get_protection_call(): Slide protection toward blitz side
 """
 
 from __future__ import annotations
@@ -26,7 +28,14 @@ from typing import List, Optional, Tuple
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
+from ..core.trace import get_trace_system, TraceCategory
 from .shared.perception import calculate_effective_vision, angle_between, VisionParams
+from ..core.variance import (
+    decision_hesitation,
+    should_make_suboptimal_decision,
+    target_selection_noise,
+    execution_timing,
+)
 
 
 # =============================================================================
@@ -34,12 +43,16 @@ from .shared.perception import calculate_effective_vision, angle_between, Vision
 # =============================================================================
 
 class PressureLevel(str, Enum):
-    """How much pressure the QB is under."""
-    CLEAN = "clean"       # No pressure, all the time
-    LIGHT = "light"       # Minor presence, manageable
-    MODERATE = "moderate" # Need to think about moving
-    HEAVY = "heavy"       # Must make decision soon
-    CRITICAL = "critical" # Immediate action required
+    """Platform stability - how clean is our throwing platform.
+
+    COMPLETION-FIRST: Pressure is an OBSTACLE to completing passes,
+    not something to "beat". Higher pressure = harder to throw accurately.
+    """
+    CLEAN = "clean"       # Stable platform, can make any throw
+    LIGHT = "light"       # Minor disruption, most throws available
+    MODERATE = "moderate" # Platform unstable, may need to move for completion
+    HEAVY = "heavy"       # Must complete quickly or move to maintain platform
+    CRITICAL = "critical" # Platform lost - quick release or extend play
 
 
 class QBPhase(str, Enum):
@@ -87,19 +100,26 @@ class ReceiverEval:
     """Evaluation of a receiver's openness."""
     player_id: str
     position: Vec2
+    velocity: Vec2  # Receiver's current velocity for throw lead calculation
     separation: float
     status: ReceiverStatus
     nearest_defender_id: str
-    defender_closing_speed: float
-    route_phase: str
-    is_hot: bool
-    read_order: int
+    nearest_defender_pos: Optional[Vec2] = None  # For far-shoulder throw placement
+    defender_closing_speed: float = 0.0
+    route_phase: str = ""
+    is_hot: bool = False
+    read_order: int = 99
     # Anticipation throw fields
     defender_trailing: bool = False  # Is defender behind receiver?
     pre_break: bool = False  # Is receiver pre-break?
     anticipation_viable: bool = False  # Can throw anticipation?
     # Vision-based detection quality (1.0 = central, lower = peripheral)
     detection_quality: float = 1.0
+    # Route info for throw targeting
+    break_point: Optional[Vec2] = None  # Where receiver will cut
+    route_direction: str = ""  # "inside", "outside", "vertical"
+    route_settles: bool = False  # True for curl/hitch, False for slant/go
+    settle_point: Optional[Vec2] = None  # Where settling routes stop
 
 
 @dataclass
@@ -115,6 +135,8 @@ class QBState:
     hot_route_triggered: bool = False
     escape_direction: Optional[Vec2] = None
     set_time: float = 0.0  # When dropback completed
+    # Variance-affected timing (set once per play)
+    time_per_read: float = 0.0  # 0 = not yet calculated
 
 
 # Module-level state tracking (per player)
@@ -131,6 +153,68 @@ def _get_state(player_id: str) -> QBState:
 def _reset_state(player_id: str) -> None:
     """Reset state for a new play."""
     _qb_states[player_id] = QBState()
+
+
+# =============================================================================
+# Debug Trace System (uses centralized TraceSystem)
+# =============================================================================
+
+# Module-level reference for backward compatibility
+_trace_enabled: bool = False
+_trace_buffer: list[str] = []
+_current_qb_id: str = ""
+_current_qb_name: str = ""
+
+
+def enable_trace(enabled: bool = True):
+    """Enable or disable debug tracing.
+
+    DEPRECATED: Use get_trace_system().enable() instead.
+    This function is kept for backward compatibility.
+
+    Args:
+        enabled: Whether to enable tracing (default True)
+    """
+    global _trace_enabled, _trace_buffer
+    _trace_enabled = enabled
+    if enabled:
+        _trace_buffer = []  # Clear on enable
+    # Also enable centralized trace system
+    get_trace_system().enable(enabled)
+
+
+def get_trace() -> list[str]:
+    """Get a copy of the current trace buffer.
+
+    DEPRECATED: Use get_trace_system().get_entries() instead.
+    This function is kept for backward compatibility.
+
+    Returns:
+        List of trace messages in order
+    """
+    return _trace_buffer.copy()
+
+
+def _set_trace_context(player_id: str, player_name: str):
+    """Set the current QB context for tracing."""
+    global _current_qb_id, _current_qb_name
+    _current_qb_id = player_id
+    _current_qb_name = player_name
+
+
+def _trace(msg: str, category: TraceCategory = TraceCategory.DECISION):
+    """Add a trace message to both local buffer and centralized system.
+
+    Args:
+        msg: Message to add to trace
+        category: Type of trace (perception, decision, action)
+    """
+    global _trace_buffer
+    if _trace_enabled:
+        _trace_buffer.append(msg)
+    # Always send to centralized system (it checks if enabled internally)
+    trace = get_trace_system()
+    trace.trace(_current_qb_id, _current_qb_name, category, msg)
 
 
 # =============================================================================
@@ -156,24 +240,51 @@ def _pressure_to_float(pressure: PressureLevel) -> float:
 def _get_qb_facing(world: WorldState) -> Vec2:
     """Get the direction the QB is facing.
 
-    QB in pocket should face downfield to read receivers, regardless of
-    any residual backward velocity from dropback.
+    Prioritizes explicit facing direction (from scanning) over velocity.
+    This allows QB to look at receivers while moving in the pocket.
     """
+    # If facing is explicitly set (not default 0,1), use it
+    # This happens when QB is scanning through reads
+    if world.me.facing:
+        facing = world.me.facing
+        # Check if facing is NOT the default (0, 1) direction
+        # i.e., has been explicitly set to look at a receiver
+        if abs(facing.x) > 0.1 or facing.y < 0.9:
+            return facing.normalized()
+
+    # Otherwise use velocity if moving forward/lateral
     vel = world.me.velocity
     if vel and vel.length() > 0.5:
-        # If moving forward or laterally, use velocity
-        # If moving backward (dropback), face downfield instead
         if vel.y >= 0:  # Forward or lateral movement
             return vel.normalized()
-    # In pocket or dropback - face downfield to read receivers
+
+    # Fallback: face downfield
     return Vec2(0, 1)
 
 
+def _get_read_target_facing(world: WorldState, read_order: int) -> Optional[Vec2]:
+    """Get facing direction toward a specific read target.
+
+    Looks at ALL teammates (not just visible ones) to find the read target.
+    This allows QB to face toward receivers before they're in the vision cone.
+    """
+    for teammate in world.teammates:
+        if teammate.read_order == read_order:
+            to_target = teammate.pos - world.me.pos
+            if to_target.length() > 0.1:
+                return to_target.normalized()
+    return None
+
+
 def _calculate_pressure(world: WorldState) -> Tuple[PressureLevel, List[PlayerView]]:
-    """Calculate pressure level from defender positions.
+    """Calculate platform stability based on defender proximity.
+
+    COMPLETION-FIRST: This determines how clean our throwing platform is.
+    Defenders are obstacles to making accurate throws - their proximity
+    degrades our ability to complete passes.
 
     Returns:
-        (pressure_level, list of threatening defenders)
+        (platform_stability, list of nearby obstacles)
     """
     qb_pos = world.me.pos
     threats = []
@@ -197,8 +308,32 @@ def _calculate_pressure(world: WorldState) -> Tuple[PressureLevel, List[PlayerVi
         if opp.pos.x < qb_pos.x:  # Coming from left
             threat_score *= 1.5
 
-        # Clear lane bonus
-        # TODO: Check if blocker is between threat and QB
+        # Blocker protection check - reduce threat if OL is between threat and QB
+        threat_blocked = False
+        for teammate in world.teammates:
+            if teammate.position not in (Position.LT, Position.LG, Position.C, Position.RG, Position.RT):
+                continue
+            # Check if blocker is between threat and QB
+            # Blocker is "between" if:
+            # 1. Closer to threat than QB is
+            # 2. Roughly in the lane (within 2 yards of threat-QB line)
+            blocker_to_threat = teammate.pos.distance_to(opp.pos)
+            if blocker_to_threat < distance:  # Blocker is closer to threat than QB
+                # Check if blocker is in the lane (perpendicular distance to threat-QB line)
+                threat_to_qb = qb_pos - opp.pos
+                threat_to_blocker = teammate.pos - opp.pos
+                if threat_to_qb.length() > 0.1:
+                    # Project blocker onto threat-QB line
+                    t = threat_to_blocker.dot(threat_to_qb) / threat_to_qb.dot(threat_to_qb)
+                    if 0 < t < 1:  # Blocker is between (not behind threat or past QB)
+                        closest_point = opp.pos + threat_to_qb * t
+                        lane_distance = teammate.pos.distance_to(closest_point)
+                        if lane_distance < 2.0:  # Within 2 yards of direct path
+                            threat_blocked = True
+                            break
+
+        if threat_blocked:
+            threat_score *= 0.3  # Significantly reduce threat if blocked
 
         total_threat_score += threat_score
 
@@ -256,31 +391,28 @@ def _evaluate_receivers(world: WorldState, pressure: PressureLevel = None) -> Li
     qb_facing = _get_qb_facing(world)
     qb_pos = world.me.pos
 
+    _trace(f"[VISION SETUP] t={world.time_since_snap:.2f}s, facing=({qb_facing.x:.2f}, {qb_facing.y:.2f})")
+
+    # Get position labels for tracing (e.g., "WR", "TE1")
+    position_counts = {}
+
     for teammate in world.teammates:
         # Only evaluate receivers
         if teammate.position not in (Position.WR, Position.TE, Position.RB):
             continue
 
-        # Check if receiver is within QB's effective vision
+        # Generate position label for tracing
+        pos_name = teammate.position.name
+        position_counts[pos_name] = position_counts.get(pos_name, 0) + 1
+        label = f"{pos_name}{position_counts[pos_name]}" if position_counts[pos_name] > 1 else pos_name
+
         to_receiver = teammate.pos - qb_pos
         distance = to_receiver.length()
+        read_order = getattr(teammate, 'read_order', 0) or 99
 
-        # Outside vision radius - QB can't see them under pressure
-        if distance > vision_params.radius:
-            continue
-
-        # Calculate angle to receiver
-        if distance > 0.1:
-            angle = angle_between(qb_facing, to_receiver.normalized())
-            # Outside vision angle - QB can't see them (tunnel vision)
-            if angle > vision_params.angle / 2:
-                continue
-
-            # Determine if receiver is in peripheral vision (outside 45 degree central cone)
-            is_peripheral = angle > 45.0
-            detection_quality = vision_params.peripheral_quality if is_peripheral else 1.0
-        else:
-            detection_quality = 1.0
+        # No vision cone filtering - QB can evaluate all receivers
+        # Decision is based on projected separation at ball arrival
+        detection_quality = 1.0
 
         # Find nearest defender
         nearest_def = None
@@ -298,63 +430,98 @@ def _evaluate_receivers(world: WorldState, pressure: PressureLevel = None) -> Li
                     to_receiver = (teammate.pos - opp.pos).normalized()
                     closing_speed = opp.velocity.dot(to_receiver)
 
-        # Adjust separation based on defender position
-        effective_sep = nearest_dist
+        # PROJECT SEPARATION TO BALL ARRIVAL TIME
+        # This is the key insight: "open now" doesn't mean "open when ball arrives"
+        qb_pos = world.me.pos
+        throw_distance = qb_pos.distance_to(teammate.pos)
+
+        # Estimate ball flight time (based on throw power ~60-80 fps)
+        throw_power = getattr(world.me.attributes, 'throw_power', 80)
+        ball_speed = 50 + (throw_power - 50) * 0.76  # 50-88 fps range
+        # Shorter passes thrown softer
+        if throw_distance < 10:
+            ball_speed *= 0.75
+        elif throw_distance < 20:
+            ball_speed *= 0.9
+        flight_time = throw_distance / ball_speed
+        flight_time = min(flight_time, 0.8)  # Cap at 0.8s
+
+        # Project receiver position at ball arrival
+        receiver_at_arrival = Vec2(
+            teammate.pos.x + teammate.velocity.x * flight_time,
+            teammate.pos.y + teammate.velocity.y * flight_time
+        )
+
+        # Project defender position at ball arrival
         defender_trailing = False
         if nearest_def:
-            # Defender behind receiver = bonus separation
-            receiver_to_qb = (world.me.pos - teammate.pos).normalized()
+            defender_at_arrival = Vec2(
+                nearest_def.pos.x + nearest_def.velocity.x * flight_time,
+                nearest_def.pos.y + nearest_def.velocity.y * flight_time
+            )
+
+            # Separation AT BALL ARRIVAL (not current separation)
+            projected_sep = receiver_at_arrival.distance_to(defender_at_arrival)
+
+            # Check if defender is trailing (behind receiver relative to QB)
+            receiver_to_qb = (qb_pos - teammate.pos).normalized()
             def_to_receiver = (teammate.pos - nearest_def.pos).normalized()
-            if receiver_to_qb.dot(def_to_receiver) > 0.5:  # Defender trailing
-                effective_sep += 1.0
+            if receiver_to_qb.dot(def_to_receiver) > 0.5:
                 defender_trailing = True
-            # Defender in front (undercutting) = penalty
+                projected_sep += 0.5  # Trailing defender = slightly easier catch
             elif receiver_to_qb.dot(def_to_receiver) < -0.3:
-                effective_sep -= 0.5
+                projected_sep -= 1.0  # Undercutting = much harder, potential INT
+        else:
+            projected_sep = 10.0  # No defender nearby
 
-        # Closing speed penalty
-        if closing_speed > 0:
-            effective_sep -= closing_speed * 0.3
+        effective_sep = projected_sep
 
-        # Determine status
-        if effective_sep > 2.5:
+        # Determine status based on PROJECTED separation at ball arrival
+        # These thresholds represent NFL-quality openness:
+        # - OPEN (>5yd): Easy throw, high completion probability
+        # - WINDOW (>3yd): Makeable throw, requires accuracy
+        # - CONTESTED (>1.5yd): Tight window, 50/50 ball
+        # - COVERED (<1.5yd): Don't throw here
+        if effective_sep > 5.0:
             status = ReceiverStatus.OPEN
-        elif effective_sep > 1.5:
+        elif effective_sep > 3.0:
             status = ReceiverStatus.WINDOW
-        elif effective_sep > 0.5:
+        elif effective_sep > 1.5:
             status = ReceiverStatus.CONTESTED
         else:
             status = ReceiverStatus.COVERED
 
-        # Determine route phase based on time since snap
-        # Typical timing: release 0-0.5s, stem 0.5-1.2s, break 1.2-1.5s, post-break 1.5s+
-        time = world.time_since_snap
-        if time < 0.5:
-            route_phase = "release"
-            pre_break = True
-        elif time < 1.2:
-            route_phase = "stem"
-            pre_break = True
-        elif time < 1.5:
-            route_phase = "break"
-            pre_break = True
-        else:
-            route_phase = "post_break"
-            pre_break = False
+        # Use ACTUAL route phase from route runner, not time-based estimates
+        # This is critical for accurate throw lead calculation
+        route_phase = getattr(teammate, 'route_phase', "") or "stem"
+        pre_break = getattr(teammate, 'pre_break', True)
+
+        # Check if receiver was assigned a hot route
+        is_hot = bool(world.hot_routes and teammate.id in world.hot_routes)
+
+        # Trace receiver evaluation
+        hot_tag = " HOT" if is_hot else ""
+        _trace(f"[EVAL] R{read_order} {label}: {status.value} (proj_sep={effective_sep:.1f}yd{hot_tag})")
 
         evaluations.append(ReceiverEval(
             player_id=teammate.id,
             position=teammate.pos,
+            velocity=teammate.velocity,  # For throw lead calculation
             separation=effective_sep,
             status=status,
             nearest_defender_id=nearest_def.id if nearest_def else "",
+            nearest_defender_pos=nearest_def.pos if nearest_def else None,  # For far-shoulder placement
             defender_closing_speed=closing_speed,
             route_phase=route_phase,
-            is_hot=False,  # TODO: Track hot routes
+            is_hot=is_hot,
             read_order=getattr(teammate, 'read_order', 0) or 99,  # 0 means unassigned → low priority
             defender_trailing=defender_trailing,
             pre_break=pre_break,
             detection_quality=detection_quality,  # Lower for peripheral receivers
+            break_point=getattr(teammate, 'break_point', None),  # Where receiver will cut
+            route_direction=getattr(teammate, 'route_direction', ""),  # inside/outside/vertical
+            route_settles=getattr(teammate, 'route_settles', False),  # curl/hitch settle
+            settle_point=getattr(teammate, 'settle_point', None),  # Where settling routes stop
         ))
 
     # Sort by read order
@@ -366,6 +533,7 @@ def _can_throw_anticipation(
     accuracy: int,
     receiver: ReceiverEval,
     pressure: PressureLevel,
+    time_in_pocket: float = 0.0,
 ) -> Tuple[bool, str]:
     """Check if QB can throw anticipation pass.
 
@@ -380,10 +548,20 @@ def _can_throw_anticipation(
         2. QB accuracy allows anticipation
         3. Defender is trailing (not undercutting)
         4. Clean pocket (not heavy/critical pressure)
+        5. Minimum time in pocket (0.4s) - QB needs time to evaluate
+        6. Minimum separation (2.0 yards) - can't throw into tight coverage
 
     Returns:
         (can_anticipate, reasoning)
     """
+    # Minimum time in pocket - QB needs time to scan before anticipation
+    if time_in_pocket < 0.4:
+        return False, f"too early ({time_in_pocket:.2f}s), need 0.4s minimum"
+
+    # Minimum separation - can't anticipate into tight coverage
+    if receiver.separation < 2.0:
+        return False, f"separation too tight ({receiver.separation:.1f}yd < 2.0yd)"
+
     # Can only anticipate to pre-break receivers
     if not receiver.pre_break:
         return False, "receiver past break point"
@@ -401,7 +579,7 @@ def _can_throw_anticipation(
         return True, f"elite accuracy ({accuracy}), 0.3s anticipation window"
     elif accuracy >= 80:
         # Can anticipate only late stem / during break
-        if receiver.route_phase == "break" or (receiver.route_phase == "stem" and receiver.separation > 1.0):
+        if receiver.route_phase == "break" or (receiver.route_phase == "stem" and receiver.separation > 2.0):
             return True, f"good accuracy ({accuracy}), 0.15s anticipation window"
         return False, "accuracy allows limited anticipation, too early"
     else:
@@ -413,6 +591,7 @@ def _find_best_receiver(
     current_read: int,
     pressure: PressureLevel,
     accuracy: int = 75,
+    time_in_pocket: float = 0.0,
 ) -> Tuple[Optional[ReceiverEval], bool, str]:
     """Find the best receiver to throw to.
 
@@ -421,6 +600,7 @@ def _find_best_receiver(
         current_read: Current read in progression
         pressure: Current pressure level
         accuracy: QB throw accuracy attribute
+        time_in_pocket: How long QB has been set in pocket
 
     Returns:
         (best_receiver, is_anticipation, reasoning)
@@ -447,67 +627,126 @@ def _find_best_receiver(
             break
 
     if current_eval:
+        _trace(f"[READ] Read {current_read} ({current_eval.player_id}): {current_eval.status.value}")
         # Check if currently open
         if current_eval.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
+            _trace(f"[READ] -> THROW to read {current_read}")
             return current_eval, False, f"read {current_read} open"
 
         # Check for anticipation throw
         can_anticipate, anticipate_reason = _can_throw_anticipation(
-            accuracy, current_eval, pressure
+            accuracy, current_eval, pressure, time_in_pocket
         )
         if can_anticipate:
+            _trace(f"[READ] -> ANTICIPATION to read {current_read}")
             return current_eval, True, f"anticipation: {anticipate_reason}"
+        _trace(f"[READ] Read {current_read}: covered, checking next")
+    else:
+        _trace(f"[READ] Read {current_read}: NOT VISIBLE - skip")
 
-    # If current read is covered, check if anyone else is clearly open
+    # If current read is covered, progress to next reads IN ORDER
+    # Don't skip to any random open receiver - respect the progression
     for eval in evaluations:
-        if eval.status == ReceiverStatus.OPEN:
-            return eval, False, "found open receiver off-script"
+        if eval.read_order > current_read:
+            _trace(f"[READ] Read {eval.read_order} ({eval.player_id}): {eval.status.value}")
+            if eval.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
+                _trace(f"[READ] -> THROW to read {eval.read_order}")
+                return eval, False, f"progressed to read {eval.read_order}"
+            # Check anticipation on next reads too
+            can_anticipate, anticipate_reason = _can_throw_anticipation(
+                accuracy, eval, pressure, time_in_pocket
+            )
+            if can_anticipate:
+                return eval, True, f"anticipation on read {eval.read_order}: {anticipate_reason}"
 
-    # Check all receivers for anticipation opportunity
+    # All reads exhausted - check for any anticipation opportunity as last resort
     for eval in evaluations:
         can_anticipate, anticipate_reason = _can_throw_anticipation(
-            accuracy, eval, pressure
+            accuracy, eval, pressure, time_in_pocket
         )
-        if can_anticipate and eval.separation > 1.0:
+        if can_anticipate and eval.separation > 2.0:  # Require good separation for last resort
             return eval, True, f"anticipation: {anticipate_reason}"
 
     return None, False, "no open receivers"
 
 
 def _find_escape_lane(world: WorldState) -> Optional[Vec2]:
-    """Find an escape lane from pressure."""
+    """Find a lane to extend the play for a completion opportunity.
+
+    COMPLETION-FIRST: We're not "escaping pressure" - we're moving
+    to maintain a throwing platform or create a new completion window.
+    The goal is still to complete a pass or gain yards.
+
+    Uses pressure state to determine escape direction:
+    - Escape away from closest threat
+    - Use pocket geometry to find open lanes
+    - Prioritize staying in throwing position
+    """
     qb_pos = world.me.pos
 
-    # Check both sides
-    escape_options = [
-        Vec2(qb_pos.x + 5, qb_pos.y - 2),  # Right
-        Vec2(qb_pos.x - 5, qb_pos.y - 2),  # Left
-        Vec2(qb_pos.x, qb_pos.y + 3),      # Step up
-    ]
+    # Get pressure info if available
+    pressure_state = getattr(world, 'pressure_state', None)
+
+    # Determine where threats are coming from
+    threat_from_left = False
+    threat_from_right = False
+
+    if pressure_state and pressure_state.threats:
+        for threat in pressure_state.threats:
+            if threat.is_blind_side:  # Blind side = left
+                threat_from_left = True
+            else:
+                threat_from_right = True
+
+    # Build escape options prioritized by threat direction
+    extend_options = []
+
+    # If pocket is collapsed on one side, escape to the other
+    if threat_from_left and not threat_from_right:
+        # Escape right - roll out to strong side
+        extend_options.append(Vec2(qb_pos.x + 6, qb_pos.y - 1))
+        extend_options.append(Vec2(qb_pos.x + 4, qb_pos.y + 2))  # Step up and right
+    elif threat_from_right and not threat_from_left:
+        # Escape left - roll out to weak side
+        extend_options.append(Vec2(qb_pos.x - 6, qb_pos.y - 1))
+        extend_options.append(Vec2(qb_pos.x - 4, qb_pos.y + 2))  # Step up and left
+    else:
+        # Pressure from both sides or no clear direction - step up in pocket
+        extend_options.append(Vec2(qb_pos.x, qb_pos.y + 4))  # Step up - new throwing lane
+        extend_options.append(Vec2(qb_pos.x + 5, qb_pos.y - 2))  # Roll right
+        extend_options.append(Vec2(qb_pos.x - 5, qb_pos.y - 2))  # Roll left
 
     best_option = None
     best_clearance = 0.0
 
-    for escape_pos in escape_options:
-        # Find nearest defender to this escape position
+    for extend_pos in extend_options:
+        # Find nearest obstacle to this position
         min_dist = float('inf')
         for opp in world.opponents:
-            dist = opp.pos.distance_to(escape_pos)
+            dist = opp.pos.distance_to(extend_pos)
             if dist < min_dist:
                 min_dist = dist
 
         if min_dist > best_clearance:
             best_clearance = min_dist
-            best_option = escape_pos
+            best_option = extend_pos
 
-    return best_option if best_clearance > 3.0 else None
+    # Lower threshold when pocket is collapsed - must escape
+    min_clearance = 2.0 if (pressure_state and pressure_state.pocket_collapsed) else 3.0
+    return best_option if best_clearance > min_clearance else None
 
 
 def _get_dropback_target(world: WorldState) -> Vec2:
-    """Get the target position for dropback."""
-    # Standard 5-step drop is about 7 yards behind snap
-    # Use LOS as reference, not current position (avoid infinite retreat)
-    return Vec2(world.me.pos.x, world.los_y - 7)
+    """Get the target position for dropback.
+
+    Uses the dropback_target_pos from WorldState which is calculated
+    by the orchestrator based on the play's DropbackType.
+    """
+    # Use WorldState dropback target if available
+    if world.dropback_target_pos:
+        return world.dropback_target_pos
+    # Fallback: standard 5-step drop (7 yards behind LOS)
+    return Vec2(world.me.pos.x, world.los_y - world.dropback_depth)
 
 
 def _should_throw_away(world: WorldState) -> bool:
@@ -523,6 +762,343 @@ def _get_throw_away_target(world: WorldState) -> Vec2:
     # Throw toward sideline, past LOS
     side = 1 if world.me.pos.x > 0 else -1
     return Vec2(side * 25, world.los_y + 5)
+
+
+def _calculate_throw_lead(
+    qb_pos: Vec2,
+    receiver: ReceiverEval,
+    throw_power: int = 80,
+) -> Vec2:
+    """Calculate where to throw based on ROUTE STRUCTURE.
+
+    ANTICIPATION WITH CAPITAL A:
+    The QB TRUSTS the route. The receiver WILL be where the route says.
+    We throw to where the ROUTE takes them, not extrapolating from velocity.
+
+    Route types:
+    1. SETTLING routes (curl, hitch, comeback) → throw to settle_point
+    2. CONTINUING routes (slant, go, post, out, in) → throw to route endpoint with lead
+
+    The QB knows:
+    - What route the receiver is running
+    - Where the route will take them (break_point, settle_point)
+    - The timing of the route
+
+    Args:
+        qb_pos: QB position
+        receiver: Receiver evaluation with route info
+        throw_power: QB throw power attribute (affects ball speed)
+
+    Returns:
+        Target position based on route structure
+    """
+    # =======================================================================
+    # SETTLING ROUTES: Curl, Hitch, Comeback - receiver STOPS at settle_point
+    # Check this FIRST - these routes have a defined endpoint
+    # =======================================================================
+    if receiver.route_settles:
+        settle_target = receiver.settle_point or receiver.break_point or receiver.position
+        break_point = receiver.break_point
+
+        # Calculate ball physics
+        base_ball_speed = 50 + (throw_power - 50) * 0.76
+
+        # Receiver speed (actual if moving, assumed if not)
+        actual_speed = receiver.velocity.length()
+        rcvr_speed = actual_speed if actual_speed > 2.0 else 6.5
+
+        # =======================================================================
+        # KEY INSIGHT: For curl/hitch routes, receiver goes PAST settle point
+        # before curling back. pre_break means they're still on the stem!
+        # =======================================================================
+        if receiver.pre_break:
+            # STILL ON STEM - throw to where they'll be on their current path
+            # NOT to the settle point (they haven't even reached the break yet!)
+            dist_to_receiver = qb_pos.distance_to(receiver.position)
+            ball_speed = base_ball_speed * (0.8 if dist_to_receiver < 10 else 0.9)
+            flight_time = dist_to_receiver / ball_speed
+            flight_time = min(flight_time, 0.8)  # Cap at 0.8s
+
+            # Use their actual velocity direction (running the stem)
+            if receiver.velocity.length() > 0.1:
+                stem_dir = receiver.velocity.normalized()
+            else:
+                # Fallback: toward break point (next waypoint for pre-break receiver)
+                if break_point:
+                    stem_dir = (break_point - receiver.position).normalized()
+                else:
+                    stem_dir = Vec2(0, 1)  # Default upfield
+
+            lead_dist = rcvr_speed * flight_time
+            target = receiver.position + stem_dir * lead_dist
+
+            # If close to break point, cap there (let them make the break)
+            if break_point:
+                dist_to_break = receiver.position.distance_to(break_point)
+                if lead_dist > dist_to_break:
+                    # Would overshoot break - throw to break point area
+                    target = break_point
+        else:
+            # POST-BREAK - receiver is curling back to settle point
+            # Now we can throw to the settle point
+            receiver_to_settle = settle_target.distance_to(receiver.position)
+
+            if receiver_to_settle < 3.0:
+                # Very close to settle - throw there
+                target = settle_target
+            else:
+                # Calculate timing to settle point
+                time_to_settle = receiver_to_settle / rcvr_speed if rcvr_speed > 0.1 else 0
+                ball_dist_to_settle = qb_pos.distance_to(settle_target)
+                ball_speed = base_ball_speed * (0.8 if ball_dist_to_settle < 10 else 0.9)
+                ball_flight_time = ball_dist_to_settle / ball_speed
+
+                if time_to_settle < ball_flight_time + 0.15:
+                    # Receiver will reach settle point before ball - good!
+                    target = settle_target
+                else:
+                    # Receiver is still far - throw to intercept point
+                    dist_to_receiver = qb_pos.distance_to(receiver.position)
+                    ball_speed_to_rcvr = base_ball_speed * (0.8 if dist_to_receiver < 10 else 0.9)
+                    flight_time = dist_to_receiver / ball_speed_to_rcvr
+                    flight_time = min(flight_time, 0.6)
+
+                    # Use their actual velocity (curling toward settle)
+                    if receiver.velocity.length() > 0.1:
+                        curl_dir = receiver.velocity.normalized()
+                    else:
+                        curl_dir = (settle_target - receiver.position).normalized()
+
+                    lead_dist = rcvr_speed * flight_time
+                    target = receiver.position + curl_dir * lead_dist
+
+                    # Don't overshoot the settle point
+                    if target.distance_to(receiver.position) > receiver_to_settle:
+                        target = settle_target
+
+        # Far-shoulder adjustment for settling routes
+        if receiver.nearest_defender_pos:
+            away_from_def = target - receiver.nearest_defender_pos
+            if away_from_def.length() > 0.1:
+                def_dist = receiver.nearest_defender_pos.distance_to(target)
+                if def_dist < 4.0:
+                    # Small offset (0.5 yard) away from defender
+                    offset = 0.5
+                    target = target + away_from_def.normalized() * offset
+
+        return target
+
+    # =======================================================================
+    # CONTINUING ROUTES: Slant, Go, Post, Out, In, Drag
+    # Receiver maintains speed - throw where route takes them
+    # =======================================================================
+
+    # Calculate ball physics
+    base_ball_speed = 50 + (throw_power - 50) * 0.76  # 50-88 fps range
+
+    # =======================================================================
+    # POST-BREAK: If receiver has already broken, use their ACTUAL movement
+    # =======================================================================
+    receiver_speed = receiver.velocity.length()
+
+    if not receiver.pre_break and receiver.route_phase == "post_break":
+        # Receiver has already broken - trust their current movement
+        if receiver_speed < 1.0:
+            # Barely moving post-break = settling route (hitch, curl)
+            # Throw right at them
+            target = receiver.position
+
+            # Far-shoulder adjustment
+            if receiver.nearest_defender_pos:
+                away_from_def = target - receiver.nearest_defender_pos
+                if away_from_def.length() > 0.1:
+                    def_dist = receiver.nearest_defender_pos.distance_to(target)
+                    if def_dist < 4.0:
+                        offset = 0.5
+                        target = target + away_from_def.normalized() * offset
+
+            return target
+
+        else:
+            # Moving post-break - lead based on ACTUAL velocity
+            dist_to_receiver = qb_pos.distance_to(receiver.position)
+            if dist_to_receiver < 10:
+                ball_speed = base_ball_speed * 0.8
+            elif dist_to_receiver < 20:
+                ball_speed = base_ball_speed * 0.9
+            else:
+                ball_speed = base_ball_speed
+
+            flight_time = dist_to_receiver / ball_speed
+            flight_time = min(flight_time, 0.8)
+
+            # Lead based on actual velocity (they've already broken)
+            lead_distance = receiver_speed * flight_time
+            lead_dir = receiver.velocity.normalized()
+
+            target = receiver.position + lead_dir * lead_distance
+
+            # Far-shoulder adjustment
+            if receiver.nearest_defender_pos:
+                def_to_target = target - receiver.nearest_defender_pos
+                if def_to_target.length() > 0.1:
+                    def_dist = def_to_target.length()
+                    if def_dist < 4.0:
+                        offset = 1.0 - (def_dist / 4.0) * 0.5
+                        target = target + def_to_target.normalized() * offset
+
+            return target
+
+    # =======================================================================
+    # PRE-BREAK: Use route structure to anticipate where receiver will be
+    # =======================================================================
+
+    # Determine where the route takes the receiver
+    # IMPORTANT: Only use break_point if receiver hasn't passed it yet!
+    # If receiver is post-break, the break_point is BEHIND them.
+    if receiver.break_point and receiver.pre_break:
+        # Route has a defined break point
+        break_point = receiver.break_point
+
+        # How far is receiver from break point?
+        receiver_to_break = break_point.distance_to(receiver.position)
+
+        # Receiver speed (use actual if moving, otherwise assume 6.5)
+        actual_speed = receiver.velocity.length()
+        receiver_speed = actual_speed if actual_speed > 2.0 else 6.5
+
+        # Time for receiver to reach break point
+        time_to_break = receiver_to_break / receiver_speed if receiver_speed > 0.1 else 0
+
+        # Determine post-break direction from route_direction
+        if receiver.route_direction == "inside":
+            # Slant, dig, post - continue inside after break
+            if receiver.position.x > 0:
+                post_break_dir = Vec2(-0.8, 0.4).normalized()
+            else:
+                post_break_dir = Vec2(0.8, 0.4).normalized()
+        elif receiver.route_direction == "outside":
+            # Out, corner - continue outside after break
+            if receiver.position.x > 0:
+                post_break_dir = Vec2(0.8, 0.2).normalized()
+            else:
+                post_break_dir = Vec2(-0.8, 0.2).normalized()
+        else:
+            # Vertical routes (go, seam) - continue upfield
+            post_break_dir = Vec2(0, 1)
+
+        # =======================================================================
+        # ANTICIPATION: Trust the route - throw to where it takes them
+        # =======================================================================
+        # Calculate flight time to break point first
+        break_dist = qb_pos.distance_to(break_point)
+        if break_dist < 10:
+            ball_speed = base_ball_speed * 0.8
+        elif break_dist < 20:
+            ball_speed = base_ball_speed * 0.9
+        else:
+            ball_speed = base_ball_speed
+
+        flight_time_to_break = break_dist / ball_speed
+        flight_time_to_break = min(flight_time_to_break, 1.0)
+
+        # Will receiver pass through break before ball arrives there?
+        if time_to_break < flight_time_to_break:
+            # YES: Receiver reaches break first, then continues
+            # Throw PAST the break point
+            # Time receiver spends post-break before ball would reach break point
+            post_break_time = flight_time_to_break - time_to_break
+
+            # But we need to iterate - throw target is past break, so flight time changes
+            target = break_point
+            for _ in range(3):
+                throw_dist = qb_pos.distance_to(target)
+                if throw_dist < 10:
+                    ball_speed = base_ball_speed * 0.8
+                elif throw_dist < 20:
+                    ball_speed = base_ball_speed * 0.9
+                else:
+                    ball_speed = base_ball_speed
+
+                flight_time = throw_dist / ball_speed
+                flight_time = min(flight_time, 1.0)
+
+                # Receiver position when ball arrives
+                if flight_time > time_to_break:
+                    post_break_dist = receiver_speed * (flight_time - time_to_break)
+                    target = break_point + post_break_dir * post_break_dist
+                else:
+                    target = break_point
+
+            # Add YAC buffer past the catch point
+            yac_buffer = 1.0
+            target = target + post_break_dir * yac_buffer
+
+        else:
+            # NO: Ball arrives at break point before receiver gets there
+            # This is an anticipation throw - throw to break point with YAC lead
+            # Receiver will catch in stride as they arrive at break
+            yac_buffer = 1.0
+            target = break_point + post_break_dir * yac_buffer
+
+    else:
+        # No break point - use ACTUAL VELOCITY for continuing routes (like GO)
+        # This is common for vertical routes that just keep running
+
+        actual_speed = receiver.velocity.length()
+
+        if actual_speed > 2.0:
+            # Receiver is moving - use their actual velocity direction
+            lead_dir = receiver.velocity.normalized()
+            receiver_speed = actual_speed
+        else:
+            # Receiver barely moving - fall back to route_direction
+            receiver_speed = 6.5  # Assume they'll get up to speed
+            if receiver.route_direction == "inside":
+                if receiver.position.x > 0:
+                    lead_dir = Vec2(-0.7, 0.5).normalized()
+                else:
+                    lead_dir = Vec2(0.7, 0.5).normalized()
+            elif receiver.route_direction == "outside":
+                if receiver.position.x > 0:
+                    lead_dir = Vec2(0.7, 0.3).normalized()
+                else:
+                    lead_dir = Vec2(-0.7, 0.3).normalized()
+            else:
+                # Default: use direction toward downfield from QB
+                # In this coord system, downfield is +Y
+                lead_dir = Vec2(0, 1)
+
+        # Calculate lead based on distance and receiver speed
+        dist_to_receiver = qb_pos.distance_to(receiver.position)
+        if dist_to_receiver < 10:
+            ball_speed = base_ball_speed * 0.8
+        elif dist_to_receiver < 20:
+            ball_speed = base_ball_speed * 0.9
+        else:
+            ball_speed = base_ball_speed
+
+        flight_time = dist_to_receiver / ball_speed
+        flight_time = min(flight_time, 1.0)  # Allow longer flight for deep routes
+
+        lead_distance = receiver_speed * flight_time
+
+        target = receiver.position + lead_dir * lead_distance
+
+    # =======================================================================
+    # FAR-SHOULDER ADJUSTMENT
+    # Throw away from the defender so receiver can shield the ball
+    # =======================================================================
+    if receiver.nearest_defender_pos:
+        def_to_target = target - receiver.nearest_defender_pos
+        if def_to_target.length() > 0.1:
+            def_dist = def_to_target.length()
+            if def_dist < 4.0:
+                # Offset 0.5-1.5 yards away from defender
+                offset = 1.5 - (def_dist / 4.0)
+                target = target + def_to_target.normalized() * offset
+
+    return target
 
 
 # =============================================================================
@@ -748,6 +1324,9 @@ def qb_brain(world: WorldState) -> BrainDecision:
     Returns:
         BrainDecision with action and reasoning
     """
+    # Set trace context for this QB
+    _set_trace_context(world.me.id, world.me.name)
+
     # =========================================================================
     # Pre-Snap Phase - Read defense, call hot routes
     # =========================================================================
@@ -783,6 +1362,14 @@ def qb_brain(world: WorldState) -> BrainDecision:
     # =========================================================================
     # Post-Snap Logic
     # =========================================================================
+
+    # On run plays, QB just holds position - handoff is handled by orchestrator timing
+    if world.is_run_play:
+        return BrainDecision(
+            intent="handoff",
+            reasoning="Run play - holding for handoff",
+        )
+
     state = _get_state(world.me.id)
 
     # Reset state at start of play
@@ -798,208 +1385,129 @@ def qb_brain(world: WorldState) -> BrainDecision:
     pressure, threats = _calculate_pressure(world)
     state.pressure_level = pressure
 
-    # Evaluate receivers
-    receivers = _evaluate_receivers(world)
-
     # Get timing thresholds
     thresholds = _get_time_thresholds(world.me.attributes.awareness)
 
-    # Phase: Dropback
-    if not state.dropback_complete:
+    # Phase: Dropback - use orchestrator's qb_is_set tracking
+    # The orchestrator tracks when QB reaches depth AND completes the plant phase
+    if not world.qb_is_set:
         dropback_target = _get_dropback_target(world)
         distance_to_target = world.me.pos.distance_to(dropback_target)
 
-        if distance_to_target < 0.5:
-            # Dropback complete
-            state.dropback_complete = True
-            state.set_time = world.current_time
+        # Check for hot route on blitz (can throw during dropback under pressure)
+        # Only do quick scan, no full evaluation during dropback
+        if pressure in (PressureLevel.HEAVY, PressureLevel.CRITICAL):
+            # Quick hot route check without full vision/read evaluation
+            for teammate in world.teammates:
+                if teammate.position not in (Position.WR, Position.TE, Position.RB):
+                    continue
+                is_hot = bool(world.hot_routes and teammate.id in world.hot_routes)
+                if is_hot:
+                    # Quick separation check
+                    nearest_dist = min(
+                        (teammate.pos.distance_to(opp.pos) for opp in world.opponents),
+                        default=10.0
+                    )
+                    if nearest_dist > 1.5:  # Open enough for hot route
+                        return BrainDecision(
+                            action="throw",
+                            target_id=teammate.id,
+                            action_target=teammate.pos,
+                            reasoning=f"Hot route during dropback! {teammate.id} has {nearest_dist:.1f}yd sep",
+                        )
+
+        # Still in dropback phase - move toward target
+        if distance_to_target > 0.5:
             return BrainDecision(
-                intent="set",
-                reasoning="Dropback complete, setting in pocket",
+                move_target=dropback_target,
+                move_type="dropback",  # Faster than backpedal - QB retreat, not DB coverage
+                intent="dropback",
+                reasoning=f"Executing dropback, {distance_to_target:.1f}yd to set point",
+            )
+        else:
+            # Reached depth, but orchestrator says still planting
+            # Start facing toward read 1 while planting so we're ready to scan
+            facing = _get_read_target_facing(world, 1)
+            return BrainDecision(
+                intent="planting",
+                facing_direction=facing,
+                reasoning=f"At depth ({world.dropback_depth:.0f}yd), planting feet",
             )
 
-        # Check for hot route on blitz
-        if pressure in (PressureLevel.HEAVY, PressureLevel.CRITICAL):
-            # Look for hot route
-            for recv in receivers:
-                if recv.is_hot and recv.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
-                    return BrainDecision(
-                        action="throw",
-                        target_id=recv.player_id,
-                        action_target=recv.position,
-                        reasoning=f"Hot route triggered! {recv.player_id} has {recv.separation:.1f}yd sep",
-                    )
-
+    # First tick after becoming set - initialize read timing
+    if not state.dropback_complete:
+        state.dropback_complete = True
+        state.set_time = world.qb_set_time
+        # Set time_per_read with variance (base 0.6s, modified by awareness)
+        awareness = world.me.attributes.awareness
+        base_read_time = 0.6 - (awareness - 75) * 0.005  # 0.5-0.7s range
+        state.time_per_read = execution_timing(base_read_time, awareness)
+        # Face toward read 1 as we begin scanning
+        facing = _get_read_target_facing(world, 1)
         return BrainDecision(
-            move_target=dropback_target,
-            move_type="backpedal",
-            intent="dropback",
-            reasoning=f"Executing dropback, {distance_to_target:.1f}yd to set point",
+            intent="set",
+            facing_direction=facing,
+            reasoning=f"Set in pocket, beginning reads (time_per_read: {state.time_per_read:.2f}s)",
         )
 
     # Phase: Pocket (post-dropback)
+    # NOW we evaluate receivers - not during dropback
+    receivers = _evaluate_receivers(world, pressure)
+
     time_in_pocket = world.current_time - state.set_time
     state.time_in_pocket = time_in_pocket
+
+    # === MINIMUM ROUTE DEVELOPMENT TIME ===
+    # Routes need time to develop before throws are reasonable.
+    # This creates the realistic 2.5-3s average time to throw.
+    # Only critical/heavy pressure bypasses this (survival mode).
+    # Balance: too long = QB holds into sacks, too short = quick throws
+    MIN_ROUTE_DEVELOPMENT_TIME = 1.0  # seconds since snap
+    routes_developing = world.time_since_snap < MIN_ROUTE_DEVELOPMENT_TIME
+
+    _trace(f"[POCKET] t={world.current_time:.2f}s, pocket={time_in_pocket:.2f}s, read={state.current_read}, pressure={pressure.value}, receivers={len(receivers)}, routes_developing={routes_developing}")
 
     # =========================================================================
     # Critical Pressure Response
     # =========================================================================
     accuracy = world.me.attributes.throw_accuracy
+    throw_power = getattr(world.me.attributes, 'throw_power', 80)
 
     if pressure == PressureLevel.CRITICAL:
-        # Must make immediate decision
+        # Platform lost - must complete quickly or move
         best, is_anticipation, find_reason = _find_best_receiver(
-            receivers, state.current_read, pressure, accuracy
+            receivers, state.current_read, pressure, accuracy, time_in_pocket
         )
 
         if best and best.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
-            return BrainDecision(
-                action="throw",
-                target_id=best.player_id,
-                action_target=best.position,
-                reasoning=f"Critical pressure! Quick release to {best.player_id} ({best.separation:.1f}yd sep)",
-            )
-
-        # Can we throw it away?
-        if _should_throw_away(world):
-            return BrainDecision(
-                action="throw",
-                action_target=_get_throw_away_target(world),
-                intent="throw_away",
-                reasoning="Critical pressure, throwing ball away",
-            )
-
-        # Forced throw to best available
-        if best:
-            return BrainDecision(
-                action="throw",
-                target_id=best.player_id,
-                action_target=best.position,
-                reasoning=f"Critical pressure! Forced throw to {best.player_id} ({best.status.value})",
-            )
-
-        # Scramble as last resort
-        escape = _find_escape_lane(world)
-        if escape:
-            state.scramble_committed = True
-            return BrainDecision(
-                move_target=escape,
-                move_type="sprint",
-                intent="scramble",
-                reasoning="Critical pressure, no receivers, scrambling!",
-            )
-
-        # Brace for sack
-        return BrainDecision(
-            intent="protect_ball",
-            reasoning="Critical pressure, no escape, protecting ball",
-        )
-
-    # =========================================================================
-    # Heavy Pressure Response
-    # =========================================================================
-    if pressure == PressureLevel.HEAVY:
-        # Find escape lane
-        escape = _find_escape_lane(world)
-
-        if escape:
-            # Move to escape while evaluating
-            best, is_anticipation, find_reason = _find_best_receiver(
-                receivers, state.current_read, pressure, accuracy
-            )
-
-            if best and best.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
-                return BrainDecision(
-                    action="throw",
-                    target_id=best.player_id,
-                    action_target=best.position,
-                    reasoning=f"Heavy pressure, throwing on move to {best.player_id}",
-                )
-
-            return BrainDecision(
-                move_target=escape,
-                move_type="run",
-                intent="escape",
-                reasoning=f"Heavy pressure, sliding to escape lane",
-            )
-
-        # No escape - accelerate reads
-        state.current_read = min(state.current_read + 1, 4)
-
-    # =========================================================================
-    # Moderate Pressure Response
-    # =========================================================================
-    if pressure == PressureLevel.MODERATE:
-        escape = _find_escape_lane(world)
-        if escape and time_in_pocket > thresholds["normal_end"]:
-            # Buy time by sliding
-            return BrainDecision(
-                move_target=escape,
-                move_type="run",
-                intent="buy_time",
-                reasoning="Moderate pressure, sliding to buy time",
-            )
-
-    # =========================================================================
-    # Normal Read Progression (Clean/Light Pressure)
-    # =========================================================================
-
-    # Get current read receiver with anticipation check
-    best, is_anticipation, find_reason = _find_best_receiver(
-        receivers, state.current_read, pressure, accuracy
-    )
-
-    # Check if receiver is open or anticipation throw available
-    if best:
-        if is_anticipation:
-            # Anticipation throw - throw to where receiver will be
-            # Calculate throw lead position (receiver position + velocity projection)
-            lead_time = 0.2 if accuracy >= 90 else 0.15  # Anticipation window
-            lead_pos = best.position  # TODO: Add velocity-based lead
+            lead_pos = _calculate_throw_lead(world.me.pos, best, throw_power)
             return BrainDecision(
                 action="throw",
                 target_id=best.player_id,
                 action_target=lead_pos,
-                reasoning=f"ANTICIPATION to {best.player_id}! {find_reason} ({best.separation:.1f}yd sep)",
+                reasoning=f"Quick completion to {best.player_id} ({best.separation:.1f}yd open)",
             )
-        elif best.status == ReceiverStatus.OPEN:
+
+        # Live to play another down
+        if _should_throw_away(world):
             return BrainDecision(
                 action="throw",
-                target_id=best.player_id,
-                action_target=best.position,
-                reasoning=f"Read {state.current_read}: {best.player_id} OPEN ({best.separation:.1f}yd sep)",
-            )
-        elif best.status == ReceiverStatus.WINDOW:
-            # Window throw - acceptable with good accuracy
-            if accuracy >= 80:
-                return BrainDecision(
-                    action="throw",
-                    target_id=best.player_id,
-                    action_target=best.position,
-                    reasoning=f"Read {state.current_read}: {best.player_id} in window ({best.separation:.1f}yd sep)",
-                )
-
-    # Move to next read if time allows
-    time_per_read = 0.6  # About 0.6s per read
-    if time_in_pocket > state.current_read * time_per_read:
-        if state.current_read < 4:
-            state.current_read += 1
-            return BrainDecision(
-                intent="scanning",
-                reasoning=f"Read {state.current_read - 1} covered, moving to read {state.current_read}",
+                action_target=_get_throw_away_target(world),
+                intent="throw_away",
+                reasoning="No completion available, throwing away to reset",
             )
 
-    # Time expired - must decide
-    if time_in_pocket > thresholds["forced"]:
+        # Attempt completion to best available
         if best:
+            lead_pos = _calculate_throw_lead(world.me.pos, best, throw_power)
             return BrainDecision(
                 action="throw",
                 target_id=best.player_id,
-                action_target=best.position,
-                reasoning=f"Time expired, forcing throw to {best.player_id}",
+                action_target=lead_pos,
+                reasoning=f"Attempting completion to {best.player_id} ({best.status.value})",
             )
 
-        # Scramble
+        # Extend play to find completion or gain yards
         escape = _find_escape_lane(world)
         if escape:
             state.scramble_committed = True
@@ -1007,20 +1515,212 @@ def qb_brain(world: WorldState) -> BrainDecision:
                 move_target=escape,
                 move_type="sprint",
                 intent="scramble",
-                reasoning="Time expired, no receivers, committing to scramble",
+                reasoning="Extending play - looking for completion or yards",
             )
 
-        # Throw away if possible
+        # Protect ball for next play
+        return BrainDecision(
+            intent="protect_ball",
+            reasoning="No completion available, protecting ball",
+        )
+
+    # =========================================================================
+    # Heavy Pressure Response - Platform degrading, complete quickly
+    # =========================================================================
+    if pressure == PressureLevel.HEAVY:
+        # Platform unstable - complete to current read if open
+        current_eval = next(
+            (r for r in receivers if r.read_order == state.current_read), None
+        )
+
+        if current_eval and current_eval.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
+            lead_pos = _calculate_throw_lead(world.me.pos, current_eval, throw_power)
+            return BrainDecision(
+                action="throw",
+                target_id=current_eval.player_id,
+                action_target=lead_pos,
+                reasoning=f"Completing to read {state.current_read} ({current_eval.separation:.1f}yd open)",
+            )
+
+        # Current read covered - move to maintain platform
+        escape = _find_escape_lane(world)
+        if escape:
+            return BrainDecision(
+                move_target=escape,
+                move_type="run",
+                intent="extend_play",
+                reasoning=f"Moving to maintain platform, looking for completion",
+            )
+
+        # No movement available - accelerate reads
+        state.current_read = min(state.current_read + 1, 4)
+
+    # =========================================================================
+    # Moderate Pressure Response - Platform starting to degrade
+    # =========================================================================
+    if pressure == PressureLevel.MODERATE:
+        escape = _find_escape_lane(world)
+        if escape and time_in_pocket > thresholds["normal_end"]:
+            # Move to maintain clean throwing platform
+            return BrainDecision(
+                move_target=escape,
+                move_type="run",
+                intent="maintain_platform",
+                reasoning="Moving to maintain throwing platform",
+            )
+
+    # =========================================================================
+    # Route Development Check
+    # =========================================================================
+    # Routes need time to develop before throws are reasonable.
+    # This prevents unrealistic quick-game throws on every play.
+    # Only critical/heavy pressure bypasses this (survival mode).
+    if routes_developing and pressure not in (PressureLevel.CRITICAL, PressureLevel.HEAVY):
+        # Still waiting for routes to develop - scan but don't throw
+        _trace(f"[POCKET] Routes still developing ({world.time_since_snap:.2f}s < {MIN_ROUTE_DEVELOPMENT_TIME}s)")
+        return BrainDecision(
+            intent="scanning",
+            facing_direction=_get_read_target_facing(world, state.current_read),
+            reasoning=f"Letting routes develop ({world.time_since_snap:.1f}s)",
+        )
+
+    # =========================================================================
+    # Read Progression with Dwell Time
+    # =========================================================================
+    # QB goes through reads in order (mechanical reality of scanning)
+    # At each read, evaluates: "If I throw NOW, will it be open when ball arrives?"
+    # Dwells on each read for ~0.3-0.5s before moving on
+    #
+    # Dwell time varies by:
+    # - Awareness (higher = faster processing)
+    # - Pressure (more pressure = less time per read)
+    # - How covered the receiver is (clearly covered = move on faster)
+
+    DWELL_TIME_BASE = 0.4  # Base time per read in seconds
+    DWELL_TIME_MIN = 0.15  # Minimum dwell even under pressure
+
+    # Calculate time on current read
+    time_per_read = state.time_per_read if state.time_per_read > 0 else DWELL_TIME_BASE
+    time_on_current_read = time_in_pocket - ((state.current_read - 1) * time_per_read)
+
+    # Adjust dwell time based on pressure
+    if pressure == PressureLevel.HEAVY:
+        effective_dwell = max(DWELL_TIME_MIN, time_per_read * 0.5)
+    elif pressure == PressureLevel.MODERATE:
+        effective_dwell = max(DWELL_TIME_MIN, time_per_read * 0.75)
+    else:
+        effective_dwell = time_per_read
+
+    # Find current read
+    current_eval = next(
+        (r for r in receivers if r.read_order == state.current_read), None
+    )
+
+    if current_eval:
+        sep = current_eval.separation
+        status = current_eval.status
+        _trace(f"[READ] R{state.current_read} ({current_eval.player_id}): {status.value} ({sep:.1f}yd) dwell={time_on_current_read:.2f}/{effective_dwell:.2f}s")
+
+        # OPEN = throw immediately, no dwell needed
+        if status == ReceiverStatus.OPEN:
+            lead_pos = _calculate_throw_lead(world.me.pos, current_eval, throw_power)
+            _trace(f"[READ] -> THROW to R{state.current_read} (OPEN)")
+            return BrainDecision(
+                action="throw",
+                target_id=current_eval.player_id,
+                action_target=lead_pos,
+                reasoning=f"R{state.current_read} {current_eval.player_id} OPEN ({sep:.1f}yd)",
+            )
+
+        # WINDOW = throw after confirming (partial dwell)
+        if status == ReceiverStatus.WINDOW:
+            # Need to dwell at least half the time to confirm it's a good window
+            if time_on_current_read >= effective_dwell * 0.5 and accuracy >= 75:
+                lead_pos = _calculate_throw_lead(world.me.pos, current_eval, throw_power)
+                _trace(f"[READ] -> THROW to R{state.current_read} (window confirmed)")
+                return BrainDecision(
+                    action="throw",
+                    target_id=current_eval.player_id,
+                    action_target=lead_pos,
+                    reasoning=f"R{state.current_read} {current_eval.player_id} window ({sep:.1f}yd)",
+                )
+            # Still evaluating this window
+            _trace(f"[READ] R{state.current_read}: evaluating window...")
+            return BrainDecision(
+                intent="scanning",
+                facing_direction=_get_read_target_facing(world, state.current_read),
+                reasoning=f"Evaluating R{state.current_read} window",
+            )
+
+        # CONTESTED = might open up, dwell full time before moving on
+        if status == ReceiverStatus.CONTESTED:
+            if time_on_current_read >= effective_dwell:
+                # Dwell complete, move to next read
+                if state.current_read < 4:
+                    state.current_read += 1
+                    _trace(f"[READ] R{state.current_read - 1} contested, advancing to R{state.current_read}")
+                    return BrainDecision(
+                        intent="scanning",
+                        facing_direction=_get_read_target_facing(world, state.current_read),
+                        reasoning=f"R{state.current_read - 1} contested, checking R{state.current_read}",
+                    )
+            # Still dwelling on contested read
+            return BrainDecision(
+                intent="scanning",
+                facing_direction=_get_read_target_facing(world, state.current_read),
+                reasoning=f"Dwelling on R{state.current_read} ({time_on_current_read:.2f}s)",
+            )
+
+        # COVERED = move on quickly (no point dwelling)
+        if status == ReceiverStatus.COVERED:
+            if state.current_read < 4:
+                state.current_read += 1
+                _trace(f"[READ] R{state.current_read - 1} COVERED, quick advance to R{state.current_read}")
+                return BrainDecision(
+                    intent="scanning",
+                    facing_direction=_get_read_target_facing(world, state.current_read),
+                    reasoning=f"R{state.current_read - 1} covered, moving to R{state.current_read}",
+                )
+
+    # Exhausted all reads or time expired - find best available option
+    if state.current_read >= 4 or time_in_pocket > thresholds["forced"]:
+        # Find the best receiver across all options
+        best = max(receivers, key=lambda r: r.separation) if receivers else None
+
+        if best and best.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
+            lead_pos = _calculate_throw_lead(world.me.pos, best, throw_power)
+            _trace(f"[READ] All reads checked, throwing to best: {best.player_id} ({best.separation:.1f}yd)")
+            return BrainDecision(
+                action="throw",
+                target_id=best.player_id,
+                action_target=lead_pos,
+                reasoning=f"Best available: {best.player_id} ({best.separation:.1f}yd)",
+            )
+
+        # No good option - scramble or throw away
+        escape = _find_escape_lane(world)
+        if escape:
+            state.scramble_committed = True
+            _trace(f"[READ] No completion, scrambling")
+            return BrainDecision(
+                move_target=escape,
+                move_type="sprint",
+                intent="scramble",
+                reasoning="No completion available - scrambling",
+            )
+
         if _should_throw_away(world):
             return BrainDecision(
                 action="throw",
                 action_target=_get_throw_away_target(world),
                 intent="throw_away",
-                reasoning="Time expired, throwing ball away",
+                reasoning="No completion, throwing away",
             )
 
-    # Default: continue scanning
+    # Default: continue scanning current read
+    facing = _get_read_target_facing(world, state.current_read)
     return BrainDecision(
         intent="scanning",
-        reasoning=f"Read {state.current_read}: evaluating ({time_in_pocket:.1f}s in pocket)",
+        facing_direction=facing,
+        reasoning=f"Scanning R{state.current_read} ({time_in_pocket:.1f}s)",
     )

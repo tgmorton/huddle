@@ -55,6 +55,7 @@ export interface TeamSnapshot {
   cap_used: number;
   cap_pct: number;
   status: string;
+  gm_archetype?: string;  // analytics, old_school, cap_wizard, win_now, balanced
 }
 
 export interface TeamRoster {
@@ -74,6 +75,7 @@ export interface TeamStanding {
   losses: number;
   win_pct: number;
   status: string;
+  gm_archetype?: string;
 }
 
 export interface StandingsData {
@@ -91,6 +93,11 @@ export interface DraftPick {
   player_name: string;
   position: string;
   overall_rating: number;
+  // AI reasoning fields
+  position_value?: number;  // Research-backed draft value (0-1)
+  need_score?: number;  // How badly team needed this position (0-1)
+  gm_adjustment?: number;  // GM archetype modifier
+  is_draft_priority?: boolean;  // Should draft vs sign in FA
 }
 
 export interface DraftData {
@@ -130,6 +137,144 @@ export interface FullSimulationData {
   summary: SimulationSummary;
   seasons: SeasonSummary[];
   teams: TeamSnapshot[];
+}
+
+// =============================================================================
+// New AI Visibility Interfaces
+// =============================================================================
+
+export interface PositionAllocation {
+  position: string;
+  actual_pct: number;
+  target_pct: number;
+  gap: number;  // positive = under-invested
+  player_count: number;
+  total_cap: number;
+}
+
+export interface CapAllocationData {
+  team_id: string;
+  team_name: string;
+  season: number;
+  gm_archetype: string;
+  total_cap: number;
+  cap_used: number;
+  cap_pct: number;
+  offense_allocation: PositionAllocation[];
+  defense_allocation: PositionAllocation[];
+}
+
+export interface FATarget {
+  position: string;
+  priority: number;
+  budget_pct: number;
+  reason: string;
+}
+
+export interface FASigning {
+  player_id: string;
+  player_name: string;
+  position: string;
+  overall: number;
+  age: number;
+  contract_years: number;
+  contract_value: number;
+  cap_hit: number;
+  was_target: boolean;
+  value_vs_market: number;
+}
+
+export interface FAStrategyData {
+  team_id: string;
+  team_name: string;
+  season: number;
+  gm_archetype: string;
+  cap_space_before: number;
+  target_positions: FATarget[];
+  positions_to_avoid: string[];
+  cap_space_after: number;
+  signings: FASigning[];
+  total_spent: number;
+  plan_success_pct: number;
+  positions_filled: string[];
+  positions_missed: string[];
+}
+
+export interface TeamProfile {
+  team_id: string;
+  team_name: string;
+  season: number;
+  gm_archetype: string;
+  gm_description: string;
+  rookie_premium: number;
+  position_preferences: Record<string, number>;
+  team_identity?: string;
+  offensive_philosophy?: string;
+  defensive_philosophy?: string;
+  status: string;
+  status_since?: number;
+  draft_philosophy: string;
+  spending_style: string;
+}
+
+export interface GMComparisonEntry {
+  archetype: string;
+  team_count: number;
+  avg_wins: number;
+  avg_win_pct: number;
+  playoffs_made: number;
+  championships: number;
+  avg_cap_efficiency: number;
+  draft_hit_rate: number;
+}
+
+export interface GMComparisonData {
+  season: number;
+  archetypes: GMComparisonEntry[];
+}
+
+// =============================================================================
+// Position-by-Position Roster Planning
+// =============================================================================
+
+export interface PositionOption {
+  option_type: 'FA' | 'DRAFT' | 'KEEP' | 'TRADE';
+  player_name: string;
+  overall: number;
+  age: number;
+  probability: number;  // 0-100
+  details: string;
+  player_id?: string;
+  projected_cost?: number;
+  years?: number;
+}
+
+export interface PositionPlan {
+  position: string;
+  position_group: string;
+  need_level: number;  // 0-1
+  need_reason: string;
+  current_starter?: string;
+  current_overall?: number;
+  current_age?: number;
+  current_contract_years?: number;
+  research_recommendation: 'Draft' | 'Sign in FA';
+  rookie_premium: number;
+  options: PositionOption[];
+}
+
+export interface RosterPlan {
+  team_id: string;
+  team_name: string;
+  season: number;
+  gm_archetype: string;
+  cap_space: number;
+  draft_picks: string[];
+  offense_plans: PositionPlan[];
+  defense_plans: PositionPlan[];
+  total_needs: number;
+  fa_targets: number;
+  draft_targets: number;
 }
 
 // API Functions
@@ -265,5 +410,39 @@ export async function getTransactions(
 export async function getTeamRoster(simId: string, teamId: string, season: number): Promise<TeamRoster> {
   const response = await fetch(`${API_BASE}/simulations/${simId}/teams/${teamId}/roster?season=${season}`);
   if (!response.ok) throw new Error(`Failed to get roster: ${response.statusText}`);
+  return response.json();
+}
+
+// =============================================================================
+// New AI Visibility API Functions
+// =============================================================================
+
+export async function getTeamProfile(simId: string, teamId: string, season: number): Promise<TeamProfile> {
+  const response = await fetch(`${API_BASE}/simulations/${simId}/teams/${teamId}/profile?season=${season}`);
+  if (!response.ok) throw new Error(`Failed to get team profile: ${response.statusText}`);
+  return response.json();
+}
+
+export async function getTeamAllocation(simId: string, teamId: string, season: number): Promise<CapAllocationData> {
+  const response = await fetch(`${API_BASE}/simulations/${simId}/teams/${teamId}/allocation?season=${season}`);
+  if (!response.ok) throw new Error(`Failed to get cap allocation: ${response.statusText}`);
+  return response.json();
+}
+
+export async function getTeamFAStrategy(simId: string, teamId: string, season: number): Promise<FAStrategyData> {
+  const response = await fetch(`${API_BASE}/simulations/${simId}/teams/${teamId}/fa-strategy?season=${season}`);
+  if (!response.ok) throw new Error(`Failed to get FA strategy: ${response.statusText}`);
+  return response.json();
+}
+
+export async function getGMComparison(simId: string, season: number): Promise<GMComparisonData> {
+  const response = await fetch(`${API_BASE}/simulations/${simId}/seasons/${season}/gm-comparison`);
+  if (!response.ok) throw new Error(`Failed to get GM comparison: ${response.statusText}`);
+  return response.json();
+}
+
+export async function getRosterPlan(simId: string, teamId: string, season: number): Promise<RosterPlan> {
+  const response = await fetch(`${API_BASE}/simulations/${simId}/teams/${teamId}/roster-plan?season=${season}`);
+  if (!response.ok) throw new Error(`Failed to get roster plan: ${response.statusText}`);
   return response.json();
 }

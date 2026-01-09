@@ -1,0 +1,514 @@
+{
+  "model_name": "physical_attribute_projection",
+  "description": "Maps NFL Combine measurables to game attribute ratings",
+  "data_source": "NFL Combine data",
+  "conversion_formulas": {
+    "speed": {
+      "source": "forty",
+      "formula": "rating = 99 - (forty - 4.22) / (5.60 - 4.22) * 59",
+      "description": "Linear scaling: 4.22s = 99, 5.60s = 40",
+      "combine_stats": {
+        "min": 4.21,
+        "max": 5.85,
+        "mean": 4.7509744696152465,
+        "std": 0.3012337097821492,
+        "p10": 4.43,
+        "p90": 5.22
+      },
+      "rating_stats": {
+        "min": 40,
+        "max": 99,
+        "mean": 76.29891760340612,
+        "p10": 56.246376811594196,
+        "p90": 90.02173913043478
+      }
+    },
+    "agility": {
+      "source": "cone",
+      "formula": "rating = 99 - (cone - 6.28) / (8.82 - 6.28) * 59",
+      "description": "Linear scaling: 6.28s = 99, 8.82s = 40",
+      "combine_stats": {
+        "min": 6.28,
+        "max": 8.82,
+        "mean": 7.278953619909502,
+        "std": 0.40318171779571593,
+        "p10": 6.84,
+        "p90": 7.89
+      },
+      "rating_stats": {
+        "min": 40,
+        "max": 99,
+        "mean": 75.79595922257457,
+        "p10": 61.60236220472442,
+        "p90": 85.99212598425198
+      }
+    },
+    "strength": {
+      "source": "bench",
+      "formula": "rating = 40 + (reps - 4) / (49 - 4) * 59",
+      "description": "Linear scaling: 4 reps = 40, 49 reps = 99",
+      "combine_stats": {
+        "min": 4.0,
+        "max": 44.0,
+        "mean": 19.765174129353234,
+        "std": 6.108491596246246,
+        "p10": 12.0,
+        "p90": 28.0
+      },
+      "rating_stats": {
+        "min": 40,
+        "max": 92.44444444444444,
+        "mean": 60.66989496959646,
+        "p10": 50.48888888888889,
+        "p90": 71.46666666666667
+      }
+    },
+    "jumping": {
+      "source": "vertical",
+      "formula": "rating = 40 + (vertical - 17.5) / (46.5 - 17.5) * 59",
+      "description": "Linear scaling: 17.5\" = 40, 46.5\" = 99",
+      "combine_stats": {
+        "min": 17.5,
+        "max": 46.5,
+        "mean": 33.07599093997735,
+        "std": 4.220798605715335,
+        "p10": 27.5,
+        "p90": 38.5
+      },
+      "rating_stats": {
+        "min": 40,
+        "max": 99,
+        "mean": 71.68908501581599,
+        "p10": 60.3448275862069,
+        "p90": 82.72413793103448
+      }
+    },
+    "acceleration": {
+      "source": "forty (derived)",
+      "formula": "rating = speed_rating (derived from forty)",
+      "description": "Derived from 40-time, correlates with 10-split",
+      "note": "No direct measurement; approximated from 40-time"
+    },
+    "change_of_direction": {
+      "source": "shuttle",
+      "formula": "rating = 99 - (shuttle - 3.82) / (5.38 - 3.82) * 59",
+      "description": "Linear scaling: 3.82s = 99, 5.38s = 40",
+      "combine_stats": {
+        "min": 3.82,
+        "max": 5.38,
+        "mean": 4.428478843063739,
+        "std": 0.2584305006014277,
+        "p10": 4.13,
+        "p90": 4.81
+      },
+      "rating_stats": {
+        "min": 40,
+        "max": 99,
+        "mean": 75.98701811489704,
+        "p10": 61.557692307692314,
+        "p90": 87.27564102564102
+      }
+    }
+  },
+  "position_ranges": {
+    "QB": {
+      "speed": {
+        "min": 67.0,
+        "avg": 74.0,
+        "max": 84.0,
+        "std": 6.7
+      },
+      "agility": {
+        "min": 74.0,
+        "avg": 79.0,
+        "max": 85.0,
+        "std": 4.4
+      },
+      "jumping": {
+        "min": 60.0,
+        "avg": 67.0,
+        "max": 77.0,
+        "std": 6.0
+      },
+      "change_of_direction": {
+        "min": 73.0,
+        "avg": 79.0,
+        "max": 87.0,
+        "std": 5.6
+      }
+    },
+    "RB": {
+      "speed": {
+        "min": 78.0,
+        "avg": 84.0,
+        "max": 90.0,
+        "std": 5.0
+      },
+      "agility": {
+        "min": 74.0,
+        "avg": 80.0,
+        "max": 86.0,
+        "std": 4.6
+      },
+      "strength": {
+        "min": 52.0,
+        "avg": 60.0,
+        "max": 68.0,
+        "std": 6.3
+      },
+      "jumping": {
+        "min": 65.0,
+        "avg": 74.0,
+        "max": 83.0,
+        "std": 6.5
+      },
+      "change_of_direction": {
+        "min": 72.0,
+        "avg": 80.0,
+        "max": 88.0,
+        "std": 5.5
+      }
+    },
+    "WR": {
+      "speed": {
+        "min": 81.0,
+        "avg": 87.0,
+        "max": 92.0,
+        "std": 4.4
+      },
+      "agility": {
+        "min": 76.0,
+        "avg": 82.0,
+        "max": 89.0,
+        "std": 5.1
+      },
+      "strength": {
+        "min": 47.0,
+        "avg": 53.0,
+        "max": 60.0,
+        "std": 5.3
+      },
+      "jumping": {
+        "min": 68.0,
+        "avg": 77.0,
+        "max": 85.0,
+        "std": 6.6
+      },
+      "change_of_direction": {
+        "min": 74.0,
+        "avg": 82.0,
+        "max": 89.0,
+        "std": 5.6
+      }
+    },
+    "TE": {
+      "speed": {
+        "min": 69.0,
+        "avg": 77.0,
+        "max": 84.0,
+        "std": 6.0
+      },
+      "agility": {
+        "min": 72.0,
+        "avg": 79.0,
+        "max": 85.0,
+        "std": 4.9
+      },
+      "strength": {
+        "min": 54.0,
+        "avg": 60.0,
+        "max": 66.0,
+        "std": 4.5
+      },
+      "jumping": {
+        "min": 64.0,
+        "avg": 73.0,
+        "max": 81.0,
+        "std": 6.1
+      },
+      "change_of_direction": {
+        "min": 72.0,
+        "avg": 78.0,
+        "max": 85.0,
+        "std": 5.7
+      }
+    },
+    "OL": {
+      "speed": {
+        "min": 46.0,
+        "avg": 57.0,
+        "max": 67.0,
+        "std": 7.8
+      },
+      "agility": {
+        "min": 54.0,
+        "avg": 64.0,
+        "max": 73.0,
+        "std": 7.2
+      },
+      "strength": {
+        "min": 60.0,
+        "avg": 66.0,
+        "max": 77.0,
+        "std": 6.8
+      },
+      "jumping": {
+        "min": 53.0,
+        "avg": 61.0,
+        "max": 71.0,
+        "std": 6.6
+      },
+      "change_of_direction": {
+        "min": 55.0,
+        "avg": 64.0,
+        "max": 73.0,
+        "std": 7.3
+      }
+    },
+    "DL": {
+      "speed": {
+        "min": 52.0,
+        "avg": 64.0,
+        "max": 74.0,
+        "std": 8.8
+      },
+      "agility": {
+        "min": 58.0,
+        "avg": 67.0,
+        "max": 77.0,
+        "std": 7.6
+      },
+      "strength": {
+        "min": 61.0,
+        "avg": 69.0,
+        "max": 79.0,
+        "std": 6.6
+      },
+      "jumping": {
+        "min": 56.0,
+        "avg": 64.0,
+        "max": 74.0,
+        "std": 6.8
+      },
+      "change_of_direction": {
+        "min": 57.0,
+        "avg": 68.0,
+        "max": 78.0,
+        "std": 8.3
+      }
+    },
+    "EDGE": {
+      "speed": {
+        "min": 68.0,
+        "avg": 77.0,
+        "max": 85.0,
+        "std": 6.8
+      },
+      "agility": {
+        "min": 70.0,
+        "avg": 78.0,
+        "max": 85.0,
+        "std": 5.7
+      },
+      "strength": {
+        "min": 57.0,
+        "avg": 65.0,
+        "max": 71.0,
+        "std": 5.6
+      },
+      "jumping": {
+        "min": 64.0,
+        "avg": 73.0,
+        "max": 82.0,
+        "std": 6.7
+      },
+      "change_of_direction": {
+        "min": 70.0,
+        "avg": 78.0,
+        "max": 85.0,
+        "std": 5.9
+      }
+    },
+    "LB": {
+      "speed": {
+        "min": 71.0,
+        "avg": 81.0,
+        "max": 87.0,
+        "std": 6.4
+      },
+      "agility": {
+        "min": 73.0,
+        "avg": 80.0,
+        "max": 85.0,
+        "std": 5.2
+      },
+      "strength": {
+        "min": 54.0,
+        "avg": 61.0,
+        "max": 69.0,
+        "std": 5.3
+      },
+      "jumping": {
+        "min": 66.0,
+        "avg": 73.0,
+        "max": 84.0,
+        "std": 6.5
+      },
+      "change_of_direction": {
+        "min": 73.0,
+        "avg": 80.0,
+        "max": 87.0,
+        "std": 6.0
+      }
+    },
+    "CB": {
+      "speed": {
+        "min": 82.0,
+        "avg": 87.0,
+        "max": 93.0,
+        "std": 4.2
+      },
+      "agility": {
+        "min": 77.0,
+        "avg": 83.0,
+        "max": 89.0,
+        "std": 4.7
+      },
+      "strength": {
+        "min": 48.0,
+        "avg": 53.0,
+        "max": 60.0,
+        "std": 5.2
+      },
+      "jumping": {
+        "min": 71.0,
+        "avg": 78.0,
+        "max": 87.0,
+        "std": 6.2
+      },
+      "change_of_direction": {
+        "min": 77.0,
+        "avg": 84.0,
+        "max": 92.0,
+        "std": 5.7
+      }
+    },
+    "S": {
+      "speed": {
+        "min": 80.0,
+        "avg": 85.0,
+        "max": 91.0,
+        "std": 4.7
+      },
+      "agility": {
+        "min": 78.0,
+        "avg": 82.0,
+        "max": 89.0,
+        "std": 4.5
+      },
+      "strength": {
+        "min": 50.0,
+        "avg": 57.0,
+        "max": 62.0,
+        "std": 4.6
+      },
+      "jumping": {
+        "min": 70.0,
+        "avg": 76.0,
+        "max": 85.0,
+        "std": 6.1
+      },
+      "change_of_direction": {
+        "min": 78.0,
+        "avg": 84.0,
+        "max": 89.0,
+        "std": 4.9
+      }
+    }
+  },
+  "measurable_correlations": {
+    "forty": {
+      "forty": 1.0,
+      "bench": 0.503,
+      "vertical": -0.739,
+      "broad_jump": -0.832,
+      "cone": 0.82,
+      "shuttle": 0.8
+    },
+    "bench": {
+      "forty": 0.503,
+      "bench": 1.0,
+      "vertical": -0.304,
+      "broad_jump": -0.392,
+      "cone": 0.479,
+      "shuttle": 0.435
+    },
+    "vertical": {
+      "forty": -0.739,
+      "bench": -0.304,
+      "vertical": 1.0,
+      "broad_jump": 0.833,
+      "cone": -0.678,
+      "shuttle": -0.697
+    },
+    "broad_jump": {
+      "forty": -0.832,
+      "bench": -0.392,
+      "vertical": 0.833,
+      "broad_jump": 1.0,
+      "cone": -0.73,
+      "shuttle": -0.723
+    },
+    "cone": {
+      "forty": 0.82,
+      "bench": 0.479,
+      "vertical": -0.678,
+      "broad_jump": -0.73,
+      "cone": 1.0,
+      "shuttle": 0.876
+    },
+    "shuttle": {
+      "forty": 0.8,
+      "bench": 0.435,
+      "vertical": -0.697,
+      "broad_jump": -0.723,
+      "cone": 0.876,
+      "shuttle": 1.0
+    }
+  },
+  "rating_effects": {
+    "speed": {
+      "per_10_points": {
+        "forty_time": -0.14,
+        "top_speed": 0.3
+      },
+      "effect_description": "+10 speed = -0.14s forty = +0.3 yds/sec top speed"
+    },
+    "agility": {
+      "per_10_points": {
+        "cone_time": -0.22
+      },
+      "effect_description": "+10 agility = -0.22s 3-cone"
+    },
+    "strength": {
+      "per_10_points": {
+        "bench_reps": 7.6
+      },
+      "effect_description": "+10 strength = +7.6 bench reps"
+    },
+    "jumping": {
+      "per_10_points": {
+        "vertical_inches": 4.9
+      },
+      "effect_description": "+10 jumping = +4.9 inches vertical"
+    }
+  },
+  "attributes_covered": [
+    "speed",
+    "acceleration",
+    "agility",
+    "strength",
+    "jumping",
+    "change_of_direction"
+  ]
+}

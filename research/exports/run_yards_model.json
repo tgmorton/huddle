@@ -1,0 +1,154 @@
+{
+  "model_name": "run_yards",
+  "version": "1.0",
+  "description": "Mixture model: P(stuff) + P(explosive|positive) + E[yards|positive]",
+  "overall_stats": {
+    "mean_yards": 4.32,
+    "median_yards": 3.0,
+    "std_yards": 6.21,
+    "pct_stuffed": 0.1833,
+    "pct_positive": 0.8167,
+    "pct_explosive": 0.1075,
+    "pct_big_play": 0.0236
+  },
+  "by_direction": {
+    "left": {
+      "mean_yards": 4.53,
+      "median_yards": 3.0,
+      "pct_stuffed": 0.1839,
+      "pct_explosive": 0.1204
+    },
+    "middle": {
+      "mean_yards": 3.76,
+      "median_yards": 3.0,
+      "pct_stuffed": 0.1916,
+      "pct_explosive": 0.0786
+    },
+    "right": {
+      "mean_yards": 4.5,
+      "median_yards": 3.0,
+      "pct_stuffed": 0.1765,
+      "pct_explosive": 0.1157
+    }
+  },
+  "by_down": {
+    "1": {
+      "mean_yards": 4.4,
+      "pct_stuffed": 0.174,
+      "pct_explosive": 0.1063
+    },
+    "2": {
+      "mean_yards": 4.36,
+      "pct_stuffed": 0.1806,
+      "pct_explosive": 0.1129
+    },
+    "3": {
+      "mean_yards": 3.98,
+      "pct_stuffed": 0.2228,
+      "pct_explosive": 0.1043
+    },
+    "4": {
+      "mean_yards": 2.77,
+      "pct_stuffed": 0.2933,
+      "pct_explosive": 0.0693
+    }
+  },
+  "percentiles": {
+    "0.05": -2.0,
+    "0.1": 0.0,
+    "0.25": 1.0,
+    "0.5": 3.0,
+    "0.75": 6.0,
+    "0.9": 10.0,
+    "0.95": 14.0
+  },
+  "calibration_targets": {
+    "median_yards": 3,
+    "pct_stuffed": 0.17,
+    "pct_explosive": 0.12,
+    "mean_yards": 4.3
+  },
+  "factor_mapping": {
+    "run_direction": {
+      "huddle_factor": "play.run_gap",
+      "available": true,
+      "note": "Left/middle/right maps to gap"
+    },
+    "down": {
+      "huddle_factor": "game.down",
+      "available": true
+    },
+    "distance": {
+      "huddle_factor": "game.distance",
+      "available": true
+    },
+    "box_count": {
+      "huddle_factor": "defense.box_count",
+      "available": false,
+      "note": "Number of defenders in box - high importance"
+    },
+    "formation": {
+      "huddle_factor": "play.is_shotgun",
+      "available": true
+    }
+  },
+  "implementation_candidates": [
+    {
+      "factor": "box_count",
+      "importance": "CRITICAL",
+      "note": "Stacked box (8+) = high stuff rate"
+    },
+    {
+      "factor": "run_block_grade",
+      "importance": "HIGH",
+      "note": "OL blocking effectiveness"
+    },
+    {
+      "factor": "yards_before_contact",
+      "importance": "HIGH",
+      "note": "Space before first defender"
+    },
+    {
+      "factor": "rb_vision",
+      "importance": "HIGH",
+      "note": "Finding open lanes"
+    },
+    {
+      "factor": "missed_tackles",
+      "importance": "MEDIUM",
+      "note": "Broken tackles for extra yards"
+    }
+  ],
+  "stuff_coefficients": {
+    "Intercept": -1.5239,
+    "C(run_direction)[T.middle]": 0.0059,
+    "C(run_direction)[T.right]": -0.0462,
+    "C(down)[T.2.0]": 0.007,
+    "C(down)[T.3.0]": 0.1464,
+    "C(down)[T.4.0]": 0.3382,
+    "short_yardage": 0.2774,
+    "shotgun": -0.23,
+    "redzone": 0.3204,
+    "ahead_big": 0.077
+  },
+  "explosive_coefficients": {
+    "Intercept": -1.793,
+    "C(run_direction)[T.middle]": -0.4578,
+    "C(run_direction)[T.right]": -0.0584,
+    "C(down)[T.2.0]": 0.1511,
+    "C(down)[T.3.0]": 0.3471,
+    "C(down)[T.4.0]": 0.194,
+    "short_yardage": -0.4531,
+    "shotgun": 0.0106
+  },
+  "yards_coefficients": {
+    "Intercept": 1.6565,
+    "C(run_direction)[T.middle]": -0.1062,
+    "C(run_direction)[T.right]": -0.0089,
+    "C(down)[T.2.0]": 0.0442,
+    "C(down)[T.3.0]": 0.0935,
+    "C(down)[T.4.0]": 0.0119,
+    "short_yardage": -0.2656,
+    "shotgun": 0.0415
+  }
+}

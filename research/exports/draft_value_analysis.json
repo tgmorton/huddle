@@ -1,0 +1,1798 @@
+{
+  "meta": {
+    "description": "Draft value analysis for prospect generation",
+    "data_years": "2015-2021 drafts with 2019-2024 performance",
+    "n_players": 2135
+  },
+  "pick_value_curve": {
+    "by_bucket": {
+      "Top 5": {
+        "pick_range": [
+          1,
+          5
+        ],
+        "n_players": 34,
+        "mean_value": 660.9426470588235,
+        "median_value": 517.0,
+        "std_value": 473.73332516554586,
+        "p25": 302.225,
+        "p75": 990.6550000000001,
+        "p90": 1350.298
+      },
+      "6-10": {
+        "pick_range": [
+          6,
+          10
+        ],
+        "n_players": 29,
+        "mean_value": 549.5151724137932,
+        "median_value": 321.15,
+        "std_value": 596.5576574707924,
+        "p25": 143.3,
+        "p75": 853.2,
+        "p90": 1491.732
+      },
+      "11-15": {
+        "pick_range": [
+          11,
+          15
+        ],
+        "n_players": 24,
+        "mean_value": 340.63958333333335,
+        "median_value": 246.05,
+        "std_value": 266.3244426365326,
+        "p25": 149.5,
+        "p75": 467.3125,
+        "p90": 768.0
+      },
+      "16-20": {
+        "pick_range": [
+          16,
+          20
+        ],
+        "n_players": 29,
+        "mean_value": 257.75206896551725,
+        "median_value": 194.26,
+        "std_value": 271.8590394427852,
+        "p25": 126.25,
+        "p75": 280.4,
+        "p90": 451.1999999999998
+      },
+      "Late 1st": {
+        "pick_range": [
+          21,
+          32
+        ],
+        "n_players": 67,
+        "mean_value": 335.92507462686564,
+        "median_value": 188.4,
+        "std_value": 404.7492295692912,
+        "p25": 68.27499999999999,
+        "p75": 385.07500000000005,
+        "p90": 879.18
+      },
+      "2nd Round": {
+        "pick_range": [
+          33,
+          64
+        ],
+        "n_players": 173,
+        "mean_value": 299.64658959537576,
+        "median_value": 181.15,
+        "std_value": 336.7104756683185,
+        "p25": 92.45,
+        "p75": 367.95,
+        "p90": 807.5200000000002
+      },
+      "3rd Round": {
+        "pick_range": [
+          65,
+          100
+        ],
+        "n_players": 182,
+        "mean_value": 223.57686813186817,
+        "median_value": 128.175,
+        "std_value": 292.52809769915797,
+        "p25": 52.7,
+        "p75": 261.6375,
+        "p90": 521.3500000000004
+      },
+      "4th-5th": {
+        "pick_range": [
+          101,
+          150
+        ],
+        "n_players": 237,
+        "mean_value": 169.41135021097045,
+        "median_value": 82.10000000000001,
+        "std_value": 241.13189543585722,
+        "p25": 25.05,
+        "p75": 208.20000000000002,
+        "p90": 419.99600000000004
+      },
+      "5th-6th": {
+        "pick_range": [
+          151,
+          200
+        ],
+        "n_players": 224,
+        "mean_value": 102.00852678571428,
+        "median_value": 38.675,
+        "std_value": 193.36269192308106,
+        "p25": 8.775,
+        "p75": 126.275,
+        "p90": 212.76500000000013
+      },
+      "7th Round": {
+        "pick_range": [
+          201,
+          256
+        ],
+        "n_players": 191,
+        "mean_value": 65.91141361256545,
+        "median_value": 20.2,
+        "std_value": 108.25117710249158,
+        "p25": 4.6,
+        "p75": 76.67500000000001,
+        "p90": 195.25
+      }
+    },
+    "by_pick": {
+      "1": {
+        "mean": 1160.3914285714286,
+        "std": 426.81206849413815,
+        "n": 7
+      },
+      "2": {
+        "mean": 592.9928571428571,
+        "std": 338.1041827059601,
+        "n": 7
+      },
+      "3": {
+        "mean": 307.32,
+        "std": 269.27831247879686,
+        "n": 7
+      },
+      "4": {
+        "mean": 623.2442857142858,
+        "std": 471.59561556962103,
+        "n": 7
+      },
+      "5": {
+        "mean": 614.0683333333333,
+        "std": 368.25702765037477,
+        "n": 6
+      },
+      "6": {
+        "mean": 795.15,
+        "std": 478.7797353272171,
+        "n": 5
+      },
+      "7": {
+        "mean": 585.6285714285714,
+        "std": 738.8506923677103,
+        "n": 7
+      },
+      "8": {
+        "mean": 532.9516666666667,
+        "std": 513.7891707830059,
+        "n": 6
+      },
+      "9": {
+        "mean": 213.45999999999998,
+        "std": 92.86784373506258,
+        "n": 5
+      },
+      "10": {
+        "mean": 599.2966666666666,
+        "std": 687.2781111182156,
+        "n": 6
+      },
+      "11": {
+        "mean": 295.83000000000004,
+        "std": 266.8281892904121,
+        "n": 5
+      },
+      "12": {
+        "mean": 317.13571428571424,
+        "std": 276.36712864578953,
+        "n": 7
+      },
+      "13": {
+        "mean": 326.5333333333333,
+        "std": 68.15624614728198,
+        "n": 3
+      },
+      "14": {
+        "mean": 241.45999999999998,
+        "std": 228.61124513024285,
+        "n": 5
+      },
+      "15": {
+        "mean": 572.3375,
+        "std": 253.95748506147638,
+        "n": 4
+      },
+      "16": {
+        "mean": 214.72857142857146,
+        "std": 146.90231413411834,
+        "n": 7
+      },
+      "17": {
+        "mean": 435.0916666666667,
+        "std": 441.4868310764081,
+        "n": 6
+      },
+      "18": {
+        "mean": 159.89000000000001,
+        "std": 83.98484029871105,
+        "n": 5
+      },
+      "19": {
+        "mean": 156.18333333333334,
+        "std": 88.63553494821112,
+        "n": 6
+      },
+      "20": {
+        "mean": 324.92199999999997,
+        "std": 285.0922270704692,
+        "n": 5
+      },
+      "21": {
+        "mean": 208.36999999999998,
+        "std": 82.9415312132589,
+        "n": 5
+      },
+      "22": {
+        "mean": 421.97799999999995,
+        "std": 542.566089740227,
+        "n": 5
+      },
+      "23": {
+        "mean": 397.98333333333335,
+        "std": 323.9055066253463,
+        "n": 3
+      },
+      "24": {
+        "mean": 790.3220000000001,
+        "std": 616.2526643642201,
+        "n": 5
+      },
+      "25": {
+        "mean": 469.75714285714287,
+        "std": 314.41164490040694,
+        "n": 7
+      },
+      "26": {
+        "mean": 399.4433333333333,
+        "std": 309.2549604380754,
+        "n": 6
+      },
+      "27": {
+        "mean": 232.79285714285712,
+        "std": 95.24925732208186,
+        "n": 7
+      },
+      "28": {
+        "mean": 149.04000000000002,
+        "std": 100.33230486737558,
+        "n": 5
+      },
+      "29": {
+        "mean": 178.35,
+        "std": 224.98359199432005,
+        "n": 6
+      },
+      "30": {
+        "mean": 187.39285714285714,
+        "std": 229.8171391541101,
+        "n": 7
+      },
+      "31": {
+        "mean": 124.83,
+        "std": 155.61701577912362,
+        "n": 5
+      },
+      "32": {
+        "mean": 523.995,
+        "std": 681.0073600617935,
+        "n": 6
+      },
+      "33": {
+        "mean": 348.38,
+        "std": 328.994877771676,
+        "n": 5
+      },
+      "34": {
+        "mean": 351.06,
+        "std": 347.9780501698347,
+        "n": 5
+      },
+      "35": {
+        "mean": 608.725,
+        "std": 402.2688339800471,
+        "n": 6
+      },
+      "36": {
+        "mean": 348.4942857142857,
+        "std": 351.5259676186157,
+        "n": 7
+      },
+      "37": {
+        "mean": 377.68666666666667,
+        "std": 113.42227451235298,
+        "n": 3
+      },
+      "38": {
+        "mean": 266.64,
+        "std": 130.16887262321973,
+        "n": 5
+      },
+      "39": {
+        "mean": 116.07499999999999,
+        "std": 101.32828763479624,
+        "n": 4
+      },
+      "40": {
+        "mean": 426.61833333333334,
+        "std": 362.38842054792843,
+        "n": 6
+      },
+      "41": {
+        "mean": 468.2083333333333,
+        "std": 504.67152965787784,
+        "n": 6
+      },
+      "42": {
+        "mean": 373.582,
+        "std": 236.4852555572969,
+        "n": 5
+      },
+      "43": {
+        "mean": 207.25,
+        "std": 194.29899853919304,
+        "n": 6
+      },
+      "44": {
+        "mean": 217.786,
+        "std": 183.0258948455109,
+        "n": 5
+      },
+      "45": {
+        "mean": 428.5783333333334,
+        "std": 595.37134743555,
+        "n": 6
+      },
+      "46": {
+        "mean": 83.52000000000001,
+        "std": 52.23139477364165,
+        "n": 5
+      },
+      "47": {
+        "mean": 308.99000000000007,
+        "std": 329.4590152702718,
+        "n": 7
+      },
+      "48": {
+        "mean": 493.225,
+        "std": 502.016016303265,
+        "n": 4
+      },
+      "49": {
+        "mean": 324.4066666666667,
+        "std": 271.65003844816385,
+        "n": 6
+      },
+      "50": {
+        "mean": 158.09,
+        "std": 78.28172455943981,
+        "n": 5
+      }
+    }
+  },
+  "hit_rates": {
+    "thresholds": {
+      "QB": {
+        "bust": 21.25,
+        "starter": 282.90000000000003,
+        "star": 1436.8719999999998
+      },
+      "WR": {
+        "bust": 51.525,
+        "starter": 215.45,
+        "star": 860.5149999999998
+      },
+      "CB": {
+        "bust": 20.299999999999997,
+        "starter": 72.95,
+        "star": 194.32
+      },
+      "LB": {
+        "bust": 16.85,
+        "starter": 73.7,
+        "star": 227.8
+      },
+      "DL": {
+        "bust": 24.9,
+        "starter": 59.925,
+        "star": 193.95
+      },
+      "EDGE": {
+        "bust": 36.8,
+        "starter": 109.69999999999999,
+        "star": 304.15
+      },
+      "TE": {
+        "bust": 33.099999999999994,
+        "starter": 140.05,
+        "star": 665.91
+      },
+      "S": {
+        "bust": 23.675000000000004,
+        "starter": 130.575,
+        "star": 241.5025
+      },
+      "RB": {
+        "bust": 48.2,
+        "starter": 227.25,
+        "star": 862.4049999999999
+      },
+      "P": {
+        "bust": 0.375,
+        "starter": 1.05,
+        "star": 2.4000000000000004
+      },
+      "OL": {
+        "bust": 1.0,
+        "starter": 3.7,
+        "star": 7.4399999999999995
+      }
+    },
+    "rates": {
+      "round_1": {
+        "total_picks": 182,
+        "by_position": {
+          "QB": {
+            "n": 23,
+            "bust_rate": 0.043,
+            "starter_rate": 0.913,
+            "star_rate": 0.304
+          },
+          "WR": {
+            "n": 26,
+            "bust_rate": 0.038,
+            "starter_rate": 0.731,
+            "star_rate": 0.346
+          },
+          "CB": {
+            "n": 30,
+            "bust_rate": 0.067,
+            "starter_rate": 0.633,
+            "star_rate": 0.3
+          },
+          "LB": {
+            "n": 18,
+            "bust_rate": 0.111,
+            "starter_rate": 0.778,
+            "star_rate": 0.278
+          },
+          "DL": {
+            "n": 24,
+            "bust_rate": 0.042,
+            "starter_rate": 0.833,
+            "star_rate": 0.5
+          },
+          "EDGE": {
+            "n": 29,
+            "bust_rate": 0.0,
+            "starter_rate": 0.897,
+            "star_rate": 0.379
+          },
+          "RB": {
+            "n": 12,
+            "bust_rate": 0.0,
+            "starter_rate": 1.0,
+            "star_rate": 0.5
+          },
+          "OL": {
+            "n": 5,
+            "bust_rate": 0.2,
+            "starter_rate": 0.6,
+            "star_rate": 0.2
+          },
+          "S": {
+            "n": 8,
+            "bust_rate": 0.0,
+            "starter_rate": 0.875,
+            "star_rate": 0.25
+          },
+          "TE": {
+            "n": 7,
+            "bust_rate": 0.0,
+            "starter_rate": 1.0,
+            "star_rate": 0.571
+          }
+        }
+      },
+      "round_2": {
+        "total_picks": 173,
+        "by_position": {
+          "DL": {
+            "n": 22,
+            "bust_rate": 0.091,
+            "starter_rate": 0.5,
+            "star_rate": 0.091
+          },
+          "LB": {
+            "n": 15,
+            "bust_rate": 0.0,
+            "starter_rate": 0.8,
+            "star_rate": 0.267
+          },
+          "CB": {
+            "n": 30,
+            "bust_rate": 0.167,
+            "starter_rate": 0.733,
+            "star_rate": 0.267
+          },
+          "EDGE": {
+            "n": 20,
+            "bust_rate": 0.05,
+            "starter_rate": 0.8,
+            "star_rate": 0.1
+          },
+          "TE": {
+            "n": 10,
+            "bust_rate": 0.0,
+            "starter_rate": 0.8,
+            "star_rate": 0.3
+          },
+          "S": {
+            "n": 23,
+            "bust_rate": 0.13,
+            "starter_rate": 0.696,
+            "star_rate": 0.261
+          },
+          "WR": {
+            "n": 32,
+            "bust_rate": 0.094,
+            "starter_rate": 0.75,
+            "star_rate": 0.25
+          },
+          "RB": {
+            "n": 15,
+            "bust_rate": 0.067,
+            "starter_rate": 0.867,
+            "star_rate": 0.467
+          }
+        }
+      },
+      "round_3": {
+        "total_picks": 195,
+        "by_position": {
+          "EDGE": {
+            "n": 33,
+            "bust_rate": 0.212,
+            "starter_rate": 0.333,
+            "star_rate": 0.121
+          },
+          "DL": {
+            "n": 29,
+            "bust_rate": 0.207,
+            "starter_rate": 0.724,
+            "star_rate": 0.207
+          },
+          "RB": {
+            "n": 22,
+            "bust_rate": 0.045,
+            "starter_rate": 0.682,
+            "star_rate": 0.182
+          },
+          "CB": {
+            "n": 27,
+            "bust_rate": 0.148,
+            "starter_rate": 0.667,
+            "star_rate": 0.222
+          },
+          "WR": {
+            "n": 17,
+            "bust_rate": 0.0,
+            "starter_rate": 0.706,
+            "star_rate": 0.294
+          },
+          "LB": {
+            "n": 23,
+            "bust_rate": 0.13,
+            "starter_rate": 0.696,
+            "star_rate": 0.304
+          },
+          "TE": {
+            "n": 19,
+            "bust_rate": 0.421,
+            "starter_rate": 0.474,
+            "star_rate": 0.105
+          },
+          "S": {
+            "n": 17,
+            "bust_rate": 0.176,
+            "starter_rate": 0.588,
+            "star_rate": 0.176
+          },
+          "QB": {
+            "n": 7,
+            "bust_rate": 0.429,
+            "starter_rate": 0.429,
+            "star_rate": 0.0
+          }
+        }
+      },
+      "round_4": {
+        "total_picks": 176,
+        "by_position": {
+          "EDGE": {
+            "n": 20,
+            "bust_rate": 0.25,
+            "starter_rate": 0.5,
+            "star_rate": 0.15
+          },
+          "WR": {
+            "n": 20,
+            "bust_rate": 0.5,
+            "starter_rate": 0.35,
+            "star_rate": 0.05
+          },
+          "S": {
+            "n": 18,
+            "bust_rate": 0.222,
+            "starter_rate": 0.389,
+            "star_rate": 0.167
+          },
+          "RB": {
+            "n": 24,
+            "bust_rate": 0.208,
+            "starter_rate": 0.542,
+            "star_rate": 0.042
+          },
+          "TE": {
+            "n": 16,
+            "bust_rate": 0.188,
+            "starter_rate": 0.562,
+            "star_rate": 0.125
+          },
+          "DL": {
+            "n": 24,
+            "bust_rate": 0.208,
+            "starter_rate": 0.375,
+            "star_rate": 0.042
+          },
+          "LB": {
+            "n": 23,
+            "bust_rate": 0.174,
+            "starter_rate": 0.609,
+            "star_rate": 0.174
+          },
+          "CB": {
+            "n": 24,
+            "bust_rate": 0.333,
+            "starter_rate": 0.417,
+            "star_rate": 0.125
+          },
+          "QB": {
+            "n": 5,
+            "bust_rate": 0.2,
+            "starter_rate": 0.2,
+            "star_rate": 0.2
+          }
+        }
+      },
+      "round_5": {
+        "total_picks": 182,
+        "by_position": {
+          "DL": {
+            "n": 22,
+            "bust_rate": 0.318,
+            "starter_rate": 0.409,
+            "star_rate": 0.091
+          },
+          "S": {
+            "n": 12,
+            "bust_rate": 0.5,
+            "starter_rate": 0.25,
+            "star_rate": 0.0
+          },
+          "TE": {
+            "n": 16,
+            "bust_rate": 0.125,
+            "starter_rate": 0.375,
+            "star_rate": 0.062
+          },
+          "CB": {
+            "n": 27,
+            "bust_rate": 0.259,
+            "starter_rate": 0.444,
+            "star_rate": 0.037
+          },
+          "WR": {
+            "n": 23,
+            "bust_rate": 0.304,
+            "starter_rate": 0.391,
+            "star_rate": 0.087
+          },
+          "QB": {
+            "n": 5,
+            "bust_rate": 0.6,
+            "starter_rate": 0.0,
+            "star_rate": 0.0
+          },
+          "RB": {
+            "n": 20,
+            "bust_rate": 0.35,
+            "starter_rate": 0.1,
+            "star_rate": 0.05
+          },
+          "LB": {
+            "n": 32,
+            "bust_rate": 0.375,
+            "starter_rate": 0.375,
+            "star_rate": 0.031
+          },
+          "EDGE": {
+            "n": 14,
+            "bust_rate": 0.357,
+            "starter_rate": 0.357,
+            "star_rate": 0.143
+          }
+        }
+      },
+      "round_6": {
+        "total_picks": 159,
+        "by_position": {
+          "S": {
+            "n": 20,
+            "bust_rate": 0.3,
+            "starter_rate": 0.4,
+            "star_rate": 0.15
+          },
+          "TE": {
+            "n": 7,
+            "bust_rate": 0.571,
+            "starter_rate": 0.143,
+            "star_rate": 0.143
+          },
+          "DL": {
+            "n": 21,
+            "bust_rate": 0.476,
+            "starter_rate": 0.286,
+            "star_rate": 0.0
+          },
+          "WR": {
+            "n": 29,
+            "bust_rate": 0.414,
+            "starter_rate": 0.241,
+            "star_rate": 0.0
+          },
+          "EDGE": {
+            "n": 11,
+            "bust_rate": 0.727,
+            "starter_rate": 0.182,
+            "star_rate": 0.0
+          },
+          "QB": {
+            "n": 8,
+            "bust_rate": 0.25,
+            "starter_rate": 0.125,
+            "star_rate": 0.0
+          },
+          "LB": {
+            "n": 18,
+            "bust_rate": 0.444,
+            "starter_rate": 0.278,
+            "star_rate": 0.056
+          },
+          "CB": {
+            "n": 22,
+            "bust_rate": 0.545,
+            "starter_rate": 0.227,
+            "star_rate": 0.0
+          },
+          "RB": {
+            "n": 18,
+            "bust_rate": 0.5,
+            "starter_rate": 0.222,
+            "star_rate": 0.0
+          }
+        }
+      },
+      "round_7": {
+        "total_picks": 126,
+        "by_position": {
+          "EDGE": {
+            "n": 14,
+            "bust_rate": 0.714,
+            "starter_rate": 0.071,
+            "star_rate": 0.0
+          },
+          "CB": {
+            "n": 15,
+            "bust_rate": 0.4,
+            "starter_rate": 0.133,
+            "star_rate": 0.0
+          },
+          "LB": {
+            "n": 22,
+            "bust_rate": 0.409,
+            "starter_rate": 0.136,
+            "star_rate": 0.045
+          },
+          "TE": {
+            "n": 7,
+            "bust_rate": 0.571,
+            "starter_rate": 0.143,
+            "star_rate": 0.0
+          },
+          "P": {
+            "n": 5,
+            "bust_rate": 0.4,
+            "starter_rate": 0.4,
+            "star_rate": 0.2
+          },
+          "RB": {
+            "n": 13,
+            "bust_rate": 0.615,
+            "starter_rate": 0.231,
+            "star_rate": 0.0
+          },
+          "S": {
+            "n": 10,
+            "bust_rate": 0.5,
+            "starter_rate": 0.3,
+            "star_rate": 0.0
+          },
+          "WR": {
+            "n": 17,
+            "bust_rate": 0.471,
+            "starter_rate": 0.235,
+            "star_rate": 0.0
+          },
+          "DL": {
+            "n": 14,
+            "bust_rate": 0.571,
+            "starter_rate": 0.143,
+            "star_rate": 0.071
+          }
+        }
+      }
+    }
+  },
+  "position_variance": {
+    "by_position": {
+      "QB": {
+        "n": 55,
+        "mean_value": 548.2407272727273,
+        "std_value": 630.6031795896386,
+        "cv": 1.150230450000313,
+        "skewness": 1.0526357431134097,
+        "boom_rate": 0.109,
+        "bust_rate": 0.255,
+        "peak_mean": 167.82727272727277,
+        "peak_std": 147.8075757125342
+      },
+      "WR": {
+        "n": 164,
+        "mean_value": 383.9998780487805,
+        "std_value": 420.4853863038609,
+        "cv": 1.0950143717374596,
+        "skewness": 1.2722559639244653,
+        "boom_rate": 0.104,
+        "bust_rate": 0.25,
+        "peak_mean": 125.87780487804878,
+        "peak_std": 103.44334443247938
+      },
+      "CB": {
+        "n": 175,
+        "mean_value": 94.466,
+        "std_value": 87.90874441146342,
+        "cv": 0.9305860678008739,
+        "skewness": 0.9624236676798857,
+        "boom_rate": 0.103,
+        "bust_rate": 0.251,
+        "peak_mean": 34.092,
+        "peak_std": 23.43227186107716
+      },
+      "LB": {
+        "n": 151,
+        "mean_value": 110.00596026490066,
+        "std_value": 108.07536292067451,
+        "cv": 0.9824500570512068,
+        "skewness": 0.9444028546625676,
+        "boom_rate": 0.106,
+        "bust_rate": 0.252,
+        "peak_mean": 37.730132450331126,
+        "peak_std": 29.22651266173511
+      },
+      "DL": {
+        "n": 156,
+        "mean_value": 92.90737179487179,
+        "std_value": 91.39640815273182,
+        "cv": 0.9837368704260319,
+        "skewness": 1.2745545927450663,
+        "boom_rate": 0.103,
+        "bust_rate": 0.25,
+        "peak_mean": 30.06634615384615,
+        "peak_std": 22.956639844094333
+      },
+      "EDGE": {
+        "n": 141,
+        "mean_value": 148.37695035460993,
+        "std_value": 138.9196311507789,
+        "cv": 0.9362615277002914,
+        "skewness": 1.229467296964068,
+        "boom_rate": 0.106,
+        "bust_rate": 0.255,
+        "peak_mean": 47.57872340425532,
+        "peak_std": 33.10608364420093
+      },
+      "TE": {
+        "n": 82,
+        "mean_value": 274.08658536585364,
+        "std_value": 303.90084862608944,
+        "cv": 1.1087768017236692,
+        "skewness": 1.2089125053122358,
+        "boom_rate": 0.11,
+        "bust_rate": 0.256,
+        "peak_mean": 82.43658536585366,
+        "peak_std": 73.40350146528887
+      },
+      "S": {
+        "n": 108,
+        "mean_value": 128.00462962962965,
+        "std_value": 104.51362584766537,
+        "cv": 0.8164831641916652,
+        "skewness": 0.46161837855220117,
+        "boom_rate": 0.102,
+        "bust_rate": 0.25,
+        "peak_mean": 41.128240740740736,
+        "peak_std": 26.348429457331413
+      },
+      "RB": {
+        "n": 124,
+        "mean_value": 376.58258064516133,
+        "std_value": 421.2313952316756,
+        "cv": 1.1185631406302936,
+        "skewness": 1.33458794133384,
+        "boom_rate": 0.105,
+        "bust_rate": 0.25,
+        "peak_mean": 126.06274193548386,
+        "peak_std": 105.96185818140404
+      }
+    },
+    "variance_ranking": [
+      "QB",
+      "RB",
+      "TE",
+      "WR",
+      "DL",
+      "LB",
+      "EDGE",
+      "CB",
+      "S"
+    ]
+  },
+  "scouting_error": {
+    "by_round": {
+      "round_1": {
+        "n": 182,
+        "mean_residual": 1.3134340659340764,
+        "std_residual": 379.66431047882975,
+        "mean_relative_error": 0.0025065774738833196,
+        "std_relative_error": 0.8630306129258778,
+        "p10_error": -0.829719237814768,
+        "p90_error": 1.046507204919408
+      },
+      "round_2": {
+        "n": 173,
+        "mean_residual": -1.4071290944123291,
+        "std_residual": 308.0520025957651,
+        "mean_relative_error": -0.00271093933493473,
+        "std_relative_error": 0.8799684310682143,
+        "p10_error": -0.916149228319193,
+        "p90_error": 1.3564013222468518
+      },
+      "round_3": {
+        "n": 195,
+        "mean_residual": 2.5951153846153923,
+        "std_residual": 254.3264036157487,
+        "mean_relative_error": 0.002493491852526853,
+        "std_relative_error": 0.9099619586389752,
+        "p10_error": -0.9042908443521976,
+        "p90_error": 1.2842540314956667
+      },
+      "round_4": {
+        "n": 176,
+        "mean_residual": -3.4838318452381016,
+        "std_residual": 188.6381344593838,
+        "mean_relative_error": -0.013602467190635263,
+        "std_relative_error": 0.9282585536135939,
+        "p10_error": -0.9378875631992445,
+        "p90_error": 1.4537402273162718
+      },
+      "round_5": {
+        "n": 182,
+        "mean_residual": 2.6951478283621135,
+        "std_residual": 210.03204695032082,
+        "mean_relative_error": 0.03797197571031775,
+        "std_relative_error": 1.1114160612798822,
+        "p10_error": -0.9743682750980899,
+        "p90_error": 1.5586686750665477
+      },
+      "round_6": {
+        "n": 159,
+        "mean_residual": -3.940539832285114,
+        "std_residual": 115.79077605304413,
+        "mean_relative_error": -0.06593952078796798,
+        "std_relative_error": 0.9845578795642917,
+        "p10_error": -0.9658189079911464,
+        "p90_error": 1.5443208677408995
+      },
+      "round_7": {
+        "n": 123,
+        "mean_residual": 2.0123915989159915,
+        "std_residual": 77.88314561273685,
+        "mean_relative_error": 0.044667341016382894,
+        "std_relative_error": 1.0715372726749617,
+        "p10_error": -0.9724589894093224,
+        "p90_error": 1.735104598801958
+      }
+    },
+    "by_position": {
+      "QB": {
+        "n": 55,
+        "mean_error": 0.20489890846417558,
+        "std_error": 1.0981757628590167,
+        "p10": -0.9742629016116228,
+        "p90": 1.9938760583035215
+      },
+      "WR": {
+        "n": 163,
+        "mean_error": 0.5370164306613506,
+        "std_error": 1.1661213001893493,
+        "p10": -0.8245809702109637,
+        "p90": 2.2408183806537973
+      },
+      "CB": {
+        "n": 175,
+        "mean_error": -0.2548697655878295,
+        "std_error": 0.7933466529053119,
+        "p10": -0.9390352046445686,
+        "p90": 0.8892833379337429
+      },
+      "LB": {
+        "n": 150,
+        "mean_error": -0.1541724732233668,
+        "std_error": 0.7784387206238065,
+        "p10": -0.9496274626915547,
+        "p90": 0.7526243766134695
+      },
+      "DL": {
+        "n": 156,
+        "mean_error": -0.3784294980292721,
+        "std_error": 0.623502215287602,
+        "p10": -0.9315107681957802,
+        "p90": 0.42663214783033115
+      },
+      "EDGE": {
+        "n": 141,
+        "mean_error": -0.10548654480554473,
+        "std_error": 0.8255241468230649,
+        "p10": -0.9281109573586424,
+        "p90": 0.9889663100301452
+      },
+      "TE": {
+        "n": 82,
+        "mean_error": 0.35979415140130305,
+        "std_error": 1.1045025760567988,
+        "p10": -0.9189916403364452,
+        "p90": 1.8784582751494563
+      },
+      "S": {
+        "n": 108,
+        "mean_error": -0.045714611431541576,
+        "std_error": 0.7960954025651809,
+        "p10": -0.9490862454550383,
+        "p90": 1.2477465718525218
+      },
+      "RB": {
+        "n": 123,
+        "mean_error": 0.4387788305547548,
+        "std_error": 1.038136729445694,
+        "p10": -0.8858043931765515,
+        "p90": 1.8181135609197336
+      }
+    }
+  },
+  "development_timeline": {
+    "by_position": {
+      "OL": {
+        "n": 241,
+        "mean_peak_year": 4.29045643153527,
+        "median_peak_year": 4.0,
+        "std_peak_year": 2.7853112416446533,
+        "early_peak_rate": 0.34024896265560167,
+        "late_peak_rate": 0.5186721991701245
+      },
+      "S": {
+        "n": 186,
+        "mean_peak_year": 3.795698924731183,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.480284148588782,
+        "early_peak_rate": 0.3817204301075269,
+        "late_peak_rate": 0.4731182795698925
+      },
+      "EDGE": {
+        "n": 256,
+        "mean_peak_year": 3.77734375,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.560447801525338,
+        "early_peak_rate": 0.41796875,
+        "late_peak_rate": 0.4609375
+      },
+      "LB": {
+        "n": 238,
+        "mean_peak_year": 3.865546218487395,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.324239713941712,
+        "early_peak_rate": 0.36554621848739494,
+        "late_peak_rate": 0.4957983193277311
+      },
+      "DL": {
+        "n": 279,
+        "mean_peak_year": 4.43010752688172,
+        "median_peak_year": 4.0,
+        "std_peak_year": 2.7581011965952578,
+        "early_peak_rate": 0.3118279569892473,
+        "late_peak_rate": 0.5376344086021505
+      },
+      "WR": {
+        "n": 298,
+        "mean_peak_year": 3.2751677852348995,
+        "median_peak_year": 2.0,
+        "std_peak_year": 2.4062532082159307,
+        "early_peak_rate": 0.5100671140939598,
+        "late_peak_rate": 0.35570469798657717
+      },
+      "QB": {
+        "n": 104,
+        "mean_peak_year": 3.9903846153846154,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.8672393326216326,
+        "early_peak_rate": 0.46153846153846156,
+        "late_peak_rate": 0.47115384615384615
+      },
+      "TE": {
+        "n": 142,
+        "mean_peak_year": 3.823943661971831,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.54342370945938,
+        "early_peak_rate": 0.39436619718309857,
+        "late_peak_rate": 0.45774647887323944
+      },
+      "CB": {
+        "n": 320,
+        "mean_peak_year": 3.56875,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.4965523101869906,
+        "early_peak_rate": 0.446875,
+        "late_peak_rate": 0.384375
+      },
+      "RB": {
+        "n": 206,
+        "mean_peak_year": 3.3980582524271843,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.4149204727714197,
+        "early_peak_rate": 0.46601941747572817,
+        "late_peak_rate": 0.3932038834951456
+      },
+      "P": {
+        "n": 22,
+        "mean_peak_year": 3.409090909090909,
+        "median_peak_year": 2.5,
+        "std_peak_year": 2.2894836835387324,
+        "early_peak_rate": 0.5,
+        "late_peak_rate": 0.4090909090909091
+      },
+      "K": {
+        "n": 11,
+        "mean_peak_year": 3.5454545454545454,
+        "median_peak_year": 3.0,
+        "std_peak_year": 2.31059364129797,
+        "early_peak_rate": 0.45454545454545453,
+        "late_peak_rate": 0.45454545454545453
+      }
+    },
+    "by_round": {
+      "round_1": {
+        "n": 389,
+        "mean_peak_year": 4.658097686375322,
+        "median_peak_year": 4.0
+      },
+      "round_2": {
+        "n": 353,
+        "mean_peak_year": 4.036827195467422,
+        "median_peak_year": 3.0
+      },
+      "round_3": {
+        "n": 374,
+        "mean_peak_year": 3.890374331550802,
+        "median_peak_year": 3.0
+      },
+      "round_4": {
+        "n": 339,
+        "mean_peak_year": 3.814159292035398,
+        "median_peak_year": 3.0
+      },
+      "round_5": {
+        "n": 330,
+        "mean_peak_year": 3.393939393939394,
+        "median_peak_year": 3.0
+      },
+      "round_6": {
+        "n": 297,
+        "mean_peak_year": 3.367003367003367,
+        "median_peak_year": 3.0
+      },
+      "round_7": {
+        "n": 226,
+        "mean_peak_year": 2.9424778761061945,
+        "median_peak_year": 2.0
+      }
+    }
+  },
+  "prospect_tables": {
+    "outcome_probabilities": {
+      "round_1": {
+        "QB": {
+          "bust": 0.043,
+          "role_player": 0.044,
+          "starter": 0.609,
+          "star": 0.304
+        },
+        "WR": {
+          "bust": 0.038,
+          "role_player": 0.231,
+          "starter": 0.385,
+          "star": 0.346
+        },
+        "CB": {
+          "bust": 0.067,
+          "role_player": 0.3,
+          "starter": 0.333,
+          "star": 0.3
+        },
+        "LB": {
+          "bust": 0.111,
+          "role_player": 0.111,
+          "starter": 0.5,
+          "star": 0.278
+        },
+        "DL": {
+          "bust": 0.042,
+          "role_player": 0.125,
+          "starter": 0.333,
+          "star": 0.5
+        },
+        "EDGE": {
+          "bust": 0.0,
+          "role_player": 0.103,
+          "starter": 0.518,
+          "star": 0.379
+        },
+        "RB": {
+          "bust": 0.0,
+          "role_player": 0.0,
+          "starter": 0.5,
+          "star": 0.5
+        },
+        "OL": {
+          "bust": 0.2,
+          "role_player": 0.2,
+          "starter": 0.4,
+          "star": 0.2
+        },
+        "S": {
+          "bust": 0.0,
+          "role_player": 0.125,
+          "starter": 0.625,
+          "star": 0.25
+        },
+        "TE": {
+          "bust": 0.0,
+          "role_player": 0.0,
+          "starter": 0.429,
+          "star": 0.571
+        }
+      },
+      "round_2": {
+        "DL": {
+          "bust": 0.091,
+          "role_player": 0.409,
+          "starter": 0.409,
+          "star": 0.091
+        },
+        "LB": {
+          "bust": 0.0,
+          "role_player": 0.2,
+          "starter": 0.533,
+          "star": 0.267
+        },
+        "CB": {
+          "bust": 0.167,
+          "role_player": 0.1,
+          "starter": 0.466,
+          "star": 0.267
+        },
+        "EDGE": {
+          "bust": 0.05,
+          "role_player": 0.15,
+          "starter": 0.7,
+          "star": 0.1
+        },
+        "TE": {
+          "bust": 0.0,
+          "role_player": 0.2,
+          "starter": 0.5,
+          "star": 0.3
+        },
+        "S": {
+          "bust": 0.13,
+          "role_player": 0.174,
+          "starter": 0.435,
+          "star": 0.261
+        },
+        "WR": {
+          "bust": 0.094,
+          "role_player": 0.156,
+          "starter": 0.5,
+          "star": 0.25
+        },
+        "RB": {
+          "bust": 0.067,
+          "role_player": 0.066,
+          "starter": 0.4,
+          "star": 0.467
+        }
+      },
+      "round_3": {
+        "EDGE": {
+          "bust": 0.212,
+          "role_player": 0.455,
+          "starter": 0.212,
+          "star": 0.121
+        },
+        "DL": {
+          "bust": 0.207,
+          "role_player": 0.069,
+          "starter": 0.517,
+          "star": 0.207
+        },
+        "RB": {
+          "bust": 0.045,
+          "role_player": 0.273,
+          "starter": 0.5,
+          "star": 0.182
+        },
+        "CB": {
+          "bust": 0.148,
+          "role_player": 0.185,
+          "starter": 0.445,
+          "star": 0.222
+        },
+        "WR": {
+          "bust": 0.0,
+          "role_player": 0.294,
+          "starter": 0.412,
+          "star": 0.294
+        },
+        "LB": {
+          "bust": 0.13,
+          "role_player": 0.174,
+          "starter": 0.392,
+          "star": 0.304
+        },
+        "TE": {
+          "bust": 0.421,
+          "role_player": 0.105,
+          "starter": 0.369,
+          "star": 0.105
+        },
+        "S": {
+          "bust": 0.176,
+          "role_player": 0.236,
+          "starter": 0.412,
+          "star": 0.176
+        },
+        "QB": {
+          "bust": 0.429,
+          "role_player": 0.142,
+          "starter": 0.429,
+          "star": 0.0
+        }
+      },
+      "round_4": {
+        "EDGE": {
+          "bust": 0.25,
+          "role_player": 0.25,
+          "starter": 0.35,
+          "star": 0.15
+        },
+        "WR": {
+          "bust": 0.5,
+          "role_player": 0.15,
+          "starter": 0.3,
+          "star": 0.05
+        },
+        "S": {
+          "bust": 0.222,
+          "role_player": 0.389,
+          "starter": 0.222,
+          "star": 0.167
+        },
+        "RB": {
+          "bust": 0.208,
+          "role_player": 0.25,
+          "starter": 0.5,
+          "star": 0.042
+        },
+        "TE": {
+          "bust": 0.188,
+          "role_player": 0.25,
+          "starter": 0.437,
+          "star": 0.125
+        },
+        "DL": {
+          "bust": 0.208,
+          "role_player": 0.417,
+          "starter": 0.333,
+          "star": 0.042
+        },
+        "LB": {
+          "bust": 0.174,
+          "role_player": 0.217,
+          "starter": 0.435,
+          "star": 0.174
+        },
+        "CB": {
+          "bust": 0.333,
+          "role_player": 0.25,
+          "starter": 0.292,
+          "star": 0.125
+        },
+        "QB": {
+          "bust": 0.2,
+          "role_player": 0.6,
+          "starter": 0.0,
+          "star": 0.2
+        }
+      },
+      "round_5": {
+        "DL": {
+          "bust": 0.318,
+          "role_player": 0.273,
+          "starter": 0.318,
+          "star": 0.091
+        },
+        "S": {
+          "bust": 0.5,
+          "role_player": 0.25,
+          "starter": 0.25,
+          "star": 0.0
+        },
+        "TE": {
+          "bust": 0.125,
+          "role_player": 0.5,
+          "starter": 0.313,
+          "star": 0.062
+        },
+        "CB": {
+          "bust": 0.259,
+          "role_player": 0.297,
+          "starter": 0.407,
+          "star": 0.037
+        },
+        "WR": {
+          "bust": 0.304,
+          "role_player": 0.305,
+          "starter": 0.304,
+          "star": 0.087
+        },
+        "QB": {
+          "bust": 0.6,
+          "role_player": 0.4,
+          "starter": 0.0,
+          "star": 0.0
+        },
+        "RB": {
+          "bust": 0.35,
+          "role_player": 0.55,
+          "starter": 0.05,
+          "star": 0.05
+        },
+        "LB": {
+          "bust": 0.375,
+          "role_player": 0.25,
+          "starter": 0.344,
+          "star": 0.031
+        },
+        "EDGE": {
+          "bust": 0.357,
+          "role_player": 0.286,
+          "starter": 0.214,
+          "star": 0.143
+        }
+      },
+      "round_6": {
+        "S": {
+          "bust": 0.3,
+          "role_player": 0.3,
+          "starter": 0.25,
+          "star": 0.15
+        },
+        "TE": {
+          "bust": 0.571,
+          "role_player": 0.286,
+          "starter": 0.0,
+          "star": 0.143
+        },
+        "DL": {
+          "bust": 0.476,
+          "role_player": 0.238,
+          "starter": 0.286,
+          "star": 0.0
+        },
+        "WR": {
+          "bust": 0.414,
+          "role_player": 0.345,
+          "starter": 0.241,
+          "star": 0.0
+        },
+        "EDGE": {
+          "bust": 0.727,
+          "role_player": 0.091,
+          "starter": 0.182,
+          "star": 0.0
+        },
+        "QB": {
+          "bust": 0.25,
+          "role_player": 0.625,
+          "starter": 0.125,
+          "star": 0.0
+        },
+        "LB": {
+          "bust": 0.444,
+          "role_player": 0.278,
+          "starter": 0.222,
+          "star": 0.056
+        },
+        "CB": {
+          "bust": 0.545,
+          "role_player": 0.228,
+          "starter": 0.227,
+          "star": 0.0
+        },
+        "RB": {
+          "bust": 0.5,
+          "role_player": 0.278,
+          "starter": 0.222,
+          "star": 0.0
+        }
+      },
+      "round_7": {
+        "EDGE": {
+          "bust": 0.714,
+          "role_player": 0.215,
+          "starter": 0.071,
+          "star": 0.0
+        },
+        "CB": {
+          "bust": 0.4,
+          "role_player": 0.467,
+          "starter": 0.133,
+          "star": 0.0
+        },
+        "LB": {
+          "bust": 0.409,
+          "role_player": 0.455,
+          "starter": 0.091,
+          "star": 0.045
+        },
+        "TE": {
+          "bust": 0.571,
+          "role_player": 0.286,
+          "starter": 0.143,
+          "star": 0.0
+        },
+        "P": {
+          "bust": 0.4,
+          "role_player": 0.2,
+          "starter": 0.2,
+          "star": 0.2
+        },
+        "RB": {
+          "bust": 0.615,
+          "role_player": 0.154,
+          "starter": 0.231,
+          "star": 0.0
+        },
+        "S": {
+          "bust": 0.5,
+          "role_player": 0.2,
+          "starter": 0.3,
+          "star": 0.0
+        },
+        "WR": {
+          "bust": 0.471,
+          "role_player": 0.294,
+          "starter": 0.235,
+          "star": 0.0
+        },
+        "DL": {
+          "bust": 0.571,
+          "role_player": 0.286,
+          "starter": 0.072,
+          "star": 0.071
+        }
+      }
+    },
+    "variance_tiers": {
+      "high": [],
+      "medium": [
+        "QB",
+        "WR",
+        "TE",
+        "RB"
+      ],
+      "low": [
+        "CB",
+        "LB",
+        "DL",
+        "EDGE",
+        "S"
+      ]
+    },
+    "scouting_error": {
+      "QB": {
+        "mean": 0.20489890846417558,
+        "std": 1.0981757628590167,
+        "range": [
+          -0.9742629016116228,
+          1.9938760583035215
+        ]
+      },
+      "WR": {
+        "mean": 0.5370164306613506,
+        "std": 1.1661213001893493,
+        "range": [
+          -0.8245809702109637,
+          2.2408183806537973
+        ]
+      },
+      "CB": {
+        "mean": -0.2548697655878295,
+        "std": 0.7933466529053119,
+        "range": [
+          -0.9390352046445686,
+          0.8892833379337429
+        ]
+      },
+      "LB": {
+        "mean": -0.1541724732233668,
+        "std": 0.7784387206238065,
+        "range": [
+          -0.9496274626915547,
+          0.7526243766134695
+        ]
+      },
+      "DL": {
+        "mean": -0.3784294980292721,
+        "std": 0.623502215287602,
+        "range": [
+          -0.9315107681957802,
+          0.42663214783033115
+        ]
+      },
+      "EDGE": {
+        "mean": -0.10548654480554473,
+        "std": 0.8255241468230649,
+        "range": [
+          -0.9281109573586424,
+          0.9889663100301452
+        ]
+      },
+      "TE": {
+        "mean": 0.35979415140130305,
+        "std": 1.1045025760567988,
+        "range": [
+          -0.9189916403364452,
+          1.8784582751494563
+        ]
+      },
+      "S": {
+        "mean": -0.045714611431541576,
+        "std": 0.7960954025651809,
+        "range": [
+          -0.9490862454550383,
+          1.2477465718525218
+        ]
+      },
+      "RB": {
+        "mean": 0.4387788305547548,
+        "std": 1.038136729445694,
+        "range": [
+          -0.8858043931765515,
+          1.8181135609197336
+        ]
+      }
+    },
+    "development_speed": {
+      "OL": {
+        "speed": "slow",
+        "mean_peak_year": 4.29045643153527,
+        "early_contributor_rate": 0.34024896265560167
+      },
+      "S": {
+        "speed": "normal",
+        "mean_peak_year": 3.795698924731183,
+        "early_contributor_rate": 0.3817204301075269
+      },
+      "EDGE": {
+        "speed": "normal",
+        "mean_peak_year": 3.77734375,
+        "early_contributor_rate": 0.41796875
+      },
+      "LB": {
+        "speed": "normal",
+        "mean_peak_year": 3.865546218487395,
+        "early_contributor_rate": 0.36554621848739494
+      },
+      "DL": {
+        "speed": "slow",
+        "mean_peak_year": 4.43010752688172,
+        "early_contributor_rate": 0.3118279569892473
+      },
+      "WR": {
+        "speed": "normal",
+        "mean_peak_year": 3.2751677852348995,
+        "early_contributor_rate": 0.5100671140939598
+      },
+      "QB": {
+        "speed": "normal",
+        "mean_peak_year": 3.9903846153846154,
+        "early_contributor_rate": 0.46153846153846156
+      },
+      "TE": {
+        "speed": "normal",
+        "mean_peak_year": 3.823943661971831,
+        "early_contributor_rate": 0.39436619718309857
+      },
+      "CB": {
+        "speed": "normal",
+        "mean_peak_year": 3.56875,
+        "early_contributor_rate": 0.446875
+      },
+      "RB": {
+        "speed": "normal",
+        "mean_peak_year": 3.3980582524271843,
+        "early_contributor_rate": 0.46601941747572817
+      },
+      "P": {
+        "speed": "normal",
+        "mean_peak_year": 3.409090909090909,
+        "early_contributor_rate": 0.5
+      },
+      "K": {
+        "speed": "normal",
+        "mean_peak_year": 3.5454545454545454,
+        "early_contributor_rate": 0.45454545454545453
+      }
+    }
+  }
+}

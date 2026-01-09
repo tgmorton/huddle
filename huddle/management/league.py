@@ -12,7 +12,7 @@ and manages the flow of information between systems.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Callable, Optional
 from uuid import UUID, uuid4
 
@@ -206,8 +206,18 @@ class LeagueState:
 
     def _handle_new_day(self, calendar: LeagueCalendar) -> None:
         """Handle daily transitions."""
-        # Could spawn daily events here (e.g., practice)
-        pass
+        # Activate events scheduled for this week/day
+        week = calendar.current_week
+        day = calendar.current_date.weekday()
+        activated = self.events.activate_day_events(week, day)
+
+        # Check for auto-pause on newly activated events
+        for event in activated:
+            if self._should_auto_pause(event):
+                self.pause()
+                for callback in self._on_pause:
+                    callback(self)
+                break
 
     def _handle_new_week(self, calendar: LeagueCalendar) -> None:
         """Handle weekly transitions."""
@@ -321,7 +331,7 @@ class LeagueState:
         development: int = 33,
         game_prep: int = 33,
         team=None,
-    ) -> bool:
+    ) -> dict:
         """
         Run a practice session with the given time allocation.
 
@@ -339,11 +349,11 @@ class LeagueState:
             team: The team running practice (optional, needed for actual effects)
 
         Returns:
-            True if practice was run successfully
+            Dict with success status and practice results
         """
         event = self.events.get(event_id)
         if not event or event.category != EventCategory.PRACTICE:
-            return False
+            return {"success": False, "error": "Invalid practice event"}
 
         # Get practice duration from event payload
         duration_minutes = event.payload.get("duration_minutes", 120)
@@ -354,8 +364,8 @@ class LeagueState:
         # Advance time by the practice duration
         self.calendar.advance_minutes(duration_minutes)
 
-        # Apply practice effects
-        self._apply_practice_effects(playbook, development, game_prep, duration_minutes, team)
+        # Apply practice effects and get results
+        results = self._apply_practice_effects(playbook, development, game_prep, duration_minutes, team)
 
         # Go back to dashboard
         self.clipboard.go_back()
@@ -370,7 +380,13 @@ class LeagueState:
         )
         self.ticker.add(practice_item)
 
-        return True
+        return {
+            "success": True,
+            "duration_minutes": duration_minutes,
+            "playbook_stats": results.get("playbook", {}),
+            "development_stats": results.get("development", {}),
+            "game_prep_stats": results.get("game_prep", {}),
+        }
 
     def _apply_practice_effects(
         self,
@@ -379,7 +395,7 @@ class LeagueState:
         game_prep_pct: int,
         duration_minutes: int,
         team=None,
-    ) -> None:
+    ) -> dict:
         """
         Apply the effects of a practice session.
 
@@ -394,9 +410,18 @@ class LeagueState:
             game_prep_pct: Percentage on game preparation (0-100)
             duration_minutes: Total practice duration
             team: The team running practice (optional)
+
+        Returns:
+            Dict with stats from each practice area
         """
+        results = {
+            "playbook": {},
+            "development": {},
+            "game_prep": {},
+        }
+
         if team is None:
-            return
+            return results
 
         # Initialize playbook if needed
         if team.playbook is None:
@@ -408,17 +433,19 @@ class LeagueState:
         playbook_reps = int(total_reps * playbook_pct / 100)
 
         if playbook_reps > 0:
-            self._practice_playbook(team, playbook_reps)
+            results["playbook"] = self._practice_playbook(team, playbook_reps)
 
         # Development effects (improve young player attributes)
         development_reps = int(total_reps * development_pct / 100)
         if development_reps > 0:
-            self._apply_development(team, development_reps)
+            results["development"] = self._apply_development(team, development_reps)
 
         # Game prep effects (bonuses vs next opponent)
         game_prep_reps = int(total_reps * game_prep_pct / 100)
         if game_prep_reps > 0:
-            self._apply_game_prep(team, game_prep_reps)
+            results["game_prep"] = self._apply_game_prep(team, game_prep_reps)
+
+        return results
 
     def _practice_playbook(self, team, total_reps: int) -> dict:
         """
@@ -497,7 +524,7 @@ class LeagueState:
             development_reps: Number of reps allocated to development
 
         Returns:
-            Dict with development statistics
+            Dict with development statistics including per-player breakdown
         """
         from huddle.core.development import can_develop, develop_player
 
@@ -505,6 +532,7 @@ class LeagueState:
             "players_developed": 0,
             "total_points_gained": 0.0,
             "attributes_improved": {},
+            "per_player_gains": [],  # Per-player breakdown for UI
         }
 
         # Filter to players who can benefit from development
@@ -524,6 +552,16 @@ class LeagueState:
 
             if gains:
                 stats["players_developed"] += 1
+
+                # Track per-player gains for UI
+                stats["per_player_gains"].append({
+                    "player_id": str(player.id),
+                    "name": player.full_name,
+                    "position": player.position.value if hasattr(player.position, 'value') else str(player.position),
+                    "gains": gains,
+                })
+
+                # Aggregate stats
                 for attr, gain in gains.items():
                     stats["total_points_gained"] += gain
                     if attr not in stats["attributes_improved"]:
@@ -648,7 +686,9 @@ class LeagueState:
 
         # Find the scheduled game in the league
         scheduled_game = None
-        player_team_abbr = "PHI"  # TODO: get from state
+        # Get player team abbreviation from state
+        player_team = league.get_team_by_id(self.player_team_id) if self.player_team_id else None
+        player_team_abbr = player_team.abbreviation if player_team else "PHI"
         for game in league.schedule:
             if game.week == week:
                 if (game.home_team_abbr == player_team_abbr or
@@ -672,11 +712,11 @@ class LeagueState:
 
         # Determine winner for headline
         if our_score > their_score:
-            headline = f"Victory! PHI defeats {opponent_name} {our_score}-{their_score}"
+            headline = f"Victory! {player_team_abbr} defeats {opponent_name} {our_score}-{their_score}"
         elif our_score < their_score:
-            headline = f"PHI falls to {opponent_name} {their_score}-{our_score}"
+            headline = f"{player_team_abbr} falls to {opponent_name} {their_score}-{our_score}"
         else:
-            headline = f"PHI ties {opponent_name} {our_score}-{their_score}"
+            headline = f"{player_team_abbr} ties {opponent_name} {our_score}-{their_score}"
 
         # Mark event as attended
         event.attend()
@@ -714,6 +754,28 @@ class LeagueState:
             e for e in self.events.get_urgent()
             if e.team_id is None or e.team_id == self.player_team_id
         ]
+
+    def get_upcoming_events(self, days: int = 7) -> list[ManagementEvent]:
+        """Get scheduled events coming up within N days from current game date."""
+        from huddle.management.events import EventStatus
+
+        current_date = self.calendar.current_date
+        cutoff = current_date + timedelta(days=days)
+
+        upcoming = []
+        for e in self.events._events.values():
+            # Only SCHEDULED events (not yet active)
+            if e.status != EventStatus.SCHEDULED:
+                continue
+            # Must be for player's team or league-wide
+            if e.team_id is not None and e.team_id != self.player_team_id:
+                continue
+            # Must have a scheduled_for date in the future
+            if e.scheduled_for and current_date < e.scheduled_for <= cutoff:
+                upcoming.append(e)
+
+        # Sort by scheduled date
+        return sorted(upcoming, key=lambda e: e.scheduled_for or current_date)
 
     # === Ticker Management ===
 

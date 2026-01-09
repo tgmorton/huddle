@@ -1,0 +1,123 @@
+{
+  "model_name": "special_teams",
+  "version": "1.0",
+  "source": "nfl_data_py play-by-play 2019-2024",
+  "field_goal": {
+    "overall_rate": 0.8457,
+    "by_distance": {
+      "19": 1.0,
+      "20": 0.9872,
+      "21": 1.0,
+      "22": 0.9857,
+      "23": 1.0,
+      "24": 0.9858,
+      "25": 0.9804,
+      "26": 0.9812,
+      "27": 0.9645,
+      "28": 0.9824,
+      "29": 0.9378,
+      "30": 0.9826,
+      "31": 0.9713,
+      "32": 0.9484,
+      "33": 0.9545,
+      "34": 0.9198,
+      "35": 0.9071,
+      "36": 0.9107,
+      "37": 0.9104,
+      "38": 0.9212,
+      "39": 0.8876,
+      "40": 0.884,
+      "41": 0.7923,
+      "42": 0.8167,
+      "43": 0.8053,
+      "44": 0.8,
+      "45": 0.7461,
+      "46": 0.773,
+      "47": 0.6935,
+      "48": 0.7281,
+      "49": 0.7407,
+      "50": 0.7389,
+      "51": 0.7151,
+      "52": 0.7405,
+      "53": 0.6667,
+      "54": 0.7448,
+      "55": 0.6167,
+      "56": 0.5833,
+      "57": 0.5692,
+      "58": 0.5854,
+      "59": 0.625
+    },
+    "by_bucket": {
+      "15": 1.0,
+      "20": 0.9921,
+      "25": 0.968,
+      "30": 0.9549,
+      "35": 0.9078,
+      "40": 0.8191,
+      "45": 0.7358,
+      "50": 0.7201,
+      "55": 0.5958,
+      "60": 0.3878,
+      "65": 0.2
+    },
+    "total_attempts": 6487,
+    "notes": {
+      "distance_is_kick_distance": "Includes ~7 yards for snap/hold",
+      "recommendation": "Use by_distance for simulation, interpolate for missing values"
+    }
+  },
+  "extra_point": {
+    "success_rate": 0.9439,
+    "total_attempts": 7774,
+    "notes": {
+      "modern_distance": "33 yards (moved back in 2015)",
+      "recommendation": "Can modify slightly by kicker rating"
+    }
+  },
+  "two_point": {
+    "success_rate": 0.4771,
+    "by_play_type": {
+      "pass": 0.4406,
+      "run": 0.5431
+    },
+    "total_attempts": 830,
+    "notes": {
+      "recommendation": "Use V2 simulation for 2PT attempts for realism"
+    }
+  },
+  "kickoff": {
+    "touchback_rate": 0.625,
+    "touchback_yard_line": 25,
+    "return_yards": {
+      "mean": 21.399999618530273,
+      "std": 12.5,
+      "median": 21.0
+    },
+    "total_kickoffs": 17146,
+    "notes": {
+      "modern_rules": "Touchback to 25-yard line since 2016",
+      "recommendation": "Roll touchback first, then return yards if not touchback"
+    }
+  },
+  "punt": {
+    "gross_yards": {
+      "mean": 46.29999923706055,
+      "std": 9.800000190734863
+    },
+    "net_yards": {
+      "mean": 42.5,
+      "std": 10.800000190734863
+    },
+    "fair_catch_rate": 0.2794,
+    "touchback_rate": 0.0688,
+    "total_punts": 13189,
+    "notes": {
+      "recommendation": "Use net_yards for field position calculation"
+    }
+  },
+  "implementation_hints": {
+    "field_goal_probability": "P(make) = by_distance[distance] * (1 + (kicker_rating - 75) / 100)",
+    "kickoff_result": "if random() < touchback_rate: start at 25 else: start at 25 + return_yards",
+    "punt_result": "new_yard_line = 100 - current_yard_line - net_yards (clamp to 1-99)"
+  }
+}

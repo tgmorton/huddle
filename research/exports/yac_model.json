@@ -1,0 +1,116 @@
+{
+  "model_name": "yards_after_catch",
+  "version": "1.0",
+  "description": "Two-part YAC model: P(YAC > 0) \u00d7 E[YAC | YAC > 0]",
+  "overall_stats": {
+    "mean_yac": 5.19,
+    "median_yac": 3.0,
+    "std_yac": 6.72,
+    "pct_with_yac": 0.7544
+  },
+  "by_depth": {
+    "behind_los": {
+      "mean_yac": 8.61,
+      "median_yac": 7.0,
+      "pct_with_yac": 0.9344
+    },
+    "screen_short": {
+      "mean_yac": 4.19,
+      "median_yac": 3.0,
+      "pct_with_yac": 0.7539
+    },
+    "short": {
+      "mean_yac": 3.36,
+      "median_yac": 2.0,
+      "pct_with_yac": 0.6439
+    },
+    "intermediate": {
+      "mean_yac": 3.43,
+      "median_yac": 1.0,
+      "pct_with_yac": 0.5859
+    },
+    "deep": {
+      "mean_yac": 4.25,
+      "median_yac": 2.0,
+      "pct_with_yac": 0.6446
+    },
+    "bomb": {
+      "mean_yac": 5.88,
+      "median_yac": 3.0,
+      "pct_with_yac": 0.7218
+    }
+  },
+  "by_position": {
+    "WR": {
+      "mean_yac": 5.19,
+      "median_yac": 3.0,
+      "pct_with_yac": 0.7544
+    }
+  },
+  "percentiles": {
+    "0.1": 0.0,
+    "0.25": 1.0,
+    "0.5": 3.0,
+    "0.75": 7.0,
+    "0.9": 13.0,
+    "0.95": 17.0
+  },
+  "factor_mapping": {
+    "air_yards": {
+      "huddle_factor": "pass.air_yards",
+      "available": true,
+      "effect": "Strong negative - short passes have most YAC"
+    },
+    "receiver_position": {
+      "huddle_factor": "receiver.position",
+      "available": true,
+      "effect": "RBs have highest YAC on screens"
+    },
+    "pass_location": {
+      "huddle_factor": "pass.location",
+      "available": false,
+      "note": "Left/middle/right target zone"
+    },
+    "separation": {
+      "huddle_factor": "receiver.separation",
+      "available": true,
+      "note": "Not in NFL data but expected strong effect"
+    }
+  },
+  "implementation_candidates": [
+    {
+      "factor": "separation_at_catch",
+      "importance": "HIGH",
+      "note": "More separation = more YAC potential"
+    },
+    {
+      "factor": "defender_angle",
+      "importance": "HIGH",
+      "note": "Tackle angle affects YAC"
+    },
+    {
+      "factor": "field_position",
+      "importance": "MEDIUM",
+      "note": "Less space near goal line"
+    },
+    {
+      "factor": "receiver_speed",
+      "importance": "HIGH",
+      "note": "Speed creates YAC opportunities"
+    }
+  ],
+  "any_yac_coefficients": {
+    "Intercept": 1.5184,
+    "C(pass_location)[T.middle]": 0.1719,
+    "C(pass_location)[T.right]": -0.0225,
+    "air_yards": -0.0506,
+    "third_down": -0.1969
+  },
+  "yac_amount_coefficients": {
+    "Intercept": 1.8836,
+    "C(pass_location)[T.middle]": -0.0781,
+    "C(pass_location)[T.right]": -0.0159,
+    "air_yards": -0.0142,
+    "third_down": 0.0076
+  }
+}

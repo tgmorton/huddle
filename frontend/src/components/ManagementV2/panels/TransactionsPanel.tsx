@@ -6,7 +6,12 @@ import { FreeAgentsContent } from '../content/FreeAgentsContent';
 
 type TransactionsTab = 'free-agents' | 'trades' | 'waivers';
 
-export const TransactionsPanel: React.FC = () => {
+interface TransactionsPanelProps {
+  onStartNegotiation?: (player: { id: string; name: string; position: string; overall: number }) => void;
+  onStartAuction?: (player: { id: string; name: string; position: string; overall: number }) => void;
+}
+
+export const TransactionsPanel: React.FC<TransactionsPanelProps> = ({ onStartNegotiation, onStartAuction }) => {
   const [tab, setTab] = useState<TransactionsTab>('free-agents');
 
   return (
@@ -17,7 +22,10 @@ export const TransactionsPanel: React.FC = () => {
         <button className={`tabbed-panel__tab ${tab === 'waivers' ? 'tabbed-panel__tab--active' : ''}`} onClick={() => setTab('waivers')}>Waivers</button>
       </div>
       <div className="tabbed-panel__content">
-        {tab === 'free-agents' && <FreeAgentsContent />}
+        {tab === 'free-agents' && <FreeAgentsContent
+          onStartNegotiation={onStartNegotiation ? (player) => onStartNegotiation({ id: player.player_id, name: player.name, position: player.position, overall: player.overall }) : undefined}
+          onStartAuction={onStartAuction ? (player) => onStartAuction({ id: player.player_id, name: player.name, position: player.position, overall: player.overall }) : undefined}
+        />}
         {tab === 'trades' && <PlaceholderContent title="Trade Block" />}
         {tab === 'waivers' && <PlaceholderContent title="Waivers" />}
       </div>

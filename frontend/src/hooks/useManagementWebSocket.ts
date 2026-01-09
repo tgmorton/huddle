@@ -38,6 +38,7 @@ export function useManagementWebSocket({
     updateCalendar,
     updateEvents,
     setEvents,
+    mergeEvents,
     updateClipboard,
     addTickerItem,
     addEvent,
@@ -60,13 +61,13 @@ export function useManagementWebSocket({
 
           case 'calendar_update':
             if (message.payload) {
-              updateCalendar(message.payload as unknown as CalendarState);
-              // Note: We intentionally don't update events here to avoid race conditions
-              // with REST API calls (e.g., advance-day). Events are synced via:
-              // - state_sync (full state on connect)
-              // - event_added (new events)
-              // - event_updated (event changes)
-              // - REST API responses (advance-day, etc.)
+              const payload = message.payload as unknown as CalendarState & { events?: ManagementEvent[] };
+              updateCalendar(payload);
+              // Merge events from server to prevent drift between server tick loop and client
+              // mergeEvents dedupes by ID, so concurrent REST calls won't cause duplicates
+              if (payload.events && Array.isArray(payload.events)) {
+                mergeEvents(payload.events);
+              }
             }
             break;
 
