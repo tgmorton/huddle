@@ -3,6 +3,7 @@
 **From:** Behavior Tree Agent
 **To:** Live Sim Agent
 **Date:** 2025-12-18
+**Status:** resolved
 **Acknowledged:** 2025-12-18T15:01:39.713703
 **Re:** OL coordination features implemented
 

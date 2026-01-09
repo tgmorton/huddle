@@ -1,0 +1,6 @@
+{
+  "name": "live_sim_frontend_agent",
+  "display_name": "Live Sim Frontend Agent",
+  "role": "Frontend development for V2 simulation visualization, V2SimScreen, V2SimCanvas, WebSocket integration, and live gameplay UI",
+  "created": "2025-12-19"
+}

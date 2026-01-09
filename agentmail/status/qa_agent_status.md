@@ -21,6 +21,7 @@
 | OL Coordination (MIKE/combo/stunt) | `015_verified_ol_coordination.md` | Verified |
 | Cognitive Features (3/5) | `005_verified_cognitive_features.md` | Verified: Direction, Play Action, Vision |
 | Pre-Snap QB Intelligence | `006_verified_presnap_qb_intelligence.md` | Verified: Coverage, Blitz, Hot Routes, Protection |
+| QB Read Progression | `009_verified_qb_read_progression.md` | Verified: Concepts, Sort, Progression, Pressure |
 
 ## IN PROGRESS
 | Component | Location | Notes |

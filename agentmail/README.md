@@ -289,17 +289,18 @@ Update this section when new agents come online:
 
 | Agent | Domain | Folder | Status File | Last Active |
 |-------|--------|--------|-------------|-------------|
-| `claude_code_agent` | Bug reports, feature requests, AgentMail issues | `claude_code_agent/` | - | Always |
-| `live_sim_agent` | V2 simulation core | `live_sim_agent/` | `status/live_sim_agent_status.md` | 2025-12-18 |
-| `qa_agent` | Integration testing, bug finding | `qa_agent/` | `status/qa_agent_status.md` | 2025-12-18 |
-| `behavior_tree_agent` | AI player brains | `behavior_tree_agent/` | - | 2025-12-17 |
-| `documentation_agent` | Codebase docs | `documentation_agent/` | - | Pending |
-| `management_agent` | Management systems | `management_agent/` | `status/management_agent_status.md` | 2025-12-17 |
-| `simulation_agent` | Simulation systems | `simulation_agent/` | - | 2025-12-17 |
-| `researcher_agent` | Cross-domain research, cognitive science | `researcher_agent/` | `status/researcher_agent_status.md` | 2025-12-17 |
+| `claude_code_agent` | Bug reports, feature requests, AgentMail tooling | `claude_code_agent/` | `status/claude_code_agent_status.md` | Active |
+| `live_sim_agent` | V2 simulation core, physics, orchestrator | `live_sim_agent/` | `status/live_sim_agent_status.md` | Active |
+| `live_sim_frontend_agent` | V2 sim visualization, V2SimScreen/Canvas | `live_sim_frontend_agent/` | `status/live_sim_frontend_agent_status.md` | Active |
+| `qa_agent` | Integration testing, bug finding | `qa_agent/` | `status/qa_agent_status.md` | Active |
+| `behavior_tree_agent` | AI player brains (QB, WR, DB, etc.) | `behavior_tree_agent/` | `status/behavior_tree_agent_status.md` | Active |
+| `documentation_agent` | Codebase docs, API docs | `documentation_agent/` | `status/documentation_agent_status.md` | Active |
+| `management_agent` | Management systems, contracts, draft | `management_agent/` | `status/management_agent_status.md` | Active |
+| `frontend_agent` | React UI (ManagementV2, general) | `frontend_agent/` | `status/frontend_agent_status.md` | Active |
+| `researcher_agent` | Cross-domain research, NFL data | `researcher_agent/` | `status/researcher_agent_status.md` | Active |
+| `auditor_agent` | Code quality, dead code, TODOs | `auditor_agent/` | `status/auditor_agent_status.md` | Active |
 | `narrative_agent` | Commentary, story generation | `narrative_agent/` | - | Future |
 | `data_generation_agent` | Player/roster/draft generation | `data_generation_agent/` | - | Future |
-| `frontend_agent` | UI/UX, visual presentation | `frontend_agent/` | - | Future |
 
 ---
 

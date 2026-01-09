@@ -1,69 +1,87 @@
 # Behavior Tree Agent - Status
 
-**Last Updated:** 2025-12-18
-**Status:** Idle - session complete
+**Last Updated:** 2025-12-19 16:30
+**Agent Role:** AI player brains (QB, DB, LB, DL, OL, ballcarrier, receiver)
 
 ---
 
-## Session Summary (2025-12-18)
+## Current Session (2025-12-19)
 
-### Bugs Fixed Today
-| Issue | Fix |
-|-------|-----|
-| QB always targets slot | `read_order` now flows from play design → PlayerView → qb_brain |
-| Instant ball tracking (DBs) | Added 200-450ms reaction delay based on awareness/facing |
-| Instant ball tracking (LBs) | Added 250-500ms reaction delay |
-| D-line tracks ball on throw | DL now stays engaged or continues rush, doesn't chase ball |
+### Completed This Session
 
-### Code Changes
-- `qb_brain.py`: Use `teammate.read_order` instead of hardcoded 1
-- `db_brain.py`: Added `_calculate_throw_reaction_delay()`, `_can_track_ball_yet()`
-- `lb_brain.py`: Added `_calculate_lb_throw_reaction_delay()`, `_can_lb_track_ball_yet()`
-- `dl_brain.py`: Added `_is_ball_in_air()` check, DL stays engaged during ball flight
+| Task | Details |
+|------|---------|
+| **DL Brain Refactor** | Target-based movement - DL target is ALWAYS the ball, not blockers |
+| **OL Brain Refactor** | Intercept-path philosophy - position BETWEEN DL and ball |
+| **Ballcarrier Brain Refactor** | Yards-first - target endzone, defenders are obstacles |
+| **QB Brain Refactor** | Completion-first - platform stability, escape FOR completion |
+| **Receiver Brain Refactor** | Separation-first - create separation, catch follows |
+| **DB Brain Refactor** | Prevention-first - prevent completions, not just cover |
+| **LB Brain Refactor** | Playmaker-first - make plays (tackles/INTs/TFLs) |
 
----
+### Philosophy Shift
 
-## Verified Features (37/37 tests)
+All 7 brains now use **objective-first** philosophy:
+- **Before**: Players target opponents
+- **After**: Players target their PRIMARY OBJECTIVE (ball, endzone, completion)
+- Opponents become OBSTACLES that may impede progress toward objective
 
-| Feature | Tests |
-|---------|-------|
-| OL Coordination (MIKE, combo, stunt) | 8/8 |
-| Cognitive Features (Easterbrook, play action, etc) | 12/12 |
-| Pre-Snap QB Intelligence | 17/17 |
+### Earlier Today (2025-12-19)
 
----
+| Task | Details |
+|------|---------|
+| QB Staring Down Bug | Added min pocket time (0.4s) and separation (2.0yd) for anticipation |
+| Break Point Throw Lead | QB throws to break point for slant/out/in/post routes |
+| Vision Cone Scanning | QB faces toward current read target while scanning |
+| Read Progression Order | Fixed `_find_best_receiver()` to respect 1→2→3→4 order |
+| Trace System | Added `enable_trace()` and `get_trace()` for debugging |
 
-## Complete Feature List
+### Previous Session (2025-12-18)
 
-- Pre-Snap QB: Coverage shells, blitz detection, hot routes, protection calls
-- OL Coordination: MIKE identification, combo blocks, stunt pickup
-- Cognitive Science: Pressure-narrowed vision, recency bias, play action response, ball-hawking
-- Ballcarrier: Team-based direction, sideline awareness
-- QB Read Progression: Uses read_order from play design
-- Throw Reaction Delay: Realistic cognitive delay before ball tracking
-
----
-
-## Waiting On (Orchestrator)
-
-| Feature | Blocker |
-|---------|---------|
-| Engagement persistence | Orchestrator clears engagements on throw |
-| Inner Weather | `PlayMentalState` not in WorldState |
-| Clock awareness | `game_situation` not populated |
-| DL stunts | Stunt assignments not passed from play calls |
+| Task | Details |
+|------|---------|
+| Blocker visibility check | `_calculate_pressure()` now reduces threat if OL between rusher and QB |
+| Velocity-based throw lead | Added `_calculate_throw_lead()`, all 6 throw locations use it |
+| Hot route tracking | `_evaluate_receivers()` checks `world.hot_routes` dict |
 
 ---
 
-## In Discussion
+## Waiting On
 
-**Key Defender Read System** - Researcher Agent proposal to make QB read one key defender per concept instead of geometric separation. Would make game feel more like real football. Waiting on implementation spec.
+| Item | Blocked By | Notes |
+|------|------------|-------|
+| Key Defender Reads | researcher_agent | Full spec promised for next session (message 019) |
+| Integration Testing | qa_agent | Brain refactors ready for testing |
 
 ---
 
-## Bugs Filed
+## Available for Work
 
-- `claude_code_agent_to_005`: Message ID collision when two files share same number prefix
+If no new messages, can work on:
+1. Throwing lanes check (is blocker in passing lane?)
+2. Checkdown hierarchy (RB as safe option)
+3. Route-aware throw timing improvements
+4. Fine-tune objective-first behaviors based on test feedback
+
+---
+
+## Files I Own
+
+- `huddle/simulation/v2/ai/qb_brain.py`
+- `huddle/simulation/v2/ai/db_brain.py`
+- `huddle/simulation/v2/ai/lb_brain.py`
+- `huddle/simulation/v2/ai/dl_brain.py`
+- `huddle/simulation/v2/ai/ol_brain.py`
+- `huddle/simulation/v2/ai/ballcarrier_brain.py`
+- `huddle/simulation/v2/ai/receiver_brain.py`
+
+---
+
+## Coordinated With
+
+- **live_sim_agent**: All 7 brain refactors (DL/OL/ballcarrier/QB/receiver/DB/LB) - msg 056
+- **qa_agent**: Brain refactors ready for integration testing
+- **researcher_agent**: Waiting on key defender spec
 
 ---
 

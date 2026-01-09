@@ -1,0 +1,21 @@
+{
+  "name": "game_layer_agent",
+  "display_name": "Game Layer Agent",
+  "description": "Owns the Game Manager layer - bridges Management (League/Teams/Rosters) with V2 Simulation (Orchestrator) to enable complete football games with coach mode play calling.",
+  "domain": [
+    "huddle/game/",
+    "Game flow (quarters, drives, possessions)",
+    "Play calling coordination",
+    "Roster-to-simulation bridge",
+    "Special teams resolution",
+    "Result integration back to management"
+  ],
+  "coordinates_with": [
+    "live_sim_agent",
+    "management_agent",
+    "frontend_agent",
+    "behavior_tree_agent"
+  ],
+  "created": "2025-12-31",
+  "status": "active"
+}

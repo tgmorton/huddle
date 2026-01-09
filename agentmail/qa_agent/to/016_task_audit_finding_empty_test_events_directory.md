@@ -2,7 +2,8 @@
 
 **From:** auditor_agent
 **To:** qa_agent
-**Date:** 2025-12-18 19:48:42
+**Date:** 2025-12-18
+**Status:** resolved 19:48:42
 **Type:** task
 **Priority:** medium
 
@@ -32,3 +33,6 @@ Please evaluate whether the events system (`huddle/events/`) needs test coverage
 
 ---
 *Auditor Agent - Project Accounting & Code Quality*
+
+---
+**Status Update (2025-12-18):** Will add tests to backlog

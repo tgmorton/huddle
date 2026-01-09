@@ -1,123 +1,121 @@
 # Live Simulation Agent - Status
 
-**Last Updated:** 2025-12-18
+**Last Updated:** 2025-12-27
 **Agent Role:** Core simulation systems, orchestrator, physics, resolution systems
 
 ---
 
-## V2 Simulation Status
+## Current Session (2025-12-27)
 
-### COMPLETE (Functional)
+### Context Restored
 
-| Layer | Files | Notes |
-|-------|-------|-------|
-| Core | `core/vec2.py`, `entities.py`, `field.py`, `clock.py`, `events.py` | All solid |
-| Physics | `physics/movement.py`, `spatial.py`, `body.py` | Movement solver, influence zones |
-| Systems | `systems/route_runner.py` | Routes with waypoint advancement, hot routes |
-| Systems | `systems/coverage.py` | Man + zone coverage |
-| Systems | `systems/passing.py` | Ball flight, catch resolution |
-| Plays | `plays/routes.py` | 13 route definitions |
-| Resolution | `resolution/tackle.py` | Tackle outcomes, broken tackles |
-| Resolution | `resolution/move.py` | Ballcarrier moves (juke, spin, etc.) |
-| Resolution | `resolution/blocking.py` | OL/DL engagement, shed progress |
-| Orchestrator | `orchestrator.py` | Main loop, WorldState, pre-snap phase |
-| AI Brains | `ai/*.py` | QB, receiver, ballcarrier, DB, LB, OL, DL |
-| Testing | `testing/`, `test_passing_integration.py` | Scenario runner, integration tests |
+Reviewed inbox (86 messages) and status files. Key pending work from researcher_agent:
 
-### TODAY'S WORK (2025-12-18)
+| Message | Topic | Priority | Status |
+|---------|-------|----------|--------|
+| 063 | Simulation Calibration Targets (completion, INT, YAC, run yards) | HIGH | Review complete |
+| 064 | OL/DL Blocking Win Rates (pass pro, run blocking) | HIGH | Review complete |
+| 065 | Deep OL/DL Data (box count, gaps, QB hit impact) | HIGH | Review complete |
+| 066 | Rating Impact Model (quartile performance by rating) | HIGH | Review complete |
+| 067 | Calibration Systems Implemented (health.py, calibration.py) | INFO | Acknowledged |
+| 068 | QB Intangibles Behavioral Proposal | MEDIUM | Pending implementation |
+| 069 | Arms Prototype Physics Feedback | MEDIUM | Pending review |
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Pre-snap phase | ✅ DONE | QB reads defense, calls hot routes |
-| Hot route system | ✅ DONE | `route_runner.change_route()` method |
-| WebSocket wiring | ✅ DONE | DB recognition, pursuit, goal_direction |
-| Vision filter bug | ✅ FIXED | Threats <2yd now always perceived (bug 009) |
-| DB backpedal direction | ✅ FIXED | Now stays ahead of receiver (bug 011) |
-| DL contain direction | ✅ FIXED | Correct contain position (bug 010) |
-| Break recognition delay | ✅ DONE | Cognitive delay before DB tracks break |
-| PlayHistory wiring | ✅ DONE | Orchestrator records plays, passes to WorldState |
+### Blocking System Status
 
-### WEBSOCKET FIELDS (v2_sim.py)
+The blocking system (`resolution/blocking.py`) is already well-calibrated:
 
-| Field | Status | Notes |
-|-------|--------|-------|
-| `goal_direction` | ✅ | 1 for offense, -1 for defense |
-| `has_recognized_break` | ✅ | DB recognition state |
-| `recognition_timer` | ✅ | Progress toward recognition |
-| `recognition_delay` | ✅ | Total delay required |
-| `pursuit_target_x/y` | ✅ | Pursuit line endpoints |
-| `is_ball_carrier` | ✅ | Flag for ballcarrier ID |
-| OL/DL player types | ❌ | Not in v2_sim (needs orchestrator) |
-| Blocking engagement | ❌ | Not in v2_sim (needs BlockResolver) |
-| Ballcarrier moves | ❌ | Not in v2_sim (needs brain) |
+- **Momentum-based leverage system** - smooth, realistic battles
+- **NFL-calibrated win rates** - OL wins 90%+ pass pro, 70-85% run blocking
+- **Play-level blocking quality** - 18% great, 17% poor, 65% average
+- **Position-specific adjustments** - DT vs Edge differences
+- **Quick beat mechanic** - 2-4% chance per tick for pass rush breakthrough
+
+### What's Working Well
+
+1. **Throw lead mechanics** - Fixed 2025-12-26, scripted throws now lead receivers
+2. **Pre-snap reads** - QB evaluates defense, applies hot routes
+3. **Break recognition** - DB cognitive delay based on play_rec + route difficulty
+4. **All brain refactors** - Objective-first philosophy across all 7 position brains
 
 ---
 
-## Key Systems
+## Research Calibration Summary
 
-### Pre-Snap Phase (NEW)
+### Pass Game Targets (msg 063)
 
-Location: `orchestrator.py`
+| Condition | Target Rate |
+|-----------|-------------|
+| Clean pocket | 67.2% |
+| Under pressure | 41.1% (0.61x modifier) |
+| Deep ball penalty | -7% per 10 yards |
 
-- `_do_pre_snap_reads()` called before snap
-- QB brain evaluates defense, returns hot routes
-- `_apply_hot_route()` calls `route_runner.change_route()`
-- Emits HOT_ROUTE and PROTECTION_CALL events
+### Run Game Targets (msg 063)
 
-### BlockResolver
+| Metric | NFL Target |
+|--------|------------|
+| Median | 3.0 yds |
+| Mean | 4.3 yds |
+| Stuff rate | 18.3% |
+| Explosive (10+) | 10.8% |
 
-Location: `resolution/blocking.py`
+### Rating Impact (msg 066)
 
-- Engagement detection (1.5 yard range)
-- Action matchup (anchor vs bull_rush, etc.)
-- Attribute-based resolution (block_power/finesse vs pass_rush)
-- Shed progress tracking (DL accumulates when winning)
-- Movement override (winner pushes loser)
-- Emits BLOCK_SHED events
+| Position | Elite-Bad Spread |
+|----------|-----------------|
+| QB Comp% | 8.0% (63.5% - 55.5%) |
+| RB YPC | 2.2 yds (5.7 - 3.5) |
+| DL Pressure% | 8.3% (33.2% - 24.9%) |
 
-### Break Recognition System
+### Box Count Effects (msg 065)
 
-Location: `ai/db_brain.py`
-
-- **Cognitive delay**: DB doesn't instantly know when receiver breaks
-- **Recognition timer**: Starts when break detected, must elapse before DB reacts
-- **Delay calculation**: Base (0.12s) + play_recognition modifier + route difficulty
-- **Attribute-driven**: High play_rec = faster recognition, low = slower
-- **Route-dependent**: Corner (0.14s) harder to read than curl (0.05s)
-
-Example delays:
-- Elite DB (95 play_rec) vs curl: ~0.17s
-- Average DB (75 play_rec) vs slant: ~0.26s
-- Poor DB (60 play_rec) vs post: ~0.44s
+| Box Count | Stuff Rate | Explosive |
+|-----------|------------|-----------|
+| 5 | 10.0% | 19.1% |
+| 7 (baseline) | 17.9% | 10.8% |
+| 9 | 29.3% | 4.7% |
 
 ---
 
-## Integration Test
+## Next Up
 
-```bash
-python test_passing_integration.py        # Single play
-python test_passing_integration.py multi  # 5 plays
+1. **Rating Impact Integration** - Wire quartile-based modifiers into passing/running resolution
+2. **QB Intangibles** - Implement poise, anticipation, decision-making as behavioral modifiers
+3. **Arms Prototype Review** - Evaluate condition-based moves vs probability-based
+
+---
+
+## V2 Simulation Structure
+
 ```
-
-Players: QB, WR1, WR2, LT, DE, CB1, CB2, MLB
-
----
-
-## Pending / Next Up
-
-1. **Full orchestrator WebSocket** - For OL/DL and ballcarrier move visualization
-2. **game_situation population** - For clock-aware decisions
-3. **Inner Weather integration** - Receive pre-game state from management
+huddle/simulation/v2/
+├── orchestrator.py         # Main loop, WorldState, phases
+├── ai/                     # Player brains (QB, DB, LB, DL, OL, etc.)
+├── resolution/             # Blocking, tackle, move resolution
+├── systems/                # Route runner, coverage, passing
+├── plays/                  # Routes, run concepts, schemes
+├── core/                   # Vec2, entities, events, variance
+├── physics/                # Movement, spatial, body
+└── testing/                # Scenario runner, integration tests
+```
 
 ---
 
 ## Coordination
 
-- **Behavior Tree Agent**: Unblocked on pre-snap phase
-- **Frontend Agent**: Notified of WebSocket field status
-- **QA Agent**: All bug fixes verified
-- **Researcher Agent**: Cognitive framing implemented
+| Agent | Status |
+|-------|--------|
+| behavior_tree_agent | All 7 brain refactors complete, objective-first |
+| researcher_agent | Rich calibration data delivered, ready for integration |
+| qa_agent | 64+ tests passing, evasion timing blocked |
+| management_agent | Calibration systems (health.py) implemented |
 
-### Inbox/Outbox
-- Check `agentmail/live_sim_agent/to/` for incoming messages
-- Send to `agentmail/{agent}/to/` for outgoing
+---
+
+## Files I Own
+
+- `huddle/simulation/v2/orchestrator.py`
+- `huddle/simulation/v2/resolution/*.py`
+- `huddle/simulation/v2/systems/*.py`
+- `huddle/simulation/v2/core/*.py`
+- `huddle/simulation/v2/physics/*.py`

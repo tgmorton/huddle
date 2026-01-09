@@ -1,46 +1,64 @@
 # Frontend Agent Status
 
-**Last Updated:** 2025-12-18
+**Last Updated:** 2025-12-29
 **Agent Role:** UI/UX, React/TypeScript frontend, visualization
 
 ---
 
 ## CURRENT FOCUS
 
-**V2 Sim Complete** - All visualizations implemented, ready for end-to-end testing.
+**Onboarding & Status Audit** - Verified which features are implemented vs pending.
 
-## INBOX STATUS
+## COMPLETED (Dec 29)
 
-- **9 resolved** - All live_sim_agent requests completed
-- **2 open** - Inner Weather UI (researcher_agent) - queued for future
+### Bug Fix
+| Fix | Location | Notes |
+|-----|----------|-------|
+| Auction start 500 error | `management.py:2102` | Added missing `calculate_market_value` import |
 
-## COMPLETED TODAY
+### Status Audit - Features Already Implemented
+Verified these inbox items (042-045) are actually complete:
 
-| Component | Location | Notes |
-|-----------|----------|-------|
-| Broadcast Gameplay View | `V2SimScreen.tsx/css` | Ticker bar, lower-third, floating controls, roster sidebar |
-| Full Field Width | `V2SimCanvas.tsx` | Sideline-to-sideline (53.33 yards) with OOB shading |
-| New API Integration | `V2SimScreen.tsx` | `offense[]`/`defense[]` format with unified PlayerConfig |
-| OL/DL Visualization | `V2SimCanvas.tsx` | Green OL, orange DL, blocking lines, shed progress |
-| Pursuit Lines | `V2SimCanvas.tsx` | Hot pink dashed lines to intercept point |
-| DB Recognition | `V2SimCanvas.tsx` | ?/! icons with progress arc |
-| Ballcarrier Moves | `V2SimCanvas.tsx` | Juke/spin/truck indicators |
-| **Catch Flash Effect** | `V2SimCanvas.tsx` | Expanding golden rings on catch |
-| **Yards Popup** | `V2SimCanvas.tsx` | Floating "+X YDS" badge |
-| **Auto-Select Catcher** | `V2SimCanvas.tsx` | Lower-third updates on catch |
+| Feature | Location | Notes |
+|---------|----------|-------|
+| Play Mastery UI | `PlaybookContent.tsx` | Full "By Player" and "By Play" views, progress bars |
+| Per-Attribute Potentials | `PlayerView.tsx:178-234` | Fetches `/development`, shows ceiling in StatBar |
+| Load League Button | `ManagementV2.tsx:1067` | `handleLoadLeague` wired up |
+| Weekly Development | `DevelopmentContent.tsx` | Shows players who improved this week |
+| SimExplorer Seasons | `simExplorerStore.ts` | Per-season standings, real NFL teams |
+
+## COMPLETED (Dec 25-28)
+
+### Schedule Data Wiring (Dec 28)
+- Real record/opponent display (was hardcoded `3-1 vs DAL`)
+- Schedule state in managementStore
+- Home/away indicator
+
+### Contracts System UI (Dec 25-26)
+- Full negotiation workflow: start, offer, counter, accept/reject
+- Auction system for elite free agents
+- Contract restructure/cut with dead money calculations
+- Journal logging for all contract actions
 
 ## NEXT PRIORITIES
 
-1. **Test end-to-end** - Verify OL/DL, catches, pursuit all work
-2. **More outcome effects** - Incomplete (red), INT (turnover), tackle impact, sack
-3. **Pre-snap preview** - Route trees and coverage before snap
-4. **Inner Weather UI** - Mental state visualization (future)
+1. **Trade System** - Major feature gap, no TradePane/TradeContent exists yet
+2. **Day-by-Day Advancement** - Event blocking logic (design spec in msg 046)
+3. **Placeholder Tabs** - Strategy, Chemistry, Front Office, Playoffs
 
-## PLAYER TYPES SUPPORTED
+## PLACEHOLDER CONTENT (needs implementation)
 
-**Offense:** QB, WR, RB, TE, LT, LG, C, RG, RT
-**Defense:** CB, FS, SS, MLB, OLB, DE, DT, NT
+| Panel | Tab | Status |
+|-------|-----|--------|
+| TeamPanel | Strategy | Placeholder |
+| TeamPanel | Chemistry | Placeholder |
+| TeamPanel | Front Office | Placeholder |
+| SeasonPanel | Playoffs | Placeholder |
+
+## INBOX - CLEARED
+
+Previous pending items (msg 041-045) verified as complete or no longer applicable.
 
 ---
 
-**Status: READY FOR TESTING**
+**Status: AVAILABLE**

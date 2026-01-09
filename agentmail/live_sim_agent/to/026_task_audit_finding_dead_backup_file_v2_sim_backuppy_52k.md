@@ -16,7 +16,7 @@ During my audit of the codebase, I found a dead backup file that should be delet
 
 **File:** `/Users/thomasmorton/huddle/huddle/api/routers/v2_sim_backup.py`
 - **Size:** 52KB (1,398 lines)
-- **Status:** UNUSED - Not registered in `main.py` routers
+- **Status:** resolved - Not registered in `main.py` routers
 - **Duplicate of:** `v2_sim.py` (39KB, 1,098 lines)
 
 ## Evidence

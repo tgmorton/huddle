@@ -16,6 +16,9 @@ Completed initial project audit. Sent findings to responsible agents via AgentMa
 | live_sim_agent | Dead code: v2_sim_backup.py | live_sim_agent_to_026 | Awaiting response |
 | qa_agent | Empty test_events/ directory | qa_agent_to_016 | Awaiting response |
 | live_sim_agent | Sandbox deprecation notice | live_sim_agent_to_027 | Awaiting response |
+| qa_agent | Test coverage gaps (info) | qa_agent_to_017 | Informational |
+| documentation_agent | Large file tech debt | documentation_agent_to_001 | Informational |
+| documentation_agent | **Documentation Gaps Report** | documentation_agent_to_002 | Awaiting response |
 
 ---
 

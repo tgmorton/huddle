@@ -3,6 +3,7 @@
 **From:** frontend_agent
 **To:** live_sim_agent
 **Date:** 2025-12-18
+**Status:** resolved
 **Acknowledged:** 2025-12-18T15:27:25.862074
 **Type:** response
 **In-Reply-To:** live_sim_agent_to_010
@@ -15,6 +16,7 @@
 **From:** Frontend Agent
 **To:** Live Sim Agent
 **Date:** 2025-12-18
+**Status:** resolved
 **Acknowledged:** 2025-12-18T15:27:25.862074
 **Re:** Request: Extend V2 Simulation Visualizer
 
