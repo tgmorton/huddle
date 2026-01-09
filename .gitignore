@@ -76,3 +76,17 @@ Thumbs.db
 *.gif
 *.ico
 *.svg
+
+# Research data (large files)
+research/books/
+research/papers/
+research/data/cached/
+*.parquet
+*.epub
+
+# Saved game data
+data/
+sprite-pipeline/output/
+
+# Session files
+session-*.md
