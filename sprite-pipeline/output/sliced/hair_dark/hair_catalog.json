@@ -1,0 +1,324 @@
+{
+  "hair_styles": [
+    {
+      "filename": "hair_0_0.png",
+      "name": "Buzz Cut",
+      "description": "Very short, close-cropped hair"
+    },
+    {
+      "filename": "hair_0_1.png",
+      "name": "Crew Cut",
+      "description": "Short neat cut with slight volume on top"
+    },
+    {
+      "filename": "hair_0_2.png",
+      "name": "Short Crop",
+      "description": "Rounded short cut with more body"
+    },
+    {
+      "filename": "hair_0_3.png",
+      "name": "Caesar",
+      "description": "Short with forward-styled bangs"
+    },
+    {
+      "filename": "hair_0_4.png",
+      "name": "Ivy League",
+      "description": "Neat preppy cut with side part"
+    },
+    {
+      "filename": "hair_0_5.png",
+      "name": "Short Rounded",
+      "description": "Fuller short cut with round shape"
+    },
+    {
+      "filename": "hair_0_6.png",
+      "name": "Short Textured",
+      "description": "Afro-textured short hair with volume"
+    },
+    {
+      "filename": "hair_0_7.png",
+      "name": "Medium Curly",
+      "description": "Wavy/curly hair with more volume on top"
+    },
+    {
+      "filename": "hair_1_0.png",
+      "name": "Short Round",
+      "description": "Simple short rounded haircut"
+    },
+    {
+      "filename": "hair_1_1.png",
+      "name": "Bowl Cut",
+      "description": "Rounded cut with even length all around"
+    },
+    {
+      "filename": "hair_1_2.png",
+      "name": "Textured Crop",
+      "description": "Slightly messy short textured hair"
+    },
+    {
+      "filename": "hair_1_3.png",
+      "name": "Side Part",
+      "description": "Neat hair with defined side part"
+    },
+    {
+      "filename": "hair_1_4.png",
+      "name": "Finger Waves",
+      "description": "Wavy ridged styling pattern"
+    },
+    {
+      "filename": "hair_1_5.png",
+      "name": "Short Afro",
+      "description": "Fuller afro-textured natural hair"
+    },
+    {
+      "filename": "hair_1_6.png",
+      "name": "Classic Short",
+      "description": "Simple neat short cut"
+    },
+    {
+      "filename": "hair_1_7.png",
+      "name": "Cornrows",
+      "description": "Braided rows going back from forehead"
+    },
+    {
+      "filename": "hair_2_0.png",
+      "name": "Textured Buzz",
+      "description": "Close-cropped with visible texture"
+    },
+    {
+      "filename": "hair_2_1.png",
+      "name": "Top Knot",
+      "description": "Hair pulled back into bun on top"
+    },
+    {
+      "filename": "hair_2_2.png",
+      "name": "Pompadour",
+      "description": "Slicked back with volume, tapered sides"
+    },
+    {
+      "filename": "hair_2_3.png",
+      "name": "Short Wavy",
+      "description": "Short hair with gentle wave"
+    },
+    {
+      "filename": "hair_2_4.png",
+      "name": "Slick Short",
+      "description": "Sleek smooth short cut"
+    },
+    {
+      "filename": "hair_2_5.png",
+      "name": "Short Cornrows",
+      "description": "Shorter braided rows style"
+    },
+    {
+      "filename": "hair_2_6.png",
+      "name": "Medium Dreads",
+      "description": "Loose dreadlocks at medium length"
+    },
+    {
+      "filename": "hair_2_7.png",
+      "name": "Messy Curly",
+      "description": "Wild untamed curly hair"
+    },
+    {
+      "filename": "hair_3_0.png",
+      "name": "Medium Textured",
+      "description": "Fuller hair with texture on top"
+    },
+    {
+      "filename": "hair_3_1.png",
+      "name": "Quiff",
+      "description": "Volumized hair pushed up and back"
+    },
+    {
+      "filename": "hair_3_2.png",
+      "name": "Short Neat",
+      "description": "Simple clean short haircut"
+    },
+    {
+      "filename": "hair_3_3.png",
+      "name": "Side Swept",
+      "description": "Sleek hair swept to one side"
+    },
+    {
+      "filename": "hair_3_4.png",
+      "name": "Medium Wavy",
+      "description": "Wavy hair with natural volume"
+    },
+    {
+      "filename": "hair_3_5.png",
+      "name": "Short Messy",
+      "description": "Slightly disheveled short hair"
+    },
+    {
+      "filename": "hair_3_6.png",
+      "name": "Receding Short",
+      "description": "Short hair with higher hairline"
+    },
+    {
+      "filename": "hair_3_7.png",
+      "name": "360 Waves",
+      "description": "Defined wave pattern all around"
+    },
+    {
+      "filename": "hair_4_0.png",
+      "name": "Spiky Pushed Back",
+      "description": "Messy hair pushed back with spiky texture"
+    },
+    {
+      "filename": "hair_4_1.png",
+      "name": "Medium Volume",
+      "description": "Fuller medium-length hair with body"
+    },
+    {
+      "filename": "hair_4_2.png",
+      "name": "Tight Curls",
+      "description": "Short curly hair with tight curl pattern"
+    },
+    {
+      "filename": "hair_4_3.png",
+      "name": "Tapered Fade",
+      "description": "Short neat hair with tapered sides"
+    },
+    {
+      "filename": "hair_4_4.png",
+      "name": "Receding Buzz",
+      "description": "Short hair with receding hairline and sideburns"
+    },
+    {
+      "filename": "hair_4_5.png",
+      "name": "Cornrows Parted",
+      "description": "Cornrows going back with visible parts"
+    },
+    {
+      "filename": "hair_4_6.png",
+      "name": "Cornrows Long Back",
+      "description": "Braided rows with longer flowing back"
+    },
+    {
+      "filename": "hair_4_7.png",
+      "name": "Slick Tracks",
+      "description": "Slicked back hair with visible part lines"
+    },
+    {
+      "filename": "hair_5_0.png",
+      "name": "Long Dreads",
+      "description": "Long freeform dreadlocks falling around head"
+    },
+    {
+      "filename": "hair_5_1.png",
+      "name": "Wild Messy",
+      "description": "Messy disheveled medium-length hair"
+    },
+    {
+      "filename": "hair_5_2.png",
+      "name": "Braided Curly Ends",
+      "description": "Cornrows with curly twisted tips"
+    },
+    {
+      "filename": "hair_5_3.png",
+      "name": "Shoulder Dreads",
+      "description": "Shoulder-length dreadlocks"
+    },
+    {
+      "filename": "hair_5_4.png",
+      "name": "Neat Cornrows",
+      "description": "Short neat cornrow pattern"
+    },
+    {
+      "filename": "hair_5_5.png",
+      "name": "Natural Coils",
+      "description": "Short natural coily textured hair"
+    },
+    {
+      "filename": "hair_5_6.png",
+      "name": "Slicked Sideburns",
+      "description": "Slicked back short hair with sideburns"
+    },
+    {
+      "filename": "hair_5_7.png",
+      "name": "Short Rounded Neat",
+      "description": "Simple short rounded cut"
+    },
+    {
+      "filename": "hair_6_0.png",
+      "name": "Wavy Volume",
+      "description": "Wavy hair with volume on top"
+    },
+    {
+      "filename": "hair_6_1.png",
+      "name": "Loose Curls",
+      "description": "Medium curly hair with loose curl pattern"
+    },
+    {
+      "filename": "hair_6_2.png",
+      "name": "Fuller Afro",
+      "description": "Short afro-textured hair with fullness"
+    },
+    {
+      "filename": "hair_6_3.png",
+      "name": "Simple Short",
+      "description": "Basic short rounded haircut"
+    },
+    {
+      "filename": "hair_6_4.png",
+      "name": "Textured Wave",
+      "description": "Short hair with wave texture"
+    },
+    {
+      "filename": "hair_6_5.png",
+      "name": "Cornrows Fade",
+      "description": "Neat cornrows with faded sides"
+    },
+    {
+      "filename": "hair_6_6.png",
+      "name": "Short Braids",
+      "description": "Short braided cornrow pattern"
+    },
+    {
+      "filename": "hair_6_7.png",
+      "name": "Wavy Mullet",
+      "description": "Longer wavy hair flowing down sides"
+    },
+    {
+      "filename": "hair_7_0.png",
+      "name": "Shaggy Medium",
+      "description": "Messy shaggy medium-length hair"
+    },
+    {
+      "filename": "hair_7_1.png",
+      "name": "Textured Top",
+      "description": "Short hair with textured volume on top"
+    },
+    {
+      "filename": "hair_7_2.png",
+      "name": "Minimal Buzz",
+      "description": "Very short thin buzz cut"
+    },
+    {
+      "filename": "hair_7_3.png",
+      "name": "Full Afro",
+      "description": "Fuller afro with round shape"
+    },
+    {
+      "filename": "hair_7_4.png",
+      "name": "Wild Dreads",
+      "description": "Long wild freeform dreadlocks"
+    },
+    {
+      "filename": "hair_7_5.png",
+      "name": "Short Wavy Back",
+      "description": "Short wavy hair swept back"
+    },
+    {
+      "filename": "hair_7_6.png",
+      "name": "Clean Short",
+      "description": "Simple clean short haircut"
+    },
+    {
+      "filename": "hair_7_7.png",
+      "name": "Slicked Waves",
+      "description": "Slicked back hair with wave pattern"
+    }
+  ]
+}

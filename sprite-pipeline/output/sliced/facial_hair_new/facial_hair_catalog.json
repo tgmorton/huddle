@@ -1,0 +1,324 @@
+{
+  "facial_hair_styles": [
+    {
+      "filename": "facial_0_0.png",
+      "name": "Full Beard",
+      "description": "Full beard, dark, bushy with pointed sideburns"
+    },
+    {
+      "filename": "facial_0_1.png",
+      "name": "Horseshoe Mustache",
+      "description": "Horseshoe mustache, dark, extending down sides of mouth"
+    },
+    {
+      "filename": "facial_0_2.png",
+      "name": "Gray Full Beard",
+      "description": "Full beard, gray, medium length with rounded bottom"
+    },
+    {
+      "filename": "facial_0_3.png",
+      "name": "Stubble Chinstrap",
+      "description": "Light stubble chinstrap with thin mustache, gray"
+    },
+    {
+      "filename": "facial_0_4.png",
+      "name": "Small Goatee",
+      "description": "Small goatee with thin mustache, dark"
+    },
+    {
+      "filename": "facial_0_5.png",
+      "name": "Mutton Chops",
+      "description": "Mutton chops, dark, thick sideburns without chin hair"
+    },
+    {
+      "filename": "facial_0_6.png",
+      "name": "Friendly Mutton Chops",
+      "description": "Friendly mutton chops connected to mustache, dark"
+    },
+    {
+      "filename": "facial_0_7.png",
+      "name": "Gray Medium Beard",
+      "description": "Full beard, gray, medium length with connected sideburns"
+    },
+    {
+      "filename": "facial_1_0.png",
+      "name": "Horseshoe with Soul Patch",
+      "description": "Horseshoe mustache with soul patch, dark"
+    },
+    {
+      "filename": "facial_1_1.png",
+      "name": "Pointed Gray Beard",
+      "description": "Full beard, gray, pointed at chin with high sideburns"
+    },
+    {
+      "filename": "facial_1_2.png",
+      "name": "Rounded Full Beard",
+      "description": "Full beard, dark, rounded with connected mustache"
+    },
+    {
+      "filename": "facial_1_3.png",
+      "name": "Wide Goatee",
+      "description": "Short wide goatee, gray, textured"
+    },
+    {
+      "filename": "facial_1_4.png",
+      "name": "Bushy Gray Beard",
+      "description": "Full beard, gray, bushy and rounded"
+    },
+    {
+      "filename": "facial_1_5.png",
+      "name": "Clean Shaven",
+      "description": "Clean shaven, no facial hair"
+    },
+    {
+      "filename": "facial_1_6.png",
+      "name": "Thick Full Beard",
+      "description": "Full beard, dark, thick and bushy"
+    },
+    {
+      "filename": "facial_1_7.png",
+      "name": "Chevron Mustache",
+      "description": "Chevron mustache, gray, thick covering upper lip"
+    },
+    {
+      "filename": "facial_2_0.png",
+      "name": "Bushy Full Beard",
+      "description": "Full beard, dark, textured and bushy with wide coverage"
+    },
+    {
+      "filename": "facial_2_1.png",
+      "name": "Tapered Gray Beard",
+      "description": "Full beard, gray, pointed chin with tapered sides"
+    },
+    {
+      "filename": "facial_2_2.png",
+      "name": "Neat Gray Beard",
+      "description": "Full beard, gray, rounded with neat edges"
+    },
+    {
+      "filename": "facial_2_3.png",
+      "name": "Gray Mutton Chops",
+      "description": "Mutton chops with thin mustache, gray, no chin hair"
+    },
+    {
+      "filename": "facial_2_4.png",
+      "name": "Short Goatee",
+      "description": "Short rounded goatee, gray, chin and lip area only"
+    },
+    {
+      "filename": "facial_2_5.png",
+      "name": "Pointed Full Beard",
+      "description": "Full beard, dark, medium length with pointed bottom"
+    },
+    {
+      "filename": "facial_2_6.png",
+      "name": "Connected Mutton Chops",
+      "description": "Mutton chops connected to mustache, gray"
+    },
+    {
+      "filename": "facial_2_7.png",
+      "name": "Dark Horseshoe",
+      "description": "Horseshoe mustache with soul patch, dark"
+    },
+    {
+      "filename": "facial_3_0.png",
+      "name": "Soft Gray Beard",
+      "description": "Full beard, gray, rounded with soft edges"
+    },
+    {
+      "filename": "facial_3_1.png",
+      "name": "Pointed Goatee",
+      "description": "Pointed goatee, gray, chin only"
+    },
+    {
+      "filename": "facial_3_2.png",
+      "name": "Thin Mustache",
+      "description": "Small thin mustache, dark"
+    },
+    {
+      "filename": "facial_3_3.png",
+      "name": "Balbo Beard",
+      "description": "Balbo beard, dark mustache with disconnected chin beard"
+    },
+    {
+      "filename": "facial_3_4.png",
+      "name": "Circle Beard",
+      "description": "Circle beard, gray, goatee connected to mustache"
+    },
+    {
+      "filename": "facial_3_5.png",
+      "name": "Soul Patch",
+      "description": "Small soul patch, dark, minimal facial hair"
+    },
+    {
+      "filename": "facial_3_6.png",
+      "name": "Salt and Pepper Beard",
+      "description": "Full beard, dark with gray mix, medium length"
+    },
+    {
+      "filename": "facial_3_7.png",
+      "name": "Medium Full Beard",
+      "description": "Full beard, dark, medium length with thick mustache"
+    },
+    {
+      "filename": "facial_4_0.png",
+      "name": "Wide Bushy Beard",
+      "description": "Full beard, dark, textured bushy with wide coverage"
+    },
+    {
+      "filename": "facial_4_1.png",
+      "name": "Horseshoe Soul Patch",
+      "description": "Horseshoe mustache with soul patch, dark"
+    },
+    {
+      "filename": "facial_4_2.png",
+      "name": "Dark Mutton Chops",
+      "description": "Mutton chops, dark, thick sideburns without chin hair"
+    },
+    {
+      "filename": "facial_4_3.png",
+      "name": "Chin Goatee",
+      "description": "Small goatee, dark, chin only"
+    },
+    {
+      "filename": "facial_4_4.png",
+      "name": "Rounded Gray Beard",
+      "description": "Full beard, gray, bushy and rounded"
+    },
+    {
+      "filename": "facial_4_5.png",
+      "name": "Gray Pointed Beard",
+      "description": "Full beard, gray, medium length with pointed bottom"
+    },
+    {
+      "filename": "facial_4_6.png",
+      "name": "Tapered Beard",
+      "description": "Full beard, gray, medium length tapered sides"
+    },
+    {
+      "filename": "facial_4_7.png",
+      "name": "Mustache Soul Patch",
+      "description": "Thin mustache with soul patch, gray"
+    },
+    {
+      "filename": "facial_5_0.png",
+      "name": "Chinstrap",
+      "description": "Chinstrap beard, dark, along jawline connecting under chin"
+    },
+    {
+      "filename": "facial_5_1.png",
+      "name": "Five O'Clock Shadow",
+      "description": "Light stubble, scattered five o'clock shadow"
+    },
+    {
+      "filename": "facial_5_2.png",
+      "name": "Sparse Goatee",
+      "description": "Thin mustache with small goatee, gray, sparse"
+    },
+    {
+      "filename": "facial_5_3.png",
+      "name": "Medium Gray Beard",
+      "description": "Full beard, gray, medium length rounded"
+    },
+    {
+      "filename": "facial_5_4.png",
+      "name": "Bushy Rounded Beard",
+      "description": "Full beard, gray, bushy and rounded"
+    },
+    {
+      "filename": "facial_5_5.png",
+      "name": "Textured Gray Beard",
+      "description": "Full beard, gray, medium length textured"
+    },
+    {
+      "filename": "facial_5_6.png",
+      "name": "Dark Pointed Beard",
+      "description": "Full beard, dark, medium length pointed"
+    },
+    {
+      "filename": "facial_5_7.png",
+      "name": "Wide Sideburn Beard",
+      "description": "Full beard, dark, wide bushy with prominent sideburns"
+    },
+    {
+      "filename": "facial_6_0.png",
+      "name": "Chinstrap Soul Patch",
+      "description": "Chinstrap with soul patch, dark, along jawline"
+    },
+    {
+      "filename": "facial_6_1.png",
+      "name": "Full Gray Beard",
+      "description": "Full beard, gray, bushy and rounded"
+    },
+    {
+      "filename": "facial_6_2.png",
+      "name": "Mutton Chops Mustache",
+      "description": "Mutton chops, dark, thick sideburns with thin mustache"
+    },
+    {
+      "filename": "facial_6_3.png",
+      "name": "Textured Full Beard",
+      "description": "Full beard, dark, medium length textured"
+    },
+    {
+      "filename": "facial_6_4.png",
+      "name": "Gray Horseshoe",
+      "description": "Horseshoe mustache with soul patch, gray"
+    },
+    {
+      "filename": "facial_6_5.png",
+      "name": "Light Gray Beard",
+      "description": "Full beard, gray, pointed chin with light coverage"
+    },
+    {
+      "filename": "facial_6_6.png",
+      "name": "Thin Chinstrap",
+      "description": "Chinstrap, dark, thin beard along jawline"
+    },
+    {
+      "filename": "facial_6_7.png",
+      "name": "Medium Pointed Beard",
+      "description": "Full beard, dark, medium length pointed"
+    },
+    {
+      "filename": "facial_7_0.png",
+      "name": "Bushy Dark Beard",
+      "description": "Full beard, dark, bushy and textured"
+    },
+    {
+      "filename": "facial_7_1.png",
+      "name": "Dark Circle Beard",
+      "description": "Circle beard, dark, goatee connected to mustache"
+    },
+    {
+      "filename": "facial_7_2.png",
+      "name": "Pencil Mustache",
+      "description": "Small thin mustache, dark"
+    },
+    {
+      "filename": "facial_7_3.png",
+      "name": "Wide Pointed Beard",
+      "description": "Full beard, dark with gray, pointed with wide sideburns"
+    },
+    {
+      "filename": "facial_7_4.png",
+      "name": "Rounded Bushy Beard",
+      "description": "Full beard, gray, bushy and rounded"
+    },
+    {
+      "filename": "facial_7_5.png",
+      "name": "Textured Rounded Beard",
+      "description": "Full beard, gray, textured and rounded"
+    },
+    {
+      "filename": "facial_7_6.png",
+      "name": "Van Dyke",
+      "description": "Goatee with thin mustache, dark, disconnected"
+    },
+    {
+      "filename": "facial_7_7.png",
+      "name": "Anchor Beard",
+      "description": "Thin mustache with small goatee, gray"
+    }
+  ]
+}

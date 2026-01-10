@@ -1,0 +1,324 @@
+{
+  "facial_hair_styles": [
+    {
+      "filename": "facial_0_0.png",
+      "name": "Full Beard",
+      "description": "Thick, bushy full beard with high sideburns"
+    },
+    {
+      "filename": "facial_0_1.png",
+      "name": "Full Beard Trimmed",
+      "description": "Full beard with neater edges and visible texture"
+    },
+    {
+      "filename": "facial_0_2.png",
+      "name": "Circle Beard",
+      "description": "Goatee connected to mustache forming a circle around mouth"
+    },
+    {
+      "filename": "facial_0_3.png",
+      "name": "Soul Patch",
+      "description": "Small tuft of hair below lower lip only"
+    },
+    {
+      "filename": "facial_0_4.png",
+      "name": "Mustache with Soul Patch",
+      "description": "Thin mustache paired with soul patch"
+    },
+    {
+      "filename": "facial_0_5.png",
+      "name": "Mutton Chops",
+      "description": "Large bushy sideburns extending to jaw with chin stubble"
+    },
+    {
+      "filename": "facial_0_6.png",
+      "name": "Friendly Mutton Chops",
+      "description": "Sideburns connected to mustache, no chin hair"
+    },
+    {
+      "filename": "facial_0_7.png",
+      "name": "Horseshoe Mustache",
+      "description": "Thick mustache extending down sides of mouth"
+    },
+    {
+      "filename": "facial_1_0.png",
+      "name": "Stubble Horseshoe",
+      "description": "Textured horseshoe mustache with stubble texture"
+    },
+    {
+      "filename": "facial_1_1.png",
+      "name": "Anchor Beard",
+      "description": "Pointed chin beard with disconnected mustache"
+    },
+    {
+      "filename": "facial_1_2.png",
+      "name": "Long Sideburns",
+      "description": "Tall pointed sideburns with no chin or lip hair"
+    },
+    {
+      "filename": "facial_1_3.png",
+      "name": "Thin Circle Beard",
+      "description": "Narrow goatee connected to thin mustache"
+    },
+    {
+      "filename": "facial_1_4.png",
+      "name": "Short Boxed Beard",
+      "description": "Neat, trimmed full beard with clean edges"
+    },
+    {
+      "filename": "facial_1_5.png",
+      "name": "Handlebar Mustache",
+      "description": "Wide mustache extending outward at sides"
+    },
+    {
+      "filename": "facial_1_6.png",
+      "name": "Pointed Goatee",
+      "description": "Small triangular chin beard only"
+    },
+    {
+      "filename": "facial_1_7.png",
+      "name": "Verdi Beard",
+      "description": "Full rounded beard with prominent styled mustache"
+    },
+    {
+      "filename": "facial_2_0.png",
+      "name": "Scruffy Beard",
+      "description": "Gray/light textured short full beard with stubble"
+    },
+    {
+      "filename": "facial_2_1.png",
+      "name": "Ducktail Beard",
+      "description": "Full beard pointed at chin with neat sideburns"
+    },
+    {
+      "filename": "facial_2_2.png",
+      "name": "Balbo Beard",
+      "description": "Disconnected mustache and chin beard, no sideburns"
+    },
+    {
+      "filename": "facial_2_3.png",
+      "name": "Chevron Mustache",
+      "description": "Thick wide mustache covering upper lip"
+    },
+    {
+      "filename": "facial_2_4.png",
+      "name": "Thin Horseshoe",
+      "description": "Narrow horseshoe mustache"
+    },
+    {
+      "filename": "facial_2_5.png",
+      "name": "Scruffy Chinstrap",
+      "description": "Textured beard along jawline with stubble"
+    },
+    {
+      "filename": "facial_2_6.png",
+      "name": "Medium Beard",
+      "description": "Mid-length full beard with soft edges"
+    },
+    {
+      "filename": "facial_2_7.png",
+      "name": "Van Dyke",
+      "description": "Goatee with mustache and soul patch, disconnected from cheeks"
+    },
+    {
+      "filename": "facial_3_0.png",
+      "name": "Hollywoodian",
+      "description": "Full beard with clean cheeks, no sideburns connection"
+    },
+    {
+      "filename": "facial_3_1.png",
+      "name": "Painter's Brush",
+      "description": "Wide thick mustache with soul patch"
+    },
+    {
+      "filename": "facial_3_2.png",
+      "name": "Chinstrap",
+      "description": "Thin beard following jawline only, no mustache"
+    },
+    {
+      "filename": "facial_3_3.png",
+      "name": "Zappa",
+      "description": "Thick droopy mustache with large soul patch"
+    },
+    {
+      "filename": "facial_3_4.png",
+      "name": "Salt & Pepper Beard",
+      "description": "Graying textured full beard"
+    },
+    {
+      "filename": "facial_3_5.png",
+      "name": "Chin Curtain",
+      "description": "Beard along jawline connecting under chin, no mustache"
+    },
+    {
+      "filename": "facial_3_6.png",
+      "name": "Petit Goatee",
+      "description": "Small goatee with thin separated mustache"
+    },
+    {
+      "filename": "facial_3_7.png",
+      "name": "Fu Manchu",
+      "description": "Thin mustache extending down past mouth"
+    },
+    {
+      "filename": "facial_4_0.png",
+      "name": "Extended Goatee",
+      "description": "Rounded goatee connected to mustache"
+    },
+    {
+      "filename": "facial_4_1.png",
+      "name": "Garibaldi",
+      "description": "Full rounded beard with integrated mustache"
+    },
+    {
+      "filename": "facial_4_2.png",
+      "name": "Dali",
+      "description": "Thin upturned mustache with soul patch"
+    },
+    {
+      "filename": "facial_4_3.png",
+      "name": "Walrus Mustache",
+      "description": "Thick bushy droopy mustache"
+    },
+    {
+      "filename": "facial_4_4.png",
+      "name": "Thick Horseshoe",
+      "description": "Bold horseshoe mustache"
+    },
+    {
+      "filename": "facial_4_5.png",
+      "name": "Petite Circle Beard",
+      "description": "Small circle beard with thin outline"
+    },
+    {
+      "filename": "facial_4_6.png",
+      "name": "Five O'Clock Shadow",
+      "description": "Light stubble full beard"
+    },
+    {
+      "filename": "facial_4_7.png",
+      "name": "Clean Shaven",
+      "description": "No facial hair"
+    },
+    {
+      "filename": "facial_5_0.png",
+      "name": "Bandholz",
+      "description": "Long full beard with textured gray tones"
+    },
+    {
+      "filename": "facial_5_1.png",
+      "name": "Stubble Circle Beard",
+      "description": "Textured circle beard with stubble"
+    },
+    {
+      "filename": "facial_5_2.png",
+      "name": "Imperial",
+      "description": "Small pointed chin tuft below lower lip"
+    },
+    {
+      "filename": "facial_5_3.png",
+      "name": "Short Boxed Goatee",
+      "description": "Compact beard covering chin and lip area"
+    },
+    {
+      "filename": "facial_5_4.png",
+      "name": "Pencil Combo",
+      "description": "Thin pencil mustache with soul patch and chin puff"
+    },
+    {
+      "filename": "facial_5_5.png",
+      "name": "Clean Shaven 2",
+      "description": "No facial hair"
+    },
+    {
+      "filename": "facial_5_6.png",
+      "name": "Jawline Beard",
+      "description": "Beard along lower jaw without mustache"
+    },
+    {
+      "filename": "facial_5_7.png",
+      "name": "Textured Horseshoe",
+      "description": "Stubble-textured horseshoe mustache"
+    },
+    {
+      "filename": "facial_6_0.png",
+      "name": "Brett",
+      "description": "Full pointed beard with connected sideburns"
+    },
+    {
+      "filename": "facial_6_1.png",
+      "name": "Gray Horseshoe",
+      "description": "Textured gray horseshoe mustache"
+    },
+    {
+      "filename": "facial_6_2.png",
+      "name": "Pencil Mustache",
+      "description": "Thin narrow mustache above lip"
+    },
+    {
+      "filename": "facial_6_3.png",
+      "name": "Clean Shaven 3",
+      "description": "No facial hair"
+    },
+    {
+      "filename": "facial_6_4.png",
+      "name": "Wide Mutton Chops",
+      "description": "Large sideburns connecting to mustache"
+    },
+    {
+      "filename": "facial_6_5.png",
+      "name": "Horseshoe with Patch",
+      "description": "Horseshoe mustache with soul patch"
+    },
+    {
+      "filename": "facial_6_6.png",
+      "name": "Stubble Horseshoe 2",
+      "description": "Textured horseshoe with stubble look"
+    },
+    {
+      "filename": "facial_6_7.png",
+      "name": "Compact Horseshoe",
+      "description": "Small neat horseshoe mustache"
+    },
+    {
+      "filename": "facial_7_0.png",
+      "name": "Graying Full Beard",
+      "description": "Salt and pepper textured full beard"
+    },
+    {
+      "filename": "facial_7_1.png",
+      "name": "Stubble Chin Curtain",
+      "description": "Textured beard along jawline"
+    },
+    {
+      "filename": "facial_7_2.png",
+      "name": "Clean Shaven 4",
+      "description": "No facial hair"
+    },
+    {
+      "filename": "facial_7_3.png",
+      "name": "Thin Horseshoe with Patch",
+      "description": "Narrow horseshoe with soul patch"
+    },
+    {
+      "filename": "facial_7_4.png",
+      "name": "Stubble Box Beard",
+      "description": "Short compact textured beard"
+    },
+    {
+      "filename": "facial_7_5.png",
+      "name": "Short Full Beard",
+      "description": "Neat pointed full beard"
+    },
+    {
+      "filename": "facial_7_6.png",
+      "name": "Toothbrush",
+      "description": "Small rectangular mustache"
+    },
+    {
+      "filename": "facial_7_7.png",
+      "name": "Clean Shaven 5",
+      "description": "No facial hair"
+    }
+  ]
+}

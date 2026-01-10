@@ -70,12 +70,10 @@ Thumbs.db
 
 # Large binary files (keep in repo if needed, but ignore by default)
 *.pdf
-*.png
 *.jpg
 *.jpeg
 *.gif
 *.ico
-*.svg
 
 # Research data (large files)
 research/books/
@@ -86,5 +84,16 @@ research/data/cached/
 
 # Saved game data
 data/
-sprite-pipeline/output/
+
+# Sprite pipeline - keep source and sliced assets, ignore generated/test output
+sprite-pipeline/venv/
+sprite-pipeline/output/tinted/
+sprite-pipeline/output/assets/
+sprite-pipeline/output/composite_tests/
+sprite-pipeline/output/composites/
+sprite-pipeline/output/portraits/
+sprite-pipeline/output/tint_demo/
+sprite-pipeline/output/blonde_test/
+sprite-pipeline/output/normalized/
+sprite-pipeline/output/*.png
 

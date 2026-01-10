@@ -1,0 +1,964 @@
+{
+  "faces": [
+    {
+      "filename": "face_skin0_width0.png",
+      "description": "A man with a very fair complexion and a narrow, angular face, featuring light eyes and sharply defined cheekbones.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width0.png",
+      "description": "A man with a fair complexion and an elongated face shape, with light eyes and a lean, angular bone structure.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width0.png",
+      "description": "A man with a light complexion and a slender face, featuring hazel eyes and well-defined facial features.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width0.png",
+      "description": "A man with a light olive complexion and a narrow face, with hazel eyes and prominent cheekbones.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width0.png",
+      "description": "A man with a medium-brown complexion and a lean face, featuring brown eyes and a strong, defined jawline.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width0.png",
+      "description": "A man with a medium-dark complexion and a narrow face, with brown eyes and sculpted facial features.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width0.png",
+      "description": "A man with a dark complexion and an angular face, featuring brown eyes and high, prominent cheekbones.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width0.png",
+      "description": "A man with a deep dark complexion and a slender face, with dark eyes and a strong bone structure.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "face_skin0_width1.png",
+      "description": "A man with a very fair complexion and a slim face, featuring light blue eyes and refined features.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width1.png",
+      "description": "A man with a fair complexion and a lean face shape, with light eyes and subtle, even features.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width1.png",
+      "description": "A man with a light complexion and a proportionate face, featuring light eyes and a balanced bone structure.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width1.png",
+      "description": "A man with a light olive complexion and a lean face, with hazel eyes and well-defined features.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width1.png",
+      "description": "A man with a medium-brown complexion and a trim face, featuring brown eyes and an even, symmetrical appearance.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width1.png",
+      "description": "A man with a medium-dark complexion and a lean face, with brown eyes and a composed expression.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width1.png",
+      "description": "A man with a dark complexion and a slender face, featuring brown eyes and defined cheekbones.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width1.png",
+      "description": "A man with a deep dark complexion and a trim face shape, with dark eyes and a steady gaze.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "face_skin0_width2.png",
+      "description": "A man with a very fair complexion and a balanced face shape, featuring light eyes and an even appearance.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width2.png",
+      "description": "A man with a fair complexion and a well-proportioned face, with light eyes and clean features.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width2.png",
+      "description": "A man with a light complexion and a symmetrical face, featuring blue-green eyes and a neutral expression.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width2.png",
+      "description": "A man with a light olive complexion and a balanced face, with light eyes and an athletic appearance.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width2.png",
+      "description": "A man with a medium-brown complexion and a proportionate face, featuring brown eyes and a confident look.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width2.png",
+      "description": "A man with a medium-dark complexion and a balanced face shape, with brown eyes and composed features.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width2.png",
+      "description": "A man with a dark complexion and a well-proportioned face, featuring brown eyes and a calm demeanor.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width2.png",
+      "description": "A man with a deep dark complexion and a balanced face, with dark eyes and a focused expression.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "face_skin0_width3.png",
+      "description": "A man with a very fair complexion and a medium face shape, featuring light blue eyes and even features.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width3.png",
+      "description": "A man with a fair complexion and a well-defined face, with light eyes and a squared jawline.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width3.png",
+      "description": "A man with a light complexion and a proportionate face, featuring green-gray eyes and a direct gaze.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width3.png",
+      "description": "A man with a light olive complexion and a medium face, with hazel eyes and strong features.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width3.png",
+      "description": "A man with a medium-brown complexion and a well-structured face, featuring brown eyes and a composed look.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width3.png",
+      "description": "A man with a medium-dark complexion and a proportionate face, with brown eyes and an assured expression.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width3.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes and a serious demeanor.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width3.png",
+      "description": "A man with a deep dark complexion and a medium face shape, with dark eyes and prominent features.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "face_skin0_width4.png",
+      "description": "A man with a very fair complexion and a fuller face, featuring light eyes and a sturdy appearance.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width4.png",
+      "description": "A man with a fair complexion and a broader face shape, with light eyes and solid features.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width4.png",
+      "description": "A man with a light complexion and a medium-full face, featuring hazel eyes and a strong jaw.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width4.png",
+      "description": "A man with a light olive complexion and a fuller face, with light brown eyes and defined features.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width4.png",
+      "description": "A man with a medium-brown complexion and a broad face, featuring brown eyes and a powerful build.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width4.png",
+      "description": "A man with a medium-dark complexion and a fuller face shape, with brown eyes and a solid presence.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width4.png",
+      "description": "A man with a dark complexion and a broad face, featuring brown eyes and a commanding appearance.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width4.png",
+      "description": "A man with a deep dark complexion and a fuller face, with dark eyes and strong bone structure.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "face_skin0_width5.png",
+      "description": "A man with a very fair complexion and a broad face, featuring light eyes and a robust appearance.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width5.png",
+      "description": "A man with a fair complexion and a wide face shape, with light eyes and a solid jawline.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width5.png",
+      "description": "A man with a light complexion and a full face, featuring gray-green eyes and a strong presence.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width5.png",
+      "description": "A man with a light olive complexion and a broad face, with hazel eyes and a muscular build.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width5.png",
+      "description": "A man with a medium-brown complexion and a wide face, featuring brown eyes and an imposing frame.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width5.png",
+      "description": "A man with a medium-dark complexion and a broad face shape, with brown eyes and a powerful look.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width5.png",
+      "description": "A man with a dark complexion and a full face, featuring brown eyes and a substantial build.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width5.png",
+      "description": "A man with a deep dark complexion and a broad face, with dark eyes and a formidable presence.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "face_skin0_width6.png",
+      "description": "A man with a very fair complexion and a wide, sturdy face, featuring light eyes and a heavyset build.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width6.png",
+      "description": "A man with a fair complexion and a full face shape, with light eyes and broad features.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width6.png",
+      "description": "A man with a light complexion and a wide face, featuring hazel eyes and a thick neck.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width6.png",
+      "description": "A man with a light olive complexion and a full face, with light brown eyes and a stocky frame.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width6.png",
+      "description": "A man with a medium-brown complexion and a wide face, featuring brown eyes and a thick build.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width6.png",
+      "description": "A man with a medium-dark complexion and a full face shape, with brown eyes and broad shoulders.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width6.png",
+      "description": "A man with a dark complexion and a wide, sturdy face, featuring brown eyes and a powerful frame.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width6.png",
+      "description": "A man with a deep dark complexion and a broad face, with dark eyes and a solid, imposing presence.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "face_skin0_width7.png",
+      "description": "A man with a very fair complexion and a round, heavyset face, featuring light eyes and a large, powerful build.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "face_skin1_width7.png",
+      "description": "A man with a fair complexion and a wide, full face, with light eyes and a thick, muscular neck.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "face_skin2_width7.png",
+      "description": "A man with a light complexion and a broad, heavy face, featuring hazel eyes and a massive frame.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "face_skin3_width7.png",
+      "description": "A man with a light olive complexion and a round, full face, with brown eyes and an imposing stature.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "face_skin4_width7.png",
+      "description": "A man with a medium-brown complexion and a wide, powerful face, featuring brown eyes and a heavyweight build.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "face_skin5_width7.png",
+      "description": "A man with a medium-dark complexion and a broad, full face, with brown eyes and a dominant physical presence.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "face_skin6_width7.png",
+      "description": "A man with a dark complexion and a wide, heavy face, featuring brown eyes and a formidable, muscular frame.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "face_skin7_width7.png",
+      "description": "A man with a deep dark complexion and a round, powerful face, with dark eyes and an imposing, heavyweight build.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch1/face_0_0.png",
+      "description": "A man with a fair complexion and a lean face, featuring light blue-green eyes.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "batch1/face_0_1.png",
+      "description": "A man with a light olive complexion and a balanced face, featuring brown eyes and a visible facial scar on the cheek.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "batch1/face_0_2.png",
+      "description": "A man with a fair complexion and a lean face, featuring light blue eyes and a facial scar near the nose.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_0_3.png",
+      "description": "A man with a fair, slightly ruddy complexion and a proportionate face, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_0_4.png",
+      "description": "A man with a fair complexion and a strong jawline, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_0_5.png",
+      "description": "A man with a fair complexion and a broad face, featuring blue eyes and a facial mark on the nose.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_0_6.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_0_7.png",
+      "description": "A man with a fair complexion and a broad face, featuring blue eyes.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_1_0.png",
+      "description": "A man with a very fair complexion and an angular face, featuring bright blue eyes.",
+      "skin_tone": 0
+    },
+    {
+      "filename": "batch1/face_1_1.png",
+      "description": "A man with a fair, tanned complexion and a strong face, featuring light eyes and subtle facial marks.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_1_2.png",
+      "description": "A man with a fair complexion and a balanced face, featuring blue-gray eyes and a scar across the nose.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_1_3.png",
+      "description": "A man with a fair complexion and a proportionate face, featuring light blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_1_4.png",
+      "description": "A man with a fair complexion and a sturdy face, featuring blue eyes and a prominent facial scar on the forehead.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_1_5.png",
+      "description": "A man with a fair, lightly tanned complexion and a medium face, featuring light eyes.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_1_6.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_1_7.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch1/face_2_0.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring blue eyes.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_2_1.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch1/face_2_2.png",
+      "description": "A man with a fair complexion and a lean face, featuring blue eyes and a scar on the nose.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_2_3.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_2_4.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring gray-blue eyes.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_2_5.png",
+      "description": "A man with a fair complexion and a sturdy face, featuring light eyes and a facial scar on the cheek.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_2_6.png",
+      "description": "A man with a light olive complexion and a broad face, featuring light eyes.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "batch1/face_2_7.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_3_0.png",
+      "description": "A man with a fair complexion and a balanced face, featuring blue-gray eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_3_1.png",
+      "description": "A man with a fair, ruddy complexion and a broad face, featuring light eyes and multiple facial scars.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_3_2.png",
+      "description": "A man with a fair, tanned complexion and a strong face, featuring light eyes and a scar on the nose.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_3_3.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_3_4.png",
+      "description": "A man with a light olive complexion and a strong face, featuring brown eyes and a facial scar on the nose.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "batch1/face_3_5.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_3_6.png",
+      "description": "A man with a medium-brown complexion and a strong face, featuring brown eyes and a facial scar on the nose.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_3_7.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_4_0.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring blue-gray eyes.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_4_1.png",
+      "description": "A man with a medium-brown complexion and a strong face, featuring brown eyes and facial scarring.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_4_2.png",
+      "description": "A man with a medium-dark complexion and a balanced face, featuring brown eyes and a facial scar.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "batch1/face_4_3.png",
+      "description": "A man with a fair complexion and a sturdy face, featuring blue eyes and a prominent facial scar.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_4_4.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_4_5.png",
+      "description": "A man with a fair complexion and a strong face, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_4_6.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_4_7.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_5_0.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch1/face_5_1.png",
+      "description": "A man with a fair, ruddy complexion and a broad face, featuring blue eyes and prominent facial scarring.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_5_2.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_5_3.png",
+      "description": "A man with a fair complexion and a lean face, featuring blue eyes and a large facial scar.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_5_4.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_5_5.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring light eyes.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_5_6.png",
+      "description": "A man with a fair complexion and a balanced face, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_5_7.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_6_0.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring blue eyes and a facial scar on the nose.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_6_1.png",
+      "description": "A man with a light olive complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "batch1/face_6_2.png",
+      "description": "A man with a medium-brown complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_6_3.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch1/face_6_4.png",
+      "description": "A man with a fair complexion and a balanced face, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_6_5.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch1/face_6_6.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_6_7.png",
+      "description": "A man with a fair complexion and a lean face, featuring blue eyes and multiple facial scars.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_7_0.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring blue eyes and a scar on the nose.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_7_1.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch1/face_7_2.png",
+      "description": "A man with a fair complexion and a lean face, featuring blue-gray eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_7_3.png",
+      "description": "A man with a fair, ruddy complexion and a broad face, featuring light eyes.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_7_4.png",
+      "description": "A man with a fair complexion and a strong face, featuring blue eyes and a prominent facial scar on the cheek.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch1/face_7_5.png",
+      "description": "A man with a fair complexion and a sturdy face, featuring blue eyes and multiple facial scars.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_7_6.png",
+      "description": "A man with a fair complexion and a lean face, featuring blue eyes and a scar on the nose.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch1/face_7_7.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_0_0.png",
+      "description": "A man with a fair complexion and a broad face, featuring blue eyes and a prominent facial scar on the cheek.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch2/face_0_1.png",
+      "description": "A man with a fair, ruddy complexion and a strong face, featuring blue eyes and facial scarring on the nose.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_0_2.png",
+      "description": "A man with a fair complexion and a balanced face, featuring blue eyes and a facial scar.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_0_3.png",
+      "description": "A man with a fair complexion and a sturdy face, featuring blue eyes and multiple facial scars.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_0_4.png",
+      "description": "A man with a fair complexion and a strong face, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_0_5.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring blue eyes and a scar on the nose.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch2/face_0_6.png",
+      "description": "A man with a fair complexion and a balanced face, featuring blue eyes and facial scarring.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_0_7.png",
+      "description": "A man with a fair complexion and a broad face, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_1_0.png",
+      "description": "A man with a fair complexion and a sturdy face, featuring blue-gray eyes and multiple prominent facial scars.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_1_1.png",
+      "description": "A man with a fair complexion and a strong face, featuring blue eyes.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_1_2.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes and a facial scar.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_1_3.png",
+      "description": "A man with a light olive complexion and a strong face, featuring brown eyes and facial scarring.",
+      "skin_tone": 3
+    },
+    {
+      "filename": "batch2/face_1_4.png",
+      "description": "A man with a medium-dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "batch2/face_1_5.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes and a small facial scar.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_1_6.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_1_7.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_2_0.png",
+      "description": "A man with a fair, tanned complexion and a broad face, featuring light eyes and multiple facial scars.",
+      "skin_tone": 2
+    },
+    {
+      "filename": "batch2/face_2_1.png",
+      "description": "A man with a fair complexion and a lean face, featuring light eyes and a prominent facial scar.",
+      "skin_tone": 1
+    },
+    {
+      "filename": "batch2/face_2_2.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_2_3.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_2_4.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_2_5.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_2_6.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_2_7.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_3_0.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes and a facial scar on the cheek.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_3_1.png",
+      "description": "A man with a medium-brown complexion and a strong face, featuring brown eyes and prominent facial scarring across the forehead.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_3_2.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_3_3.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_3_4.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_3_5.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_3_6.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_3_7.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_4_0.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_4_1.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_4_2.png",
+      "description": "A man with a medium-dark complexion and a balanced face, featuring brown eyes and a facial scar on the cheek.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "batch2/face_4_3.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_4_4.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_4_5.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes and facial scarring.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_4_6.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_4_7.png",
+      "description": "A man with a medium-dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 5
+    },
+    {
+      "filename": "batch2/face_5_0.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_5_1.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_5_2.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_5_3.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes and a facial scar on the cheek.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_5_4.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_5_5.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes and facial scarring.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_5_6.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_5_7.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_6_0.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes and a facial scar on the nose.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_6_1.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_6_2.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_6_3.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_6_4.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_6_5.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_6_6.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_6_7.png",
+      "description": "A man with a medium-brown complexion and a strong face, featuring brown eyes and multiple prominent facial scars.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_7_0.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_7_1.png",
+      "description": "A man with a medium-brown complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 4
+    },
+    {
+      "filename": "batch2/face_7_2.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_7_3.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_7_4.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes and a facial scar on the cheek.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_7_5.png",
+      "description": "A man with a dark complexion and a strong face, featuring brown eyes and multiple prominent facial scars.",
+      "skin_tone": 6
+    },
+    {
+      "filename": "batch2/face_7_6.png",
+      "description": "A man with a deep dark complexion and a strong face, featuring brown eyes.",
+      "skin_tone": 7
+    },
+    {
+      "filename": "batch2/face_7_7.png",
+      "description": "A man with a dark complexion and a balanced face, featuring brown eyes.",
+      "skin_tone": 6
+    }
+  ]
+}

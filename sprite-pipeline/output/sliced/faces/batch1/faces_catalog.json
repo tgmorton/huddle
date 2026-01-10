@@ -1,0 +1,452 @@
+{
+  "faces": [
+    {
+      "filename": "face_0_0.png",
+      "row": 0,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_0_1.png",
+      "row": 0,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_0_2.png",
+      "row": 0,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_0_3.png",
+      "row": 0,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_0_4.png",
+      "row": 0,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_0_5.png",
+      "row": 0,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_0_6.png",
+      "row": 0,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_0_7.png",
+      "row": 0,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_0.png",
+      "row": 1,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_1.png",
+      "row": 1,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_2.png",
+      "row": 1,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_3.png",
+      "row": 1,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_4.png",
+      "row": 1,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_5.png",
+      "row": 1,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_6.png",
+      "row": 1,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_1_7.png",
+      "row": 1,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_0.png",
+      "row": 2,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_1.png",
+      "row": 2,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_2.png",
+      "row": 2,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_3.png",
+      "row": 2,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_4.png",
+      "row": 2,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_5.png",
+      "row": 2,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_6.png",
+      "row": 2,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_2_7.png",
+      "row": 2,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_0.png",
+      "row": 3,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_1.png",
+      "row": 3,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_2.png",
+      "row": 3,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_3.png",
+      "row": 3,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_4.png",
+      "row": 3,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_5.png",
+      "row": 3,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_6.png",
+      "row": 3,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_3_7.png",
+      "row": 3,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_0.png",
+      "row": 4,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_1.png",
+      "row": 4,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_2.png",
+      "row": 4,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_3.png",
+      "row": 4,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_4.png",
+      "row": 4,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_5.png",
+      "row": 4,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_6.png",
+      "row": 4,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_4_7.png",
+      "row": 4,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_0.png",
+      "row": 5,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_1.png",
+      "row": 5,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_2.png",
+      "row": 5,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_3.png",
+      "row": 5,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_4.png",
+      "row": 5,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_5.png",
+      "row": 5,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_6.png",
+      "row": 5,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_5_7.png",
+      "row": 5,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_0.png",
+      "row": 6,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_1.png",
+      "row": 6,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_2.png",
+      "row": 6,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_3.png",
+      "row": 6,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_4.png",
+      "row": 6,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_5.png",
+      "row": 6,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_6.png",
+      "row": 6,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_6_7.png",
+      "row": 6,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_0.png",
+      "row": 7,
+      "col": 0,
+      "skin_tone": 0,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_1.png",
+      "row": 7,
+      "col": 1,
+      "skin_tone": 1,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_2.png",
+      "row": 7,
+      "col": 2,
+      "skin_tone": 2,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_3.png",
+      "row": 7,
+      "col": 3,
+      "skin_tone": 3,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_4.png",
+      "row": 7,
+      "col": 4,
+      "skin_tone": 4,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_5.png",
+      "row": 7,
+      "col": 5,
+      "skin_tone": 5,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_6.png",
+      "row": 7,
+      "col": 6,
+      "skin_tone": 6,
+      "batch": "batch1"
+    },
+    {
+      "filename": "face_7_7.png",
+      "row": 7,
+      "col": 7,
+      "skin_tone": 7,
+      "batch": "batch1"
+    }
+  ]
+}
