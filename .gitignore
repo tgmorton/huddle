@@ -58,6 +58,9 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 
+# Stray screenshots at root
+/CleanShot*.png
+
 # Environment variables
 .env
 .env.local
