@@ -36,6 +36,7 @@ from huddle.core.ai.gm_archetypes import (
 if TYPE_CHECKING:
     from huddle.core.models.player import Player
     from huddle.core.models.team_identity import TeamIdentity
+    from huddle.core.ai.position_planner import PositionPlan, AcquisitionPath
 
 
 # Legacy position value tiers (kept for fallback)
@@ -686,6 +687,7 @@ class DraftAI:
         current_pick: int,
         target_player: "Player",
         inventory: DraftPickInventory,
+        position_plan: Optional["PositionPlan"] = None,
     ) -> bool:
         """
         Evaluate if team should trade up for a player.
@@ -695,12 +697,33 @@ class DraftAI:
             current_pick: Team's current pick
             target_player: Player they want
             inventory: Team's draft pick inventory
+            position_plan: Team's position acquisition plan (for commitment awareness)
         """
         # Evaluate player
         evaluation = self.evaluate_prospect(target_player, target_pick)
 
+        # Base threshold for trading up
+        base_threshold = 80
+
+        # Commitment-aware threshold adjustment
+        if position_plan:
+            # Import here to avoid circular imports
+            from huddle.core.ai.position_planner import AcquisitionPath
+
+            need = position_plan.needs.get(target_player.position.value)
+            if need and need.acquisition_path == AcquisitionPath.DRAFT_EARLY:
+                # Team PLANNED to draft this position early - lower threshold
+                base_threshold = 75
+
+                # If this is their specific target, even more willing
+                if need.target_player_id and str(need.target_player_id) == str(target_player.id):
+                    base_threshold = 70
+            elif need and need.acquisition_path in {AcquisitionPath.FREE_AGENCY, AcquisitionPath.KEEP_CURRENT}:
+                # Team didn't plan to draft this position - higher threshold
+                base_threshold = 90
+
         # Is player worth it?
-        if evaluation.draft_value < 80:
+        if evaluation.draft_value < base_threshold:
             return False  # Not worth trading up for
 
         # Can we afford it?
@@ -733,6 +756,8 @@ class DraftAI:
         self,
         current_pick: int,
         best_available: ProspectEvaluation,
+        position_plan: Optional["PositionPlan"] = None,
+        available_prospects: list = None,
     ) -> bool:
         """
         Evaluate if team should trade down from current pick.
@@ -740,8 +765,34 @@ class DraftAI:
         Args:
             current_pick: Team's current pick
             best_available: Best player evaluation at this spot
+            position_plan: Team's position acquisition plan (for commitment awareness)
+            available_prospects: List of available prospects (for checking plan targets)
         """
         expected = self._pick_to_expected_grade(current_pick)
+
+        # Commitment-aware check: if planned position is available, DON'T trade down
+        if position_plan:
+            from huddle.core.ai.position_planner import AcquisitionPath
+
+            # Check if best available matches a DRAFT_EARLY/MID position
+            best_pos = getattr(best_available, 'position', None)
+            if best_pos:
+                need = position_plan.needs.get(best_pos)
+                if need and need.acquisition_path in {AcquisitionPath.DRAFT_EARLY, AcquisitionPath.DRAFT_MID}:
+                    # This is a planned position - DON'T trade down
+                    return False
+
+            # If NO planned positions are available at this pick, MORE willing to trade down
+            if available_prospects:
+                has_planned_target = any(
+                    p for p in position_plan.draft_board
+                    if any(ap.player_id == p.player_id for ap in available_prospects)
+                    and p.grade >= expected * 0.8  # Available and good enough
+                )
+                if not has_planned_target:
+                    # No good targets from our board - strongly prefer trading down
+                    if self.status.current_status not in {TeamStatus.DYNASTY, TeamStatus.CONTENDING}:
+                        return True
 
         # If best available is below threshold, consider trading down
         if best_available.raw_grade < expected * self.config.trade_down_threshold:

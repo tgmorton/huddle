@@ -30,6 +30,7 @@ def _load_model(filename: str) -> dict:
 PHYSICAL_MODEL = _load_model("physical_profile_model.json")
 CONTRACT_MODEL = _load_model("contract_model.json")
 DRAFT_MODEL = _load_model("draft_model.json")
+POSITION_VALUE_MODEL = _load_model("position_value_model.json")
 
 
 # =============================================================================
@@ -449,3 +450,112 @@ def generate_prospect_ratings(pick_number: int) -> dict:
         "potential": potential,
         "expected_value": get_pick_expected_value(pick_number),
     }
+
+
+# =============================================================================
+# Position Value Functions (WAR & Market Efficiency)
+# =============================================================================
+
+# Default multipliers if model not loaded
+_DEFAULT_MULTIPLIERS = {
+    "QB": 5.0, "DE": 2.5, "CB": 2.0, "WR": 2.2, "LT": 1.5, "RT": 1.5,
+    "LG": 1.3, "RG": 1.3, "C": 1.2, "TE": 1.3, "DT": 1.6, "OLB": 1.5,
+    "MLB": 1.0, "ILB": 1.0, "FS": 1.2, "SS": 1.1, "RB": 0.6, "FB": 0.4,
+    "NT": 0.8, "K": 0.4, "P": 0.3, "LS": 0.2,
+}
+
+
+def get_position_multiplier(position: str) -> float:
+    """
+    Get position value multiplier for roster/contract decisions.
+
+    Higher = more valuable position (invest in draft/development).
+    Lower = less valuable (avoid big contracts, find cheap replacements).
+
+    Based on WAR analysis and market efficiency research.
+    """
+    hints = POSITION_VALUE_MODEL.get("implementation_hints", {})
+    multipliers = hints.get("recommended_multipliers", _DEFAULT_MULTIPLIERS)
+    return multipliers.get(position, 1.0)
+
+
+def get_position_war(position: str) -> dict:
+    """
+    Get WAR (Wins Above Replacement) estimates for a position.
+
+    Returns:
+        Dict with elite_war, median_war, war_range, market_efficiency
+    """
+    war_data = POSITION_VALUE_MODEL.get("pff_war_estimates", {})
+    positions = war_data.get("positions", {})
+    return positions.get(position, {
+        "elite_war": 0.5,
+        "median_war": 0.2,
+        "war_range": 0.6,
+        "market_efficiency": 0.2,
+    })
+
+
+def get_position_win_contribution(position: str) -> dict:
+    """
+    Get win contribution data for a position group.
+
+    Positive win_correlation = investing more correlates with wins.
+    Negative = overspending hurts (market inefficiency).
+
+    Returns:
+        Dict with win_correlation, avg_cap_share_pct, high_vs_low_win_diff
+    """
+    win_data = POSITION_VALUE_MODEL.get("win_contribution", {})
+    by_group = win_data.get("by_position_group", {})
+
+    # Map specific positions to groups
+    pos_to_group = {
+        "QB": "QB", "RB": "RB", "FB": "RB", "WR": "WR", "TE": "TE",
+        "LT": "OL", "LG": "OL", "C": "OL", "RG": "OL", "RT": "OL",
+        "DE": "DL", "DT": "DL", "NT": "DL", "EDGE": "DL",
+        "MLB": "LB", "ILB": "LB", "OLB": "LB",
+        "CB": "CB", "FS": "S", "SS": "S",
+        "K": "K", "P": "P", "LS": "LS",
+    }
+    group = pos_to_group.get(position, position)
+
+    return by_group.get(group, {
+        "win_correlation": 0.0,
+        "avg_cap_share_pct": 5.0,
+        "high_vs_low_win_diff": 0.0,
+    })
+
+
+def is_market_inefficient(position: str) -> bool:
+    """
+    Check if a position is market inefficient (overpaid relative to value).
+
+    True = avoid big FA contracts, draft/develop instead.
+    """
+    war = get_position_war(position)
+    return war.get("market_efficiency", 0.2) < 0.15
+
+
+def get_replacement_level_cost(position: str) -> int:
+    """
+    Get replacement-level salary (in thousands) for a position.
+
+    This is roughly the 10th percentile salary - league minimum territory.
+    """
+    replacement = POSITION_VALUE_MODEL.get("replacement_value", {})
+    by_position = replacement.get("by_position", {})
+    pos_data = by_position.get(position, {})
+    return int(pos_data.get("replacement_salary_k", 0))
+
+
+def get_elite_salary(position: str) -> int:
+    """
+    Get elite salary (in thousands) for a position.
+
+    This is roughly the 90th percentile - top of market.
+    """
+    replacement = POSITION_VALUE_MODEL.get("replacement_value", {})
+    by_position = replacement.get("by_position", {})
+    pos_data = by_position.get(position, {})
+    return int(pos_data.get("elite_salary_k", 10) * 1000)  # Convert to thousands

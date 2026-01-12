@@ -11,7 +11,7 @@ Handles:
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 import random
 
 from huddle.core.draft.picks import DraftPick, DraftPickInventory, get_pick_value
@@ -19,6 +19,12 @@ from huddle.core.models.team_identity import (
     TeamStatus,
     TeamStatusState,
     TradePhilosophy,
+)
+from huddle.generators.calibration import get_position_multiplier
+from huddle.core.ai.position_planner import (
+    PositionPlan,
+    AcquisitionPath,
+    DraftProspect,
 )
 
 if TYPE_CHECKING:
@@ -28,11 +34,22 @@ if TYPE_CHECKING:
 
 
 # Player value by overall rating (in draft pick value points)
-def player_trade_value(overall: int, age: int, contract_years: int) -> int:
+def player_trade_value(
+    overall: int,
+    age: int,
+    contract_years: int,
+    position: Optional[str] = None,
+) -> int:
     """
     Calculate player trade value in draft pick value points.
 
     A 1st round pick is worth ~1000-3000 points on Jimmy Johnson chart.
+
+    Args:
+        overall: Player's overall rating
+        age: Player's age
+        contract_years: Years remaining on contract
+        position: Player's position (optional, for position value adjustment)
     """
     # Base value from overall
     if overall >= 90:
@@ -70,7 +87,16 @@ def player_trade_value(overall: int, age: int, contract_years: int) -> int:
     else:
         contract_mult = 0.4  # Expiring, may walk
 
-    return int(base * age_mult * contract_mult)
+    # Position value adjustment (WAR-based)
+    # Normalizes around 1.0 so QB (5.0) gets ~1.5x, RB (0.6) gets ~0.7x
+    if position:
+        raw_mult = get_position_multiplier(position)
+        # Compress range: map 0.2-5.0 to 0.6-1.6 for reasonable trade adjustments
+        position_mult = 0.6 + (raw_mult - 0.2) * (1.0 / 4.8)
+    else:
+        position_mult = 1.0
+
+    return int(base * age_mult * contract_mult * position_mult)
 
 
 @dataclass
@@ -102,6 +128,7 @@ class TradeAsset:
                 self.player_overall,
                 self.player_age or 25,
                 self.contract_years or 2,
+                self.player_position,
             )
         elif self.asset_type == "pick" and self.pick:
             self.value = self.pick.estimated_value
@@ -169,12 +196,14 @@ class TradeAI:
         team_status: TeamStatusState,
         pick_inventory: DraftPickInventory,
         team_needs: dict[str, float],
+        position_plan: Optional[PositionPlan] = None,
     ):
         self.team_id = team_id
         self.identity = team_identity
         self.status = team_status
         self.picks = pick_inventory
         self.needs = team_needs
+        self.position_plan = position_plan
 
         # Configure based on team identity and status
         self._configure_behavior()
@@ -220,10 +249,128 @@ class TradeAI:
             self.pick_value_modifier = 1.2
             self.player_value_modifier = 0.9
 
+    def _project_pick_position(
+        self,
+        pick: DraftPick,
+        draft_prospects: Optional[List[DraftProspect]] = None,
+    ) -> Optional[str]:
+        """
+        Project what position player would be drafted at this pick.
+
+        Uses mock draft logic or best available if no prospects provided.
+        """
+        if not draft_prospects:
+            return None
+
+        # Get pick's overall position (e.g., pick 15 overall)
+        overall_pick = getattr(pick, "overall_pick", None)
+        if overall_pick is None:
+            # Estimate from round and pick number
+            pick_num = getattr(pick, "pick_number", None) or 16
+            overall_pick = (pick.round - 1) * 32 + pick_num
+
+        # Find highest graded prospect that would fall to this pick
+        # (prospects with projected_pick >= our pick are available)
+        available = [p for p in draft_prospects if p.projected_pick >= overall_pick - 5]
+        if not available:
+            return None
+
+        # Get highest grade among available
+        best = max(available, key=lambda p: p.grade)
+        return best.position
+
+    def get_pick_commitment_premium(
+        self,
+        pick: DraftPick,
+        draft_prospects: Optional[List[DraftProspect]] = None,
+    ) -> float:
+        """
+        Calculate how much MORE this team values a pick based on their plan.
+
+        Returns multiplier (1.0 = market, 1.5 = very committed).
+        A team with #1 pick + elite QB prospect + DECIDED to draft QB
+        values that pick at 1.4-1.6x market value.
+        """
+        if not self.position_plan:
+            return 1.0  # No plan = market value
+
+        # Project what player could be drafted at this pick
+        projected_position = self._project_pick_position(pick, draft_prospects)
+
+        if not projected_position:
+            return 1.0
+
+        need = self.position_plan.needs.get(projected_position)
+        if not need:
+            return 1.0
+
+        # Calculate commitment premium based on acquisition path
+        path = need.acquisition_path
+
+        if path == AcquisitionPath.UNDECIDED:
+            return 1.0  # Market value
+        elif path == AcquisitionPath.DRAFT_EARLY:
+            # High commitment - check if this IS the pick they're planning to use
+            if pick.round == 1:
+                # 1.4 base + up to 0.2 for high need (1.4-1.6x range)
+                return 1.4 + (need.need_score * 0.2)
+            return 1.2
+        elif path == AcquisitionPath.DRAFT_MID:
+            if pick.round in (3, 4):
+                return 1.25
+            return 1.1
+        elif path == AcquisitionPath.DRAFT_LATE:
+            return 1.1
+        elif path == AcquisitionPath.FREE_AGENCY:
+            # Plan to use FA, picks less valuable to us
+            return 0.9
+        elif path == AcquisitionPath.KEEP_CURRENT:
+            # Don't need this pick for this position
+            return 1.0
+
+        return 1.0
+
+    def get_player_commitment_premium(
+        self,
+        player_position: str,
+        player_id: Optional[str] = None,
+    ) -> float:
+        """
+        Calculate how much MORE this team values keeping a player.
+
+        Returns multiplier for valuing player (1.0 = market, 1.5 = very committed to keep).
+        """
+        if not self.position_plan:
+            return 1.0
+
+        need = self.position_plan.needs.get(player_position)
+        if not need:
+            return 1.0
+
+        path = need.acquisition_path
+
+        if path == AcquisitionPath.KEEP_CURRENT:
+            # Team plans to keep this position - harder to trade away
+            # 1.3 base + 0.2 bonus for elite starters
+            return 1.3 + (0.2 if need.current_starter_overall >= 85 else 0)
+        elif path == AcquisitionPath.TRADE:
+            # Team actively looking to trade FOR this position
+            # Makes them easier to trade WITH (they'll give up less to acquire)
+            return 0.85
+        elif path in (AcquisitionPath.DRAFT_EARLY, AcquisitionPath.DRAFT_MID):
+            # Planning to draft replacement - more willing to trade current player
+            return 0.9
+        elif path == AcquisitionPath.FREE_AGENCY:
+            # Planning FA replacement - somewhat willing to trade
+            return 0.95
+
+        return 1.0
+
     def evaluate_trade(
         self,
         proposal: TradeProposal,
         my_roster: list["Player"] = None,
+        draft_prospects: Optional[List[DraftProspect]] = None,
     ) -> TradeEvaluation:
         """
         Evaluate a trade proposal.
@@ -231,25 +378,38 @@ class TradeAI:
         Args:
             proposal: The trade to evaluate
             my_roster: Current roster for depth analysis
+            draft_prospects: Available draft prospects for commitment-aware valuation
 
         Returns:
             TradeEvaluation with recommendation
         """
-        # Calculate adjusted values based on our modifiers
+        # Calculate adjusted values based on our modifiers AND commitment premiums
         offered_adjusted = 0
         requested_adjusted = 0
 
         for asset in proposal.assets_offered:
             if asset.asset_type == "pick":
-                offered_adjusted += int(asset.value * self.pick_value_modifier)
+                # What is this pick worth to us (receiving)?
+                commitment = self.get_pick_commitment_premium(asset.pick, draft_prospects)
+                offered_adjusted += int(asset.value * self.pick_value_modifier * commitment)
             else:
-                offered_adjusted += int(asset.value * self.player_value_modifier)
+                # What is this player worth to us (receiving)?
+                commitment = self.get_player_commitment_premium(
+                    asset.player_position, asset.player_id
+                )
+                offered_adjusted += int(asset.value * self.player_value_modifier * commitment)
 
         for asset in proposal.assets_requested:
             if asset.asset_type == "pick":
-                requested_adjusted += int(asset.value * self.pick_value_modifier)
+                # What is this pick worth to us (giving away)?
+                commitment = self.get_pick_commitment_premium(asset.pick, draft_prospects)
+                requested_adjusted += int(asset.value * self.pick_value_modifier * commitment)
             else:
-                requested_adjusted += int(asset.value * self.player_value_modifier)
+                # What is this player worth to us (giving away)?
+                commitment = self.get_player_commitment_premium(
+                    asset.player_position, asset.player_id
+                )
+                requested_adjusted += int(asset.value * self.player_value_modifier * commitment)
 
         net_value = offered_adjusted - requested_adjusted
 
@@ -331,6 +491,19 @@ class TradeAI:
             # Calculate trade likelihood
             trade_likelihood = 0.3
 
+            # Check commitment from position plan - KEEP_CURRENT players are less tradeable
+            if self.position_plan:
+                pos_need = self.position_plan.needs.get(player.position.value)
+                if pos_need and pos_need.acquisition_path == AcquisitionPath.KEEP_CURRENT:
+                    if player.overall >= 85:
+                        continue  # Won't trade committed elite starters
+                    trade_likelihood *= 0.5  # Less likely even for backups
+                elif pos_need and pos_need.acquisition_path in (
+                    AcquisitionPath.DRAFT_EARLY, AcquisitionPath.DRAFT_MID
+                ):
+                    # Planning to draft replacement - more willing to trade current player
+                    trade_likelihood += 0.2
+
             # Older players more likely to be traded
             if player.age >= 30:
                 trade_likelihood += 0.2
@@ -365,6 +538,7 @@ class TradeAI:
         target_player: "Player",
         target_contract: "Contract",
         target_team_id: str,
+        draft_prospects: Optional[List[DraftProspect]] = None,
     ) -> Optional[TradeProposal]:
         """
         Generate a trade proposal for a target player.
@@ -373,6 +547,7 @@ class TradeAI:
             target_player: Player we want to acquire
             target_contract: Their contract
             target_team_id: Their current team
+            draft_prospects: Available draft prospects for commitment-aware decisions
 
         Returns:
             TradeProposal or None if can't construct fair trade
@@ -395,6 +570,14 @@ class TradeAI:
             p for p in self.picks.picks
             if p.current_team_id == self.team_id and not p.is_compensatory
         ]
+
+        # Filter out heavily committed picks (commitment > 1.3x means we really want to use it)
+        if self.position_plan and draft_prospects:
+            available_picks = [
+                p for p in available_picks
+                if self.get_pick_commitment_premium(p, draft_prospects) < 1.3
+            ]
+
         available_picks.sort(key=lambda p: p.estimated_value, reverse=True)
 
         for pick in available_picks:

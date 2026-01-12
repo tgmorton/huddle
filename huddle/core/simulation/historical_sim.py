@@ -62,7 +62,18 @@ from huddle.core.ai import (
     calculate_team_needs,
     select_starters,
 )
-from huddle.core.ai.gm_archetypes import GMArchetype
+from huddle.core.ai.gm_archetypes import GMArchetype, GMProfile
+from huddle.core.ai.position_planner import (
+    PositionPlan,
+    PositionNeed,
+    AcquisitionPath,
+    DraftProspect,
+    create_position_plan,
+    should_pursue_fa,
+    update_plan_after_fa,
+    update_plan_after_draft,
+    get_draft_target,
+)
 
 
 @dataclass
@@ -84,6 +95,9 @@ class TeamState:
 
     # GM personality (affects draft/FA decisions)
     gm_archetype: GMArchetype = None
+
+    # Offseason planning (HC09-style holistic approach)
+    position_plan: PositionPlan = None
 
     # Season results
     wins: int = 0
@@ -508,13 +522,20 @@ class HistoricalSimulator:
         self.current_calendar = create_calendar_for_season(season)
         self.calendars.append(self.current_calendar)
 
+        # 0. Create position plans for all teams (HC09-style holistic planning)
+        # This determines each team's acquisition strategy BEFORE FA/Draft
+        self._create_position_plans(season)
+
         # Advance to free agency
         self.current_calendar.advance_to_event(LeagueEvent.FREE_AGENCY_START)
 
-        # 1. Free Agency
+        # 1. Free Agency (uses position plans for commitment-aware decisions)
         self._simulate_free_agency(season)
 
-        # 2. Draft
+        # 1.5. Trades (commitment premiums affect valuations)
+        self._simulate_trades(season)
+
+        # 2. Draft (uses position plans for commitment-aware selection)
         self.current_calendar.advance_to_event(LeagueEvent.DRAFT_START)
         self._simulate_draft(season)
 
@@ -537,6 +558,318 @@ class HistoricalSimulator:
 
         # 8. Handle expiring contracts
         self._handle_contract_expirations(season)
+
+    def _create_position_plans(self, season: int):
+        """
+        Create HC09-style position plans for all teams before offseason.
+
+        Each team decides for EACH position whether to:
+        - KEEP_CURRENT: Current player is good enough
+        - FREE_AGENCY: Target the FA market
+        - DRAFT_EARLY/MID/LATE: Use a draft pick
+        - TRADE: Pursue a trade
+        - UNDECIDED: Still evaluating
+
+        This affects commitment premiums in trades:
+        - Team with #1 pick + elite QB prospect + DECIDED to draft QB
+          values that pick at 1.4-1.6x market (harder to trade away)
+        - UNDECIDED teams trade at market value
+        """
+        self._log(f"  Creating position plans for {season}...")
+
+        # Generate draft class preview (for projection)
+        # Teams need to know what prospects are available to plan
+        draft_prospects = self._generate_draft_prospects(season)
+
+        # Collect free agents preview
+        fa_options = []
+        for team in self.teams.values():
+            expiring = [
+                p for p in team.roster
+                if str(p.id) in team.contracts and
+                team.contracts[str(p.id)].is_expiring()
+            ]
+            for player in expiring:
+                if random.random() < 0.35:  # 35% expected to hit FA
+                    fa_options.append({
+                        'player_id': str(player.id),
+                        'position': player.position.value,
+                        'overall': player.overall,
+                        'asking_price': player.overall * 200,  # Rough estimate
+                    })
+
+        # Get draft order (based on previous season record)
+        standings = sorted(
+            self.teams.keys(),
+            key=lambda t: self.teams[t].win_pct
+        )
+
+        # Create plan for each team
+        for idx, team_id in enumerate(standings):
+            team = self.teams[team_id]
+            draft_position = idx + 1  # 1-indexed
+
+            # Build roster info dict
+            roster_info = {}
+            for pos in ['QB', 'RB', 'WR', 'TE', 'LT', 'LG', 'C', 'RG', 'RT',
+                        'DE', 'DT', 'OLB', 'ILB', 'CB', 'FS', 'SS']:
+                players_at_pos = [p for p in team.roster if p.position.value == pos]
+                if players_at_pos:
+                    best = max(players_at_pos, key=lambda p: p.overall)
+                    roster_info[pos] = {
+                        'starter_overall': best.overall,
+                        'depth_count': len(players_at_pos),
+                    }
+                else:
+                    roster_info[pos] = {'starter_overall': 60, 'depth_count': 0}
+
+            # Create the position plan
+            gm_profile = GMProfile(archetype=team.gm_archetype or GMArchetype.BALANCED)
+
+            team.position_plan = create_position_plan(
+                team_id=team_id,
+                gm_profile=gm_profile,
+                draft_position=draft_position,
+                cap_room=team.cap_space,
+                roster=roster_info,
+                draft_prospects=draft_prospects,
+                fa_options=fa_options,
+            )
+
+    def _generate_draft_prospects(self, season: int) -> list[DraftProspect]:
+        """
+        Generate draft prospect previews for position planning.
+
+        These are simplified projections used for planning, not actual players.
+        """
+        from uuid import uuid4
+
+        prospects = []
+
+        # Position distribution for elite prospects
+        ELITE_POSITIONS = ['QB', 'DE', 'CB', 'WR', 'LT', 'DT']
+        MID_POSITIONS = ['RB', 'TE', 'OLB', 'ILB', 'FS', 'SS', 'LG', 'RG', 'C', 'RT']
+
+        pick_num = 1
+        # Top 10 - elite prospects
+        for i in range(10):
+            pos = ELITE_POSITIONS[i % len(ELITE_POSITIONS)]
+            prospects.append(DraftProspect(
+                player_id=uuid4(),
+                name=f"Top {pos} Prospect {i+1}",
+                position=pos,
+                grade=95 - i,  # 95, 94, 93...
+                projected_round=1,
+                projected_pick=pick_num,
+            ))
+            pick_num += 1
+
+        # Picks 11-32 - good prospects
+        for i in range(22):
+            pos = (ELITE_POSITIONS + MID_POSITIONS)[i % len(ELITE_POSITIONS + MID_POSITIONS)]
+            prospects.append(DraftProspect(
+                player_id=uuid4(),
+                name=f"Rd1 {pos} Prospect",
+                position=pos,
+                grade=85 - (i // 4),  # 85-80 range
+                projected_round=1,
+                projected_pick=pick_num,
+            ))
+            pick_num += 1
+
+        # Rounds 2-3 prospects
+        for rd in [2, 3]:
+            for i in range(32):
+                pos = (ELITE_POSITIONS + MID_POSITIONS)[i % len(ELITE_POSITIONS + MID_POSITIONS)]
+                prospects.append(DraftProspect(
+                    player_id=uuid4(),
+                    name=f"Rd{rd} {pos} Prospect",
+                    position=pos,
+                    grade=78 - (rd * 3) - (i // 8),
+                    projected_round=rd,
+                    projected_pick=pick_num,
+                ))
+                pick_num += 1
+
+        return prospects
+
+    def _simulate_trades(self, season: int):
+        """
+        Simulate trades between teams using commitment-aware valuations.
+
+        Teams with decided acquisition paths (DRAFT_EARLY for QB) value
+        their picks at 1.4-1.6x market, making them harder to trade away.
+
+        Teams planning to address positions via FREE_AGENCY are more
+        willing to trade picks (0.9x valuation).
+        """
+        self._log(f"  Simulating trades for {season}...")
+
+        # Generate draft prospects for trade valuation
+        draft_prospects = self._generate_draft_prospects(season)
+
+        trades_made = 0
+        max_trades = 8  # Cap trades per offseason for realism
+
+        # Each team identifies trade candidates and seeks partners
+        for team in self.teams.values():
+            if trades_made >= max_trades:
+                break
+
+            # Skip teams without plans (shouldn't happen)
+            if not team.position_plan:
+                continue
+
+            # Calculate needs
+            needs = calculate_team_needs(team.roster)
+
+            # Create TradeAI with position plan for commitment awareness
+            # Use a mock identity if none exists
+            team_identity = team.identity
+            if team_identity is None:
+                from huddle.core.models.team_identity import TeamIdentity
+                team_identity = TeamIdentity()  # Uses defaults - all params optional
+
+            trade_ai = TradeAI(
+                team_id=team.team_id,
+                team_identity=team_identity,
+                team_status=team.status or TeamStatusState(current_status=TeamStatus.REBUILDING),
+                pick_inventory=team.pick_inventory or DraftPickInventory(team_id=team.team_id),
+                team_needs={p: needs.get_need(p) for p in [
+                    "QB", "RB", "WR", "TE", "LT", "LG", "C", "RG", "RT",
+                    "DE", "DT", "OLB", "ILB", "CB", "FS", "SS"
+                ]},
+                position_plan=team.position_plan,  # KEY: Commitment awareness
+            )
+
+            # Identify tradeable players
+            candidates = trade_ai.identify_trade_candidates(
+                team.roster,
+                team.contracts,
+            )
+
+            if not candidates:
+                continue
+
+            # Try to find a trade partner for best candidate
+            for candidate in candidates[:2]:  # Top 2 candidates
+                if trades_made >= max_trades:
+                    break
+
+                # Find interested teams
+                for partner_id, partner in self.teams.items():
+                    if partner_id == team.team_id:
+                        continue
+                    if not partner.position_plan:
+                        continue
+
+                    # Check if partner needs this position
+                    partner_needs = calculate_team_needs(partner.roster)
+                    pos_need = partner_needs.get_need(candidate.player_position)
+
+                    if pos_need < 0.4:
+                        continue  # Not interested
+
+                    # Partner creates their TradeAI
+                    partner_identity = partner.identity
+                    if partner_identity is None:
+                        from huddle.core.models.team_identity import TeamIdentity
+                        partner_identity = TeamIdentity()  # Uses defaults
+
+                    partner_trade_ai = TradeAI(
+                        team_id=partner_id,
+                        team_identity=partner_identity,
+                        team_status=partner.status or TeamStatusState(current_status=TeamStatus.REBUILDING),
+                        pick_inventory=partner.pick_inventory or DraftPickInventory(team_id=partner_id),
+                        team_needs={p: partner_needs.get_need(p) for p in [
+                            "QB", "RB", "WR", "TE", "LT", "LG", "C", "RG", "RT",
+                            "DE", "DT", "OLB", "ILB", "CB", "FS", "SS"
+                        ]},
+                        position_plan=partner.position_plan,
+                    )
+
+                    # Can partner generate a proposal?
+                    # Find the actual player
+                    player = next((p for p in team.roster if str(p.id) == candidate.player_id), None)
+                    if not player:
+                        continue
+
+                    contract = team.contracts.get(candidate.player_id)
+
+                    proposal = partner_trade_ai.generate_trade_proposal(
+                        target_player=player,
+                        target_contract=contract,
+                        target_team_id=team.team_id,
+                        draft_prospects=draft_prospects,
+                    )
+
+                    if not proposal:
+                        continue  # Partner can't afford
+
+                    # Team evaluates the proposal with their commitment premiums
+                    evaluation = trade_ai.evaluate_trade(
+                        proposal,
+                        my_roster=team.roster,
+                        draft_prospects=draft_prospects,
+                    )
+
+                    if evaluation.recommendation == "accept":
+                        # Execute trade!
+                        self._execute_trade(team, partner, proposal, season)
+                        trades_made += 1
+                        self._log(f"    Trade: {candidate.player_name} to {partner_id}")
+                        break
+
+        self._log(f"    {trades_made} trades completed")
+
+    def _execute_trade(self, team_from: 'TeamState', team_to: 'TeamState',
+                       proposal: 'TradeProposal', season: int):
+        """Execute a trade between two teams."""
+        # Transfer players
+        for asset in proposal.assets_requested:
+            if asset.asset_type == "player":
+                player = next((p for p in team_from.roster if str(p.id) == asset.player_id), None)
+                if player:
+                    team_from.roster.remove(player)
+                    team_to.roster.append(player)
+                    # Transfer contract
+                    contract = team_from.contracts.pop(asset.player_id, None)
+                    if contract:
+                        team_to.contracts[asset.player_id] = contract
+                        cap_hit = contract.cap_hit() if hasattr(contract, 'cap_hit') else 0
+                        team_from.cap_used -= cap_hit
+                        team_to.cap_used += cap_hit
+
+        for asset in proposal.assets_offered:
+            if asset.asset_type == "player":
+                player = next((p for p in team_to.roster if str(p.id) == asset.player_id), None)
+                if player:
+                    team_to.roster.remove(player)
+                    team_from.roster.append(player)
+                    contract = team_to.contracts.pop(asset.player_id, None)
+                    if contract:
+                        team_from.contracts[asset.player_id] = contract
+                        cap_hit = contract.cap_hit() if hasattr(contract, 'cap_hit') else 0
+                        team_to.cap_used -= cap_hit
+                        team_from.cap_used += cap_hit
+
+        # Transfer picks
+        for asset in proposal.assets_requested:
+            if asset.asset_type == "pick" and asset.pick:
+                asset.pick.current_team_id = team_to.team_id
+
+        for asset in proposal.assets_offered:
+            if asset.asset_type == "pick" and asset.pick:
+                asset.pick.current_team_id = team_from.team_id
+
+        # Log transaction (single log for the league)
+        self.transaction_log.add(Transaction(
+            transaction_type=TransactionType.TRADE,
+            team_id=team_from.team_id,
+            other_team_id=team_to.team_id,
+            season=season,
+            transaction_date=self.current_calendar.current_date,
+        ))
 
     def _simulate_free_agency(self, season: int):
         """
@@ -593,6 +926,18 @@ class HistoricalSimulator:
                 if available_for_fa < market.cap_hit_year1:
                     continue
 
+                # Check if team's position plan says to pursue this FA
+                plan_aggression = 0.5  # Default moderate interest
+                if team.position_plan:
+                    pursue, aggression = should_pursue_fa(team.position_plan, {
+                        'position': player.position.value,
+                        'player_id': str(player.id),
+                        'overall': player.overall,
+                    })
+                    if not pursue:
+                        continue  # Plan says don't pursue this position via FA
+                    plan_aggression = aggression
+
                 # Use FreeAgencyAI for research-backed evaluation
                 needs = calculate_team_needs(team.roster)
                 fa_ai = FreeAgencyAI(
@@ -611,9 +956,13 @@ class HistoricalSimulator:
                 evaluation = fa_ai.evaluate_free_agent(player)
                 position_need = needs.get_need(player.position.value)
 
+                # Combine AI priority with plan aggression
+                # High plan aggression = planned FA target = higher effective priority
+                effective_priority = evaluation.priority * (0.7 + plan_aggression * 0.6)
+
                 # Use AI priority score for interest determination
-                if evaluation.priority > 0.3 or random.random() < 0.2:
-                    interested_teams.append((team, evaluation.priority, position_need, fa_ai))
+                if effective_priority > 0.3 or random.random() < 0.2:
+                    interested_teams.append((team, effective_priority, position_need, fa_ai, plan_aggression))
 
             if not interested_teams:
                 # No interest - player goes unsigned, remove from old team
@@ -651,7 +1000,7 @@ class HistoricalSimulator:
             winning_team = None
             winning_fa_ai = None
             actual_cap_hit = contract.cap_hit()
-            for team, priority, need, fa_ai in interested_teams:
+            for team, priority, need, fa_ai, aggression in interested_teams:
                 current_cap = sum(c.cap_hit() for c in team.contracts.values())
                 # Reserve cap for filling roster to minimum 45
                 roster_spots_needed = max(0, min_roster - len(team.roster) - 1)  # -1 since signing adds a player
@@ -689,6 +1038,15 @@ class HistoricalSimulator:
             winning_team.roster.append(player)
             winning_team.contracts[str(player.id)] = contract
             winning_team.cap_used = sum(c.cap_hit() for c in winning_team.contracts.values())
+
+            # Update the team's position plan - position now filled via FA
+            if winning_team.position_plan:
+                update_plan_after_fa(winning_team.position_plan, {
+                    'position': player.position.value,
+                    'player_id': str(player.id),
+                    'overall': player.overall,
+                    'contract_value': final_value,
+                })
 
             # Log transaction
             self.transaction_log.add(create_signing_transaction(
@@ -785,8 +1143,34 @@ class HistoricalSimulator:
                 gm_archetype=team.gm_archetype,
             )
 
-            # AI selects best player using research-backed valuations
-            selected_player = draft_ai.select_player(available, pick_number)
+            # Use position plan's draft board if available
+            selected_player = None
+            if team.position_plan:
+                # Convert available players to DraftProspect format for get_draft_target
+                # Calculate projected round from pick position
+                current_round = (pick_number - 1) // len(self.teams) + 1
+                available_prospects = [
+                    DraftProspect(
+                        player_id=str(p.id),
+                        name=p.full_name,
+                        position=p.position.value,
+                        grade=p.overall,
+                        projected_round=current_round,
+                        projected_pick=pick_number,
+                    )
+                    for p in available
+                ]
+                target = get_draft_target(team.position_plan, available_prospects)
+                if target:
+                    # Find the actual player matching the target
+                    selected_player = next(
+                        (p for p in available if str(p.id) == str(target.player_id)),
+                        None
+                    )
+
+            # Fall back to DraftAI if no plan target found
+            if not selected_player:
+                selected_player = draft_ai.select_player(available, pick_number)
 
             # Fallback if AI returns None (shouldn't happen)
             if not selected_player and available:
@@ -812,6 +1196,16 @@ class HistoricalSimulator:
             team.roster.append(selected_player)
             team.contracts[str(selected_player.id)] = contract
             team.cap_used += contract.cap_hit()
+
+            # Update the team's position plan - position now filled via draft
+            if team.position_plan:
+                update_plan_after_draft(team.position_plan, {
+                    'position': selected_player.position.value,
+                    'player_id': str(selected_player.id),
+                    'overall': selected_player.overall,
+                    'round': pick.round,
+                    'pick': pick_number,
+                })
 
             # Remove from available
             available.remove(selected_player)

@@ -112,6 +112,35 @@ def evaluate_free_agent(
     elif tendencies.negotiation_tone == NegotiationTone.FAIR:
         opening_offer_pct = max(opening_offer_pct, 0.90)  # At least 90%
 
+    # Position value adjustment (research-backed)
+    # Low-value positions (RB, FB) should get lower offers
+    # High-value positions (QB, EDGE) can command higher offers
+    # Lazy import to avoid circular dependency
+    from huddle.generators.calibration import get_position_multiplier, is_market_inefficient
+
+    position = player.position.value
+    pos_mult = get_position_multiplier(position)
+
+    # Map position multiplier (0.2-5.0) to offer adjustment (0.85-1.10)
+    # This prevents overpaying for low-value positions
+    if pos_mult < 1.0:
+        # Low-value positions: reduce max offer
+        # RB (0.6) -> 0.92x, FB (0.4) -> 0.88x
+        pos_offer_adj = 0.85 + (pos_mult * 0.15)
+    elif pos_mult > 2.0:
+        # High-value positions: slightly increase max offer
+        # QB (5.0) -> 1.08x, DE (2.5) -> 1.03x
+        pos_offer_adj = 1.0 + min(0.10, (pos_mult - 2.0) * 0.03)
+    else:
+        pos_offer_adj = 1.0
+
+    max_offer_pct *= pos_offer_adj
+
+    # Market inefficiency warning - be cautious about FA spending
+    if is_market_inefficient(position) and max_offer_pct > 1.0:
+        # Don't overpay for positions where FA spending doesn't predict wins
+        max_offer_pct = min(max_offer_pct, 1.0)
+
     # Interest threshold
     interested = interest_score >= 0.4
 

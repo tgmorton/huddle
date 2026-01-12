@@ -62,6 +62,7 @@ class Player:
     # Career info
     experience_years: int = 0  # Total NFL experience
     years_on_team: int = 0  # Tenure with current team (affects jersey priority)
+    team_id: Optional[UUID] = None  # Set when added to roster, cleared when released
 
     # Optional metadata for different management levels
     college: Optional[str] = None
@@ -427,6 +428,7 @@ class Player:
             "preferred_jersey_numbers": self.preferred_jersey_numbers,
             "experience_years": self.experience_years,
             "years_on_team": self.years_on_team,
+            "team_id": str(self.team_id) if self.team_id else None,
             "college": self.college,
             "draft_year": self.draft_year,
             "draft_round": self.draft_round,
@@ -512,6 +514,7 @@ class Player:
             preferred_jersey_numbers=data.get("preferred_jersey_numbers", []),
             experience_years=data.get("experience_years", 0),
             years_on_team=data.get("years_on_team", 0),
+            team_id=UUID(data["team_id"]) if data.get("team_id") else None,
             college=data.get("college"),
             draft_year=data.get("draft_year"),
             draft_round=data.get("draft_round"),

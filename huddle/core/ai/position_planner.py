@@ -503,6 +503,34 @@ def update_plan_after_fa(
         plan.fa_acquisitions.append(signed_player)
 
 
+def update_plan_after_draft(
+    plan: PositionPlan,
+    drafted_player: dict,
+) -> None:
+    """
+    Update the plan after drafting a player.
+
+    Changes acquisition path and removes from draft targets.
+    Similar to update_plan_after_fa but for draft picks.
+    """
+    position = drafted_player.get('position')
+    need = plan.needs.get(position)
+
+    if need:
+        # Position filled via draft
+        need.acquisition_path = AcquisitionPath.KEEP_CURRENT
+        need.need_score = 0.0
+
+        # Remove from draft board (this position filled)
+        plan.draft_board = [p for p in plan.draft_board if p.position != position]
+
+        # Remove from FA targets (no longer needed)
+        plan.fa_targets = [t for t in plan.fa_targets if t['position'] != position]
+
+        # Record the pick
+        plan.draft_picks_used.append(drafted_player)
+
+
 def get_draft_target(
     plan: PositionPlan,
     available_prospects: List[DraftProspect],

@@ -596,7 +596,7 @@ class League:
                     position=game_stats.position,
                     season=self.current_season,
                 )
-            self.season_stats[player_id_str].add_game(game_stats)
+            self.season_stats[player_id_str].add_game(game_stats, str(game_log.game_id))
 
     def get_game_log(self, game_id: UUID) -> Optional[GameLog]:
         """Get a game log by game ID."""

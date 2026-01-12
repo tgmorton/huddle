@@ -330,6 +330,7 @@ class PlayerSeasonStats:
 
     games_played: int = 0
     games_started: int = 0
+    game_ids: list = field(default_factory=list)  # List of game_id strings
 
     # Stats by category
     passing: PassingStats = field(default_factory=PassingStats)
@@ -338,9 +339,11 @@ class PlayerSeasonStats:
     defense: DefensiveStats = field(default_factory=DefensiveStats)
     kicking: KickingStats = field(default_factory=KickingStats)
 
-    def add_game(self, game_stats: PlayerGameStats) -> None:
+    def add_game(self, game_stats: PlayerGameStats, game_id: str = None) -> None:
         """Add a game's stats to season totals."""
         self.games_played += 1
+        if game_id and game_id not in self.game_ids:
+            self.game_ids.append(game_id)
         self.passing.add(game_stats.passing)
         self.rushing.add(game_stats.rushing)
         self.receiving.add(game_stats.receiving)
@@ -372,6 +375,7 @@ class PlayerSeasonStats:
             "season": self.season,
             "games_played": self.games_played,
             "games_started": self.games_started,
+            "game_ids": self.game_ids,
             "passing": self.passing.to_dict(),
             "rushing": self.rushing.to_dict(),
             "receiving": self.receiving.to_dict(),
@@ -389,6 +393,7 @@ class PlayerSeasonStats:
             season=data["season"],
             games_played=data.get("games_played", 0),
             games_started=data.get("games_started", 0),
+            game_ids=data.get("game_ids", []),
             passing=PassingStats.from_dict(data.get("passing", {})),
             rushing=RushingStats.from_dict(data.get("rushing", {})),
             receiving=ReceivingStats.from_dict(data.get("receiving", {})),

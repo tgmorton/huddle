@@ -91,6 +91,7 @@ class Roster:
 
     players: dict[UUID, Player] = field(default_factory=dict)
     depth_chart: DepthChart = field(default_factory=DepthChart)
+    team_id: Optional[UUID] = None  # Set by Team to track which team owns this roster
 
     def add_player(self, player: Player, assign_jersey: bool = True) -> None:
         """
@@ -101,6 +102,9 @@ class Roster:
             assign_jersey: If True, automatically assign a jersey number
         """
         self.players[player.id] = player
+        # Set team_id on player so they know which team they belong to
+        if self.team_id:
+            player.team_id = self.team_id
 
         if assign_jersey and player.jersey_number == 0:
             taken = self.get_taken_jersey_numbers()
@@ -122,6 +126,9 @@ class Roster:
             - displaced_player: Player who lost their number (if any)
         """
         self.players[player.id] = player
+        # Set team_id on player so they know which team they belong to
+        if self.team_id:
+            player.team_id = self.team_id
 
         # If player has no preferences, just assign available number
         if not player.preferred_jersey_numbers:
@@ -167,7 +174,11 @@ class Roster:
 
     def remove_player(self, player_id: UUID) -> Optional[Player]:
         """Remove a player from the roster."""
-        return self.players.pop(player_id, None)
+        player = self.players.pop(player_id, None)
+        # Clear team_id when player is removed
+        if player:
+            player.team_id = None
+        return player
 
     def get_player(self, player_id: UUID) -> Optional[Player]:
         """Get a player by ID."""
@@ -247,18 +258,23 @@ class Roster:
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
-        return {
+        data = {
             "players": [p.to_dict() for p in self.players.values()],
             "depth_chart": self.depth_chart.to_dict(),
         }
+        if self.team_id:
+            data["team_id"] = str(self.team_id)
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "Roster":
         """Create from dictionary."""
-        roster = cls()
+        team_id = UUID(data["team_id"]) if data.get("team_id") else None
+        roster = cls(team_id=team_id)
         for player_data in data.get("players", []):
             player = Player.from_dict(player_data)
-            roster.add_player(player)
+            # Use assign_jersey=False since loaded players already have numbers
+            roster.add_player(player, assign_jersey=False)
         if "depth_chart" in data:
             roster.depth_chart = DepthChart.from_dict(data["depth_chart"])
         return roster
@@ -300,6 +316,11 @@ class Team:
 
     # Game prep bonus (temporary, expires after game)
     game_prep_bonus: Optional["GamePrepBonus"] = None
+
+    def __post_init__(self):
+        """Ensure roster knows its team_id."""
+        if self.roster:
+            self.roster.team_id = self.id
 
     # Convenience properties for backward compatibility
     @property

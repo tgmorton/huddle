@@ -512,6 +512,42 @@ AWARENESS = AttributeDefinition(
     },
 )
 
+# QB Intangible Attributes
+# These affect BEHAVIOR, not just outcome probabilities.
+# A high-poise QB LOOKS different from a low-poise QB.
+
+POISE = AttributeDefinition(
+    name="poise",
+    category=AttributeCategory.MENTAL,
+    abbreviation="POI",
+    description="Composure under pressure - when to abandon pocket/progression",
+    position_weights={"QB": 0.6},
+)
+
+ANTICIPATION = AttributeDefinition(
+    name="anticipation",
+    category=AttributeCategory.MENTAL,
+    abbreviation="ANT",
+    description="Throw timing vs route break - throwing before receiver is open",
+    position_weights={"QB": 0.5},
+)
+
+DECISION_MAKING = AttributeDefinition(
+    name="decision_making",
+    category=AttributeCategory.MENTAL,
+    abbreviation="DEC",
+    description="Coverage threshold to throw - knowing when to check down",
+    position_weights={"QB": 0.5},
+)
+
+AGGRESSIVENESS = AttributeDefinition(
+    name="aggressiveness",
+    category=AttributeCategory.MENTAL,
+    abbreviation="AGR",
+    description="Minimum separation to attempt throw - tight window willingness",
+    position_weights={"QB": 0.2},  # Lower weight - style trait, not pure skill
+)
+
 # ============================================================================
 # Meta Attributes (The "Big Three" for Franchise Mode)
 # ============================================================================
@@ -685,6 +721,10 @@ ALL_ATTRIBUTES: list[AttributeDefinition] = [
     KICK_RETURN,
     # Mental
     AWARENESS,
+    POISE,
+    ANTICIPATION,
+    DECISION_MAKING,
+    AGGRESSIVENESS,
     # Durability (Wear & Tear System)
     TOUGHNESS,
     HEAD_DURABILITY,
