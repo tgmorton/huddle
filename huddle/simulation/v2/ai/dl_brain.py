@@ -21,6 +21,7 @@ from enum import Enum
 from typing import Optional, List
 
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import DLContext
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
@@ -417,7 +418,7 @@ def _calculate_pursuit_angle(
 # Main Brain Function
 # =============================================================================
 
-def dl_brain(world: WorldState) -> BrainDecision:
+def dl_brain(world: DLContext) -> BrainDecision:
     """Defensive line brain - for DTs, DEs, and NTs.
 
     TARGET-BASED APPROACH:
@@ -427,7 +428,7 @@ def dl_brain(world: WorldState) -> BrainDecision:
     4. Engagement is a side effect, not the goal
 
     Args:
-        world: Complete world state
+        world: DLContext with pass rush and run defense info
 
     Returns:
         BrainDecision with action and reasoning

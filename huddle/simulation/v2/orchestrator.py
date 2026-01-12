@@ -25,7 +25,10 @@ from enum import Enum
 from typing import List, Dict, Any, Optional, Callable, Tuple
 
 from .core.vec2 import Vec2
-from .core.entities import Player, Ball, BallState, Team, Position, PlayerAttributes
+from .core.entities import (
+    Player, Ball, BallState, Team, Position, PlayerAttributes,
+    PlayerPlayState,
+)
 from .core.field import Field
 from .core.clock import Clock
 from .core.events import EventBus, Event, EventType
@@ -393,16 +396,8 @@ class Orchestrator:
         self._result_outcome: Optional[str] = None
         self._down_position: Optional[Vec2] = None
 
-        # Tackle immunity after successful moves (player_id -> immune_until_time)
-        self._tackle_immunity: Dict[str, float] = {}
-
-        # Shed immunity after DL sheds a block (dl_id -> immune_until_time)
-        # Prevents immediate re-engagement after shedding
-        self._shed_immunity: Dict[str, float] = {}
-
-        # OL beaten state after their block is shed (ol_id -> beaten_until_time)
-        # Beaten OL cannot initiate new blocks and move at reduced speed
-        self._ol_beaten: Dict[str, float] = {}
+        # NOTE: Immunity tracking (tackle_immunity, shed_immunity, beaten) now lives
+        # on Player entity fields - see Player.grant_immunity() and Player.has_immunity()
 
         # QB dropback tracking
         self._dropback_depth: float = 7.0  # Yards behind LOS
@@ -531,6 +526,15 @@ class Orchestrator:
         for p in defense:
             p.team = Team.DEFENSE
 
+        # Initialize play state machine for all players
+        for p in offense + defense:
+            p.play_state = PlayerPlayState.SETUP
+            p.play_state_entered_at = 0.0
+            # Reset immunity timers
+            p.tackle_immunity_until = 0.0
+            p.shed_immunity_until = 0.0
+            p.beaten_until = 0.0
+
         # Clear state from previous play
         self._profiles.clear()
         self.block_resolver.clear_engagements()
@@ -573,11 +577,35 @@ class Orchestrator:
 
         # Setup zone coverage
         from .systems.coverage import ZoneType
+        # Map human-readable zone names from play_adapter to ZoneType enum values
+        zone_name_map = {
+            "deep_middle": "deep_third_m",
+            "deep_third_middle": "deep_third_m",
+            "deep_third_left": "deep_third_l",
+            "deep_third_right": "deep_third_r",
+            "deep_half_left": "deep_half_l",
+            "deep_half_right": "deep_half_r",
+            "flat_left": "flat_l",
+            "flat_right": "flat_r",
+            "hook_left": "hook_l",
+            "hook_right": "hook_r",
+            "hook_middle": "middle",
+            "hook_curl": "hook_l",  # Default to hook_l for hook/curl combo
+            "curl_left": "curl_flat_l",
+            "curl_right": "curl_flat_r",
+            "middle": "middle",
+        }
         for defender_id, zone_name in config.zone_assignments.items():
             player = self._get_player(defender_id)
             if player:
-                zone_type = ZoneType(zone_name.lower())
-                self.coverage_system.assign_zone_coverage(player, zone_type, player.pos)
+                # Convert human-readable name to ZoneType value
+                mapped_zone = zone_name_map.get(zone_name.lower(), zone_name.lower())
+                try:
+                    zone_type = ZoneType(mapped_zone)
+                    self.coverage_system.assign_zone_coverage(player, zone_type, player.pos)
+                except ValueError:
+                    # If zone type still not valid, skip silently
+                    pass
 
         # Reset state
         self.clock = Clock()
@@ -629,6 +657,42 @@ class Orchestrator:
     def clear_brains(self) -> None:
         """Remove all registered brains."""
         self._brains.clear()
+
+    def register_default_brains(self) -> None:
+        """Register the default AI brains for all positions.
+
+        This sets up role-based brains that will be used for any player
+        of that position who doesn't have a specific brain registered.
+
+        Call this after setup_play() to enable AI decision-making.
+        """
+        from .ai import (
+            qb_brain, receiver_brain, ballcarrier_brain,
+            ol_brain, dl_brain, lb_brain, db_brain
+        )
+
+        # Register role-based brains (used when no player-specific brain)
+        self._brains["role:QB"] = qb_brain
+        self._brains["role:WR"] = receiver_brain
+        self._brains["role:TE"] = receiver_brain
+        self._brains["role:RB"] = receiver_brain  # RB can catch
+        self._brains["role:LT"] = ol_brain
+        self._brains["role:LG"] = ol_brain
+        self._brains["role:C"] = ol_brain
+        self._brains["role:RG"] = ol_brain
+        self._brains["role:RT"] = ol_brain
+        self._brains["role:DE"] = dl_brain
+        self._brains["role:DT"] = dl_brain
+        self._brains["role:NT"] = dl_brain
+        self._brains["role:MLB"] = lb_brain
+        self._brains["role:ILB"] = lb_brain
+        self._brains["role:OLB"] = lb_brain
+        self._brains["role:CB"] = db_brain
+        self._brains["role:FS"] = db_brain
+        self._brains["role:SS"] = db_brain
+
+        # Special brains
+        self._brains["ballcarrier"] = ballcarrier_brain
 
     # =========================================================================
     # WorldState Construction
@@ -711,6 +775,9 @@ class Orchestrator:
             is_run_play=is_run_play,
             play_history=self.play_history,
             game_situation=self.game_situation,
+            # Explicit play state machine
+            play_state=player.play_state,
+            time_in_state=player.time_in_state(self.clock.current_time),
         )
 
         # Build role-specific context based on position
@@ -718,6 +785,10 @@ class Orchestrator:
 
         # QB Context
         if pos == Position.QB:
+            # Ballcarrier fields for scramble scenarios
+            run_play_side = self._run_concept.play_side if self._run_concept else ""
+            has_immunity = player.tackle_immunity_until > self.clock.current_time
+
             return QBContext(
                 **base_kwargs,
                 dropback_depth=self._dropback_depth,
@@ -726,6 +797,10 @@ class Orchestrator:
                 qb_set_time=self._qb_set_time,
                 hot_routes=self._hot_routes,
                 pressure_state=self.pressure_system.state,
+                # Ballcarrier fields (inherited from BallcarrierContextBase)
+                run_play_side=run_play_side,
+                run_aiming_point=None,  # QBs don't have designed gaps
+                has_shed_immunity=has_immunity,
             )
 
         # WR/TE Context (receivers)
@@ -744,12 +819,20 @@ class Orchestrator:
                 at_route_break = route_assignment.is_at_break
                 route_settles = route_assignment.route.settles
 
+            # Ballcarrier fields for post-catch scenarios
+            run_play_side = self._run_concept.play_side if self._run_concept else ""
+            has_immunity = player.tackle_immunity_until > self.clock.current_time
+
             return WRContext(
                 **base_kwargs,
                 route_target=route_target,
                 route_phase=route_phase,
                 at_route_break=at_route_break,
                 route_settles=route_settles,
+                # Ballcarrier fields (inherited from BallcarrierContextBase)
+                run_play_side=run_play_side,
+                run_aiming_point=None,  # WRs don't have designed gaps
+                has_shed_immunity=has_immunity,
             )
 
         # OL Context
@@ -769,7 +852,7 @@ class Orchestrator:
                     combo_partner_position = ol_assign.combo_partner
                     base_kwargs["assignment"] = f"run:{ol_assign.assignment.value}"
 
-            is_beaten = self._ol_beaten.get(player.id, 0) > self.clock.current_time
+            is_beaten = player.beaten_until > self.clock.current_time
 
             return OLContext(
                 **base_kwargs,
@@ -783,7 +866,7 @@ class Orchestrator:
 
         # DL Context
         if pos in (Position.DT, Position.DE, Position.NT):
-            has_shed_immunity = self._shed_immunity.get(player.id, 0) > self.clock.current_time
+            has_shed_immunity = player.shed_immunity_until > self.clock.current_time
             return DLContext(**base_kwargs, has_shed_immunity=has_shed_immunity)
 
         # LB Context
@@ -810,12 +893,17 @@ class Orchestrator:
                     run_aiming_point = rb_assign.aiming_point.value if rb_assign.aiming_point else None
                     base_kwargs["assignment"] = f"run:{rb_assign.role}"
 
+            # Ballcarrier fields
+            has_immunity = player.tackle_immunity_until > self.clock.current_time
+
             return RBContext(
                 **base_kwargs,
                 run_path=run_path,
-                run_aiming_point=run_aiming_point,
                 run_mesh_depth=run_mesh_depth,
+                # Ballcarrier fields (inherited from BallcarrierContextBase)
+                run_aiming_point=run_aiming_point,
                 run_play_side=run_play_side,
+                has_shed_immunity=has_immunity,
             )
 
         # Fallback: return base context
@@ -1030,6 +1118,40 @@ class Orchestrator:
             reset_play_blocking_quality()
             self._play_blocking_quality = "average"
 
+        # Transition all players to their initial play states
+        OL_POSITIONS = {Position.LT, Position.LG, Position.C, Position.RG, Position.RT}
+        DL_POSITIONS = {Position.DE, Position.DT, Position.NT}
+
+        for player in self.offense:
+            if player.position == Position.QB:
+                self._transition_player(player, PlayerPlayState.IN_DROPBACK, validate=False)
+            elif player.position in (Position.WR, Position.TE):
+                # Receivers start routes
+                self._transition_player(player, PlayerPlayState.RUNNING_ROUTE, validate=False)
+            elif player.position in OL_POSITIONS:
+                if is_run:
+                    self._transition_player(player, PlayerPlayState.RUN_BLOCKING, validate=False)
+                else:
+                    self._transition_player(player, PlayerPlayState.PASS_SETTING, validate=False)
+            elif player.position in (Position.RB, Position.FB):
+                # Check if route or block assignment
+                if self.route_runner.get_assignment(player.id) is not None:
+                    self._transition_player(player, PlayerPlayState.RUNNING_ROUTE, validate=False)
+                elif is_run:
+                    self._transition_player(player, PlayerPlayState.BALLCARRIER, validate=False)
+                else:
+                    self._transition_player(player, PlayerPlayState.RUN_BLOCKING, validate=False)
+
+        for player in self.defense:
+            if player.position in DL_POSITIONS:
+                self._transition_player(player, PlayerPlayState.PASS_RUSHING, validate=False)
+            elif "man:" in player.assignment or player.target_id:
+                self._transition_player(player, PlayerPlayState.IN_MAN_COVERAGE, validate=False)
+            elif "zone:" in player.assignment:
+                self._transition_player(player, PlayerPlayState.IN_ZONE_COVERAGE, validate=False)
+            else:
+                self._transition_player(player, PlayerPlayState.FILLING_GAP, validate=False)
+
         # Start all routes
         self.route_runner.start_all_routes(self.clock)
 
@@ -1074,6 +1196,8 @@ class Orchestrator:
             if time_planting >= self._required_set_time:
                 self._qb_is_set = True
                 self._qb_set_time = self.clock.current_time
+                # Transition QB to IN_POCKET state
+                self._transition_player(qb, PlayerPlayState.IN_POCKET)
                 self.event_bus.emit_simple(
                     EventType.DROPBACK_COMPLETE,
                     self.clock.tick_count,
@@ -1204,33 +1328,21 @@ class Orchestrator:
             self._update_defense_player(player, profile, dt)
 
     def _get_brain_for_player(self, player: Player) -> Optional[BrainFunc]:
-        """Get the appropriate brain for a player based on their situation.
+        """Get the appropriate brain for a player based on their play state.
 
-        Supports both explicit player-specific brains and role-based auto-switching.
+        Uses explicit play_state for brain selection, with fallback to role-based brains.
         """
-        # Check for explicit player-specific brain first
-        if player.id in self._brains:
-            brain = self._brains[player.id]
-
-            # Auto-switch ballcarrier brain when player has ball (unless it's a QB brain)
-            # AFTER_CATCH = receiver with ball after catch (YAC situation)
-            # RUN_ACTIVE = designed run or scramble
-            ballcarrier_phases = (PlayPhase.RUN_ACTIVE, PlayPhase.AFTER_CATCH)
-            if player.has_ball and self.phase in ballcarrier_phases:
-                # Check if we have a ballcarrier brain registered
-                if "ballcarrier" in self._brains:
-                    return self._brains["ballcarrier"]
-                # Otherwise use the player's brain (it should handle ballcarrying)
-
-            return brain
-
-        # Check for role-based brains
-        ballcarrier_phases = (PlayPhase.RUN_ACTIVE, PlayPhase.AFTER_CATCH)
-        if player.has_ball and self.phase in ballcarrier_phases:
+        # Ballcarrier states trigger ballcarrier brain
+        ballcarrier_states = (PlayerPlayState.BALLCARRIER, PlayerPlayState.IN_CONTACT)
+        if player.play_state in ballcarrier_states:
             if "ballcarrier" in self._brains:
                 return self._brains["ballcarrier"]
 
-        # Position-based role brains
+        # Check for explicit player-specific brain
+        if player.id in self._brains:
+            return self._brains[player.id]
+
+        # Position-based role brains (fallback)
         role_key = f"role:{player.position.value}"
         if role_key in self._brains:
             return self._brains[role_key]
@@ -1375,8 +1487,7 @@ class Orchestrator:
             speed_mod = self.MOVE_TYPE_SPEED.get(decision.move_type, 0.85)
 
             # Apply beaten state penalty for OL who just had their block shed
-            beaten_until = self._ol_beaten.get(player.id, 0)
-            if self.clock.current_time < beaten_until:
+            if player.beaten_until > self.clock.current_time:
                 speed_mod *= 0.5  # 50% speed while recovering
 
             modified_profile = MovementProfile(
@@ -1446,7 +1557,7 @@ class Orchestrator:
         # Apply outcome
         if result.outcome == MoveOutcome.SUCCESS:
             # Grant tackle immunity for 0.3 seconds (6 ticks) after breaking tackle
-            self._tackle_immunity[player.id] = self.clock.current_time + 0.3
+            player.grant_immunity(self.clock.current_time, 0.3, "tackle")
 
             # Broke free! Apply direction change and speed
             if result.new_direction and decision.move_target:
@@ -1648,6 +1759,10 @@ class Orchestrator:
         self.ball.carrier_id = carrier.id
         self._handoff_complete = True
 
+        # Transition player states
+        self._transition_player(qb, PlayerPlayState.IDLE, validate=False)
+        self._transition_player(carrier, PlayerPlayState.BALLCARRIER, validate=False)
+
         # Transition to run active phase
         self._transition_to(PlayPhase.RUN_ACTIVE, "handoff complete")
 
@@ -1692,6 +1807,8 @@ class Orchestrator:
             receiver = self._get_player(self.ball.carrier_id) if self.ball.carrier_id else None
             if receiver:
                 receiver.has_ball = True
+                # Transition receiver to BALLCARRIER state
+                self._transition_player(receiver, PlayerPlayState.BALLCARRIER, validate=False)
             self._result_outcome = "complete"
             # Transition to AFTER_CATCH for YAC
             self._transition_to(PlayPhase.AFTER_CATCH, "catch complete")
@@ -1701,6 +1818,8 @@ class Orchestrator:
             interceptor = self._get_player(self.ball.carrier_id) if self.ball.carrier_id else None
             if interceptor:
                 interceptor.has_ball = True
+                # Transition interceptor to BALLCARRIER state
+                self._transition_player(interceptor, PlayerPlayState.BALLCARRIER, validate=False)
             self._result_outcome = "interception"
             self._transition_to(PlayPhase.POST_PLAY, "interception")
 
@@ -1736,16 +1855,14 @@ class Orchestrator:
 
         for ol, dl in matchups:
             # Skip if DL has shed immunity (just broke free, needs time to escape)
-            immune_until = self._shed_immunity.get(dl.id, 0)
-            if self.clock.current_time < immune_until:
+            if dl.shed_immunity_until > self.clock.current_time:
                 # DL is free, let them run via brain movement
                 dl.is_engaged = False
                 ol.is_engaged = False
                 continue
 
             # Skip if OL is beaten (just had their block shed, recovering)
-            beaten_until = self._ol_beaten.get(ol.id, 0)
-            if self.clock.current_time < beaten_until:
+            if ol.beaten_until > self.clock.current_time:
                 # OL is recovering, cannot initiate new blocks
                 ol.is_engaged = False
                 dl.is_engaged = False
@@ -1795,9 +1912,12 @@ class Orchestrator:
                 dl.is_engaged = False
                 ol.is_engaged = False
                 # Grant shed immunity - DL gets 0.4s to escape before re-engagement
-                self._shed_immunity[dl.id] = self.clock.current_time + 0.4
+                dl.grant_immunity(self.clock.current_time, 0.4, "shed")
                 # OL is beaten - cannot initiate new blocks and moves slower
-                self._ol_beaten[ol.id] = self.clock.current_time + 0.4
+                ol.grant_immunity(self.clock.current_time, 0.4, "beaten")
+
+                # Transition DL to SHED_BURST state
+                self._transition_player(dl, PlayerPlayState.SHED_BURST, validate=False)
 
                 # Apply instant burst to DL (1.5 yards toward ballcarrier/QB)
                 burst_target = self._find_burst_target()
@@ -1857,8 +1977,7 @@ class Orchestrator:
             return
 
         # Check tackle immunity (from successful moves)
-        immune_until = self._tackle_immunity.get(ballcarrier.id, 0)
-        if self.clock.current_time < immune_until:
+        if ballcarrier.tackle_immunity_until > self.clock.current_time:
             return  # Still has immunity from breaking a tackle
 
         # Skip if QB still in pocket (hasn't scrambled)
@@ -1913,6 +2032,9 @@ class Orchestrator:
                 # DL breaks free! Mark as disengaged so they can tackle
                 defender.is_engaged = False
                 self.block_resolver.remove_engagement(defender.id)
+
+                # Transition to SHED_BURST state
+                self._transition_player(defender, PlayerPlayState.SHED_BURST, validate=False)
 
                 # Emit event for visualization
                 self.event_bus.emit_simple(
@@ -2005,6 +2127,8 @@ class Orchestrator:
                 ballcarrier.pos = ballcarrier.pos + fall_dir * result.yards_after_contact
 
             ballcarrier.is_down = True
+            # Transition ballcarrier to DOWN state
+            self._transition_player(ballcarrier, PlayerPlayState.DOWN, validate=False)
             self._down_position = ballcarrier.pos
             self._result_outcome = "tackle"
             self._transition_to(PlayPhase.POST_PLAY, "ballcarrier tackled")
@@ -2037,7 +2161,7 @@ class Orchestrator:
                 broken=True,
             )
             # Brief tackle immunity after breaking free
-            self._tackle_immunity[ballcarrier.id] = self.clock.current_time + 0.3
+            ballcarrier.grant_immunity(self.clock.current_time, 0.3, "tackle")
 
         elif result.outcome == TackleOutcome.FUMBLE:
             # Handle fumble
@@ -2050,6 +2174,8 @@ class Orchestrator:
                     recoverer.has_ball = True
                     self.ball.state = BallState.HELD
                     self.ball.carrier_id = result.fumble_recovered_by
+                    # Transition recoverer to BALLCARRIER state
+                    self._transition_player(recoverer, PlayerPlayState.BALLCARRIER, validate=False)
 
                     # If defense recovered, play ends
                     if recoverer.team != ballcarrier.team:
@@ -2118,6 +2244,8 @@ class Orchestrator:
 
                 # Update game state
                 qb.is_down = True
+                # Transition QB to DOWN state
+                self._transition_player(qb, PlayerPlayState.DOWN, validate=False)
                 self._down_position = qb.pos
                 self._result_outcome = "sack"
                 self._transition_to(PlayPhase.POST_PLAY, "QB sacked")
@@ -2136,6 +2264,10 @@ class Orchestrator:
 
     def _check_out_of_bounds(self) -> None:
         """Check if ballcarrier has gone out of bounds."""
+        # Guard: Don't check if play already ended (e.g., tackle resolved same tick)
+        if self.phase == PlayPhase.POST_PLAY:
+            return
+
         ballcarrier = self._get_player(self.ball.carrier_id) if self.ball.carrier_id else None
         if not ballcarrier:
             return
@@ -2213,6 +2345,9 @@ class Orchestrator:
                 result.air_yards = self.ball.flight_target.y - self.los_y
                 result.yac = result.yards_gained - result.air_yards
 
+        # Timing
+        result.throw_time = self._throw_time
+
         # IDs
         result.receiver_id = self.ball.intended_receiver_id
         for p in self.offense:
@@ -2250,6 +2385,32 @@ class Orchestrator:
             if p.id == player_id:
                 return p
         return None
+
+    def _transition_player(
+        self,
+        player: Player,
+        new_state: PlayerPlayState,
+        validate: bool = True,
+    ) -> bool:
+        """Transition a player to a new play state.
+
+        Args:
+            player: The player to transition
+            new_state: The target state
+            validate: If True, check transition validity
+
+        Returns:
+            True if transition succeeded
+        """
+        success = player.transition_to(new_state, self.clock.current_time, validate)
+        if not success:
+            trace = get_trace_system()
+            trace.add(
+                TraceCategory.BRAIN,
+                player.id,
+                f"Invalid state transition {player.play_state.value} -> {new_state.value}",
+            )
+        return success
 
     def _print_tick_state(self) -> None:
         """Print current state for debugging."""

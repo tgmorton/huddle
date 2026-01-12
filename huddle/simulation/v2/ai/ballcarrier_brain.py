@@ -23,6 +23,7 @@ from enum import Enum
 from typing import List, Optional, Tuple
 
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import BallcarrierContextBase
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
@@ -483,16 +484,19 @@ def _find_holes(world: WorldState, threats: List[Threat]) -> List[Hole]:
 
     # Determine designed hole bias from run concept
     # Gap names: a_right, b_right, c_right, a_left, b_left, c_left
+    # Use safe attribute access since ballcarrier could be any position (WR, RB, QB, etc.)
     designed_x_bias = 0.0
-    if world.is_run_play and world.run_aiming_point:
-        if "right" in world.run_aiming_point:
+    run_aiming_point = getattr(world, "run_aiming_point", None)
+    run_play_side = getattr(world, "run_play_side", None)
+    if world.is_run_play and run_aiming_point:
+        if "right" in run_aiming_point:
             designed_x_bias = 1.0  # Prefer right side
-        elif "left" in world.run_aiming_point:
+        elif "left" in run_aiming_point:
             designed_x_bias = -1.0  # Prefer left side
-    elif world.is_run_play and world.run_play_side:
-        if world.run_play_side == "right":
+    elif world.is_run_play and run_play_side:
+        if run_play_side == "right":
             designed_x_bias = 1.0
-        elif world.run_play_side == "left":
+        elif run_play_side == "left":
             designed_x_bias = -1.0
 
     # Sample directions (flipped based on team)
@@ -669,14 +673,14 @@ def _get_situation(threats: List[Threat], holes: List[Hole]) -> Situation:
 # Main Brain Function
 # =============================================================================
 
-def ballcarrier_brain(world: WorldState) -> BrainDecision:
+def ballcarrier_brain(world: BallcarrierContextBase) -> BrainDecision:
     """Ballcarrier brain - YARDS-FIRST approach.
 
     Every decision is about GAINING YARDS toward the endzone.
     Defenders are obstacles - we go around, through, or away from them.
 
     Args:
-        world: Complete world state
+        world: Context for ballcarrier (any subclass of BallcarrierContextBase)
 
     Returns:
         BrainDecision with action and reasoning
@@ -896,8 +900,9 @@ def ballcarrier_brain(world: WorldState) -> BrainDecision:
         commitment_duration = 0.5
 
         if state.committed_direction is None and world.is_run_play:
-            if world.run_aiming_point:
-                design_x = 1.0 if "right" in world.run_aiming_point else -1.0 if "left" in world.run_aiming_point else 0.0
+            run_aiming = getattr(world, "run_aiming_point", None)
+            if run_aiming:
+                design_x = 1.0 if "right" in run_aiming else -1.0 if "left" in run_aiming else 0.0
                 state.committed_direction = Vec2(design_x * 0.4, y_dir * 0.9).normalized()
             else:
                 state.committed_direction = best_path

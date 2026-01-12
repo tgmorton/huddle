@@ -20,6 +20,7 @@ from enum import Enum
 from typing import Optional, Tuple
 
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import DBContext
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
@@ -497,11 +498,11 @@ def _find_ballcarrier(world: WorldState) -> Optional[PlayerView]:
 # Main Brain Function
 # =============================================================================
 
-def db_brain(world: WorldState) -> BrainDecision:
+def db_brain(world: DBContext) -> BrainDecision:
     """Defensive back brain - for CBs and Safeties.
 
     Args:
-        world: Complete world state
+        world: DBContext for coverage and ball reaction
 
     Returns:
         BrainDecision with action and reasoning

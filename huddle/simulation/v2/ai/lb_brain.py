@@ -22,6 +22,7 @@ from enum import Enum
 from typing import List, Optional, Tuple
 
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import LBContext
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
@@ -575,13 +576,16 @@ def _get_blitz_path(world: WorldState, gap: GapResponsibility) -> Vec2:
 # Main Brain Function
 # =============================================================================
 
-def lb_brain(world: WorldState) -> BrainDecision:
+def lb_brain(world: LBContext) -> BrainDecision:
     """Linebacker brain - PLAYMAKER-FIRST decision making.
 
     Priority order:
     1. Can I make a tackle RIGHT NOW? → MAKE IT
     2. Can I get to the ball? → ATTACK IT
     3. Quick read to attack in right direction → GO
+
+    Args:
+        world: LBContext for linebacker decision making
 
     Returns:
         BrainDecision optimizing for tackles, INTs, PBUs, TFLs

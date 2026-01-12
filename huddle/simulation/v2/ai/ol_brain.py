@@ -21,6 +21,7 @@ from enum import Enum
 from typing import Optional
 
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import OLContext
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
@@ -817,7 +818,7 @@ def _find_any_downhill_threat(world: WorldState) -> Optional[PlayerView]:
 # Main Brain Function
 # =============================================================================
 
-def ol_brain(world: WorldState) -> BrainDecision:
+def ol_brain(world: OLContext) -> BrainDecision:
     """Offensive line brain - for tackles, guards, and centers.
 
     Features:
@@ -826,7 +827,7 @@ def ol_brain(world: WorldState) -> BrainDecision:
     - Stunt pickup (detect twists, switch assignments)
 
     Args:
-        world: Complete world state
+        world: OLContext with blocking assignments
 
     Returns:
         BrainDecision with action and reasoning

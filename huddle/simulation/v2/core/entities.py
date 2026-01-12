@@ -56,6 +56,165 @@ class BallState(str, Enum):
     LOOSE = "loose"         # Fumble
 
 
+class PlayerPlayState(str, Enum):
+    """Explicit player state within a play.
+
+    These states describe what a player is DOING, not just their role.
+    States are mutually exclusive - a player is in exactly one state at a time.
+    """
+    # Pre-play
+    SETUP = "setup"
+    PRE_SNAP = "pre_snap"
+
+    # QB states
+    IN_DROPBACK = "in_dropback"
+    IN_POCKET = "in_pocket"
+    SCRAMBLING = "scrambling"
+
+    # Receiver states
+    RELEASING = "releasing"
+    RUNNING_ROUTE = "running_route"
+    ROUTE_BREAK = "route_break"
+    POST_BREAK = "post_break"
+    TRACKING_BALL = "tracking_ball"
+    SCRAMBLE_DRILL = "scramble_drill"
+
+    # Ballcarrier (any position)
+    BALLCARRIER = "ballcarrier"
+    IN_CONTACT = "in_contact"
+
+    # Blocking (OL/FB/TE)
+    PASS_SETTING = "pass_setting"
+    PASS_BLOCKING = "pass_blocking"
+    RUN_BLOCKING = "run_blocking"
+    PULLING = "pulling"
+    CLIMBING = "climbing"
+
+    # DL states
+    PASS_RUSHING = "pass_rushing"
+    RUN_DEFENDING = "run_defending"
+    ENGAGING_BLOCKER = "engaging_blocker"
+    SHED_BURST = "shed_burst"
+
+    # Coverage (DB/LB)
+    IN_MAN_COVERAGE = "in_man_coverage"
+    IN_ZONE_COVERAGE = "in_zone_coverage"
+    BREAKING_ON_BALL = "breaking_on_ball"
+
+    # Pursuit/tackle
+    PURSUING = "pursuing"
+    TACKLING = "tackling"
+    FILLING_GAP = "filling_gap"
+
+    # Terminal
+    DOWN = "down"
+    BLOCKING_DOWNFIELD = "blocking_downfield"
+    IDLE = "idle"
+
+
+# Valid state transitions - enforced by Player.transition_to()
+VALID_PLAYER_TRANSITIONS: dict[PlayerPlayState, set[PlayerPlayState]] = {
+    PlayerPlayState.SETUP: {PlayerPlayState.PRE_SNAP},
+    PlayerPlayState.PRE_SNAP: {
+        PlayerPlayState.IN_DROPBACK, PlayerPlayState.RELEASING,
+        PlayerPlayState.RUNNING_ROUTE, PlayerPlayState.PASS_SETTING,
+        PlayerPlayState.RUN_BLOCKING, PlayerPlayState.PULLING,
+        PlayerPlayState.PASS_RUSHING, PlayerPlayState.RUN_DEFENDING,
+        PlayerPlayState.IN_MAN_COVERAGE, PlayerPlayState.IN_ZONE_COVERAGE,
+        PlayerPlayState.FILLING_GAP,
+    },
+    # QB flow
+    PlayerPlayState.IN_DROPBACK: {
+        PlayerPlayState.IN_POCKET, PlayerPlayState.SCRAMBLING,
+        PlayerPlayState.BALLCARRIER, PlayerPlayState.DOWN,
+    },
+    PlayerPlayState.IN_POCKET: {
+        PlayerPlayState.SCRAMBLING, PlayerPlayState.IDLE, PlayerPlayState.DOWN,
+    },
+    PlayerPlayState.SCRAMBLING: {
+        PlayerPlayState.BALLCARRIER, PlayerPlayState.IN_POCKET, PlayerPlayState.DOWN,
+    },
+    # Receiver flow
+    PlayerPlayState.RELEASING: {
+        PlayerPlayState.RUNNING_ROUTE, PlayerPlayState.SCRAMBLE_DRILL,
+    },
+    PlayerPlayState.RUNNING_ROUTE: {
+        PlayerPlayState.ROUTE_BREAK, PlayerPlayState.POST_BREAK,
+        PlayerPlayState.TRACKING_BALL, PlayerPlayState.SCRAMBLE_DRILL,
+    },
+    PlayerPlayState.ROUTE_BREAK: {
+        PlayerPlayState.POST_BREAK, PlayerPlayState.TRACKING_BALL,
+    },
+    PlayerPlayState.POST_BREAK: {
+        PlayerPlayState.TRACKING_BALL, PlayerPlayState.SCRAMBLE_DRILL,
+        PlayerPlayState.BLOCKING_DOWNFIELD,
+    },
+    PlayerPlayState.TRACKING_BALL: {
+        PlayerPlayState.BALLCARRIER, PlayerPlayState.BLOCKING_DOWNFIELD,
+        PlayerPlayState.IDLE,
+    },
+    PlayerPlayState.SCRAMBLE_DRILL: {
+        PlayerPlayState.TRACKING_BALL, PlayerPlayState.BLOCKING_DOWNFIELD,
+    },
+    # Ballcarrier flow
+    PlayerPlayState.BALLCARRIER: {PlayerPlayState.IN_CONTACT, PlayerPlayState.DOWN},
+    PlayerPlayState.IN_CONTACT: {PlayerPlayState.BALLCARRIER, PlayerPlayState.DOWN},
+    # OL flow
+    PlayerPlayState.PASS_SETTING: {
+        PlayerPlayState.PASS_BLOCKING, PlayerPlayState.RUN_BLOCKING,
+    },
+    PlayerPlayState.PASS_BLOCKING: {
+        PlayerPlayState.IDLE, PlayerPlayState.BLOCKING_DOWNFIELD,
+    },
+    PlayerPlayState.RUN_BLOCKING: {
+        PlayerPlayState.CLIMBING, PlayerPlayState.BLOCKING_DOWNFIELD,
+    },
+    PlayerPlayState.PULLING: {
+        PlayerPlayState.RUN_BLOCKING, PlayerPlayState.CLIMBING,
+    },
+    PlayerPlayState.CLIMBING: {
+        PlayerPlayState.RUN_BLOCKING, PlayerPlayState.BLOCKING_DOWNFIELD,
+    },
+    # DL flow
+    PlayerPlayState.PASS_RUSHING: {
+        PlayerPlayState.ENGAGING_BLOCKER, PlayerPlayState.TACKLING,
+        PlayerPlayState.PURSUING,
+    },
+    PlayerPlayState.RUN_DEFENDING: {
+        PlayerPlayState.ENGAGING_BLOCKER, PlayerPlayState.TACKLING,
+        PlayerPlayState.PURSUING,
+    },
+    PlayerPlayState.ENGAGING_BLOCKER: {
+        PlayerPlayState.SHED_BURST, PlayerPlayState.PASS_RUSHING,
+        PlayerPlayState.RUN_DEFENDING,
+    },
+    PlayerPlayState.SHED_BURST: {PlayerPlayState.TACKLING, PlayerPlayState.PURSUING},
+    # Coverage flow
+    PlayerPlayState.IN_MAN_COVERAGE: {
+        PlayerPlayState.BREAKING_ON_BALL, PlayerPlayState.PURSUING,
+        PlayerPlayState.TACKLING,
+    },
+    PlayerPlayState.IN_ZONE_COVERAGE: {
+        PlayerPlayState.BREAKING_ON_BALL, PlayerPlayState.PURSUING,
+        PlayerPlayState.TACKLING,
+    },
+    PlayerPlayState.BREAKING_ON_BALL: {
+        PlayerPlayState.TACKLING, PlayerPlayState.PURSUING, PlayerPlayState.IDLE,
+    },
+    # Pursuit/tackle flow
+    PlayerPlayState.PURSUING: {PlayerPlayState.TACKLING, PlayerPlayState.IDLE},
+    PlayerPlayState.FILLING_GAP: {
+        PlayerPlayState.TACKLING, PlayerPlayState.PURSUING,
+        PlayerPlayState.RUN_DEFENDING,
+    },
+    PlayerPlayState.TACKLING: {PlayerPlayState.IDLE, PlayerPlayState.PURSUING},
+    # Terminal
+    PlayerPlayState.DOWN: set(),  # No transitions from DOWN
+    PlayerPlayState.BLOCKING_DOWNFIELD: {PlayerPlayState.IDLE},
+    PlayerPlayState.IDLE: {PlayerPlayState.PURSUING, PlayerPlayState.BLOCKING_DOWNFIELD},
+}
+
+
 # =============================================================================
 # Attributes
 # =============================================================================
@@ -96,6 +255,11 @@ class PlayerAttributes:
     block_finesse: int = 75     # Blocking technique
     pass_rush: int = 75         # Rush moves
     elusiveness: int = 75       # Avoiding tackles
+
+    # QB Mental (intangibles for decision-making)
+    poise: int = 75              # Composure under pressure
+    decision_making: int = 75    # Quality of reads and choices
+    anticipation: int = 75       # Throw timing, seeing plays develop
 
     def get(self, attr_name: str, default: int = 75) -> int:
         """Get attribute by name."""
@@ -184,6 +348,15 @@ class Player:
     _last_decision_reason: str = ""
     _explicit_facing: bool = False  # Set by brain to prevent velocity-based override
 
+    # Explicit play state machine
+    play_state: PlayerPlayState = PlayerPlayState.SETUP
+    play_state_entered_at: float = 0.0
+
+    # Immunity tracking (consolidated from orchestrator dicts)
+    tackle_immunity_until: float = 0.0
+    shed_immunity_until: float = 0.0
+    beaten_until: float = 0.0  # For OL who just lost engagement
+
     def __post_init__(self):
         if not self.name:
             self.name = self.id
@@ -208,6 +381,100 @@ class Player:
         if self.is_moving:
             return self.velocity.normalized()
         return self.facing
+
+    # State-based convenience properties
+    @property
+    def is_blocking(self) -> bool:
+        """Whether player is in a blocking state."""
+        return self.play_state in (
+            PlayerPlayState.PASS_SETTING, PlayerPlayState.PASS_BLOCKING,
+            PlayerPlayState.RUN_BLOCKING, PlayerPlayState.PULLING,
+            PlayerPlayState.CLIMBING,
+        )
+
+    @property
+    def is_in_coverage(self) -> bool:
+        """Whether player is in a coverage state."""
+        return self.play_state in (
+            PlayerPlayState.IN_MAN_COVERAGE, PlayerPlayState.IN_ZONE_COVERAGE,
+            PlayerPlayState.BREAKING_ON_BALL,
+        )
+
+    @property
+    def can_be_tackled(self) -> bool:
+        """Whether player can currently be tackled."""
+        return self.play_state in (
+            PlayerPlayState.BALLCARRIER, PlayerPlayState.IN_CONTACT,
+            PlayerPlayState.SCRAMBLING,
+        )
+
+    # =========================================================================
+    # State Machine Methods
+    # =========================================================================
+
+    def transition_to(
+        self,
+        new_state: PlayerPlayState,
+        current_time: float,
+        validate: bool = True,
+    ) -> bool:
+        """Transition to a new play state.
+
+        Args:
+            new_state: The state to transition to
+            current_time: Current simulation time
+            validate: If True, check transition validity
+
+        Returns:
+            True if transition succeeded, False if invalid
+        """
+        if validate:
+            valid_next = VALID_PLAYER_TRANSITIONS.get(self.play_state, set())
+            if new_state not in valid_next:
+                return False
+        self.play_state = new_state
+        self.play_state_entered_at = current_time
+        return True
+
+    def time_in_state(self, current_time: float) -> float:
+        """How long the player has been in their current state."""
+        return current_time - self.play_state_entered_at
+
+    def has_immunity(self, current_time: float, immunity_type: str = "tackle") -> bool:
+        """Check if player has active immunity.
+
+        Args:
+            current_time: Current simulation time
+            immunity_type: "tackle", "shed", or "beaten"
+        """
+        if immunity_type == "tackle":
+            return self.tackle_immunity_until > current_time
+        elif immunity_type == "shed":
+            return self.shed_immunity_until > current_time
+        elif immunity_type == "beaten":
+            return self.beaten_until > current_time
+        return False
+
+    def grant_immunity(
+        self,
+        current_time: float,
+        duration: float,
+        immunity_type: str = "tackle",
+    ) -> None:
+        """Grant temporary immunity.
+
+        Args:
+            current_time: Current simulation time
+            duration: How long immunity lasts
+            immunity_type: "tackle", "shed", or "beaten"
+        """
+        until = current_time + duration
+        if immunity_type == "tackle":
+            self.tackle_immunity_until = until
+        elif immunity_type == "shed":
+            self.shed_immunity_until = until
+        elif immunity_type == "beaten":
+            self.beaten_until = until
 
     # =========================================================================
     # Mutation helpers (return new state)

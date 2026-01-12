@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from ..core.phases import PlayPhase
     from ..game_state import PlayHistory, GameSituation
 
+from .entities import PlayerPlayState
+
 
 # Forward reference for type hints
 class PlayerView:
@@ -88,6 +90,10 @@ class WorldStateBase:
     # Run play flag (needed by multiple brains)
     is_run_play: bool = False
 
+    # Explicit play state machine
+    play_state: PlayerPlayState = PlayerPlayState.SETUP
+    time_in_state: float = 0.0
+
     # Convenience methods
     def get_teammate(self, player_id: str) -> Optional[Any]:
         """Get a specific teammate by ID."""
@@ -124,14 +130,34 @@ class WorldStateBase:
 
 
 # =============================================================================
+# Ballcarrier Base Context - For players who may carry the ball
+# =============================================================================
+
+@dataclass
+class BallcarrierContextBase(WorldStateBase):
+    """Base context for positions that may become ballcarrier.
+
+    WR (after catch), RB (designed runs), QB (scrambles) all need these fields
+    when they have the ball and ballcarrier_brain takes over.
+    """
+    # Run play info (needed by ballcarrier_brain for gap decisions)
+    run_aiming_point: Optional[str] = None  # Target gap (e.g., "a_right")
+    run_play_side: str = ""  # "left", "right", or "balanced"
+
+    # Shed immunity for broken tackles
+    has_shed_immunity: bool = False
+
+
+# =============================================================================
 # Role-Specific Contexts
 # =============================================================================
 
 @dataclass
-class QBContext(WorldStateBase):
+class QBContext(BallcarrierContextBase):
     """Context for QB brain.
 
     Adds QB-specific timing and read progression info.
+    Inherits from BallcarrierContextBase for scramble situations.
     """
     # Dropback timing
     dropback_depth: float = 7.0  # Target depth for QB dropback
@@ -147,10 +173,11 @@ class QBContext(WorldStateBase):
 
 
 @dataclass
-class WRContext(WorldStateBase):
+class WRContext(BallcarrierContextBase):
     """Context for WR/receiver brain.
 
     Adds route-running specific information.
+    Inherits from BallcarrierContextBase for post-catch situations.
     """
     # Route info
     route_target: Any = None  # Vec2 - current waypoint target
@@ -208,26 +235,25 @@ class DBContext(WorldStateBase):
 
 
 @dataclass
-class RBContext(WorldStateBase):
+class RBContext(BallcarrierContextBase):
     """Context for running back brain.
 
     Adds run path and aiming point info.
+    Inherits from BallcarrierContextBase (run_aiming_point, run_play_side, has_shed_immunity).
     """
-    # Run play info
+    # RB-specific run play info (beyond what BallcarrierContextBase provides)
     run_path: List[Any] = dataclass_field(default_factory=list)  # List[Vec2] - waypoints
-    run_aiming_point: Optional[str] = None  # Target gap (e.g., "a_right")
     run_mesh_depth: float = 4.0  # Yards behind LOS for handoff
-    run_play_side: str = ""  # "left", "right", or "balanced"
 
 
 @dataclass
-class BallcarrierContext(WorldStateBase):
+class BallcarrierContext(BallcarrierContextBase):
     """Context for ballcarrier brain (after catch or during run).
 
-    Ballcarrier needs spatial awareness but not route/assignment info.
+    Generic ballcarrier context for any player with the ball.
+    Inherits all fields from BallcarrierContextBase.
     """
-    # Shed immunity for broken tackles
-    has_shed_immunity: bool = False
+    pass  # All fields inherited from BallcarrierContextBase
 
 
 # =============================================================================

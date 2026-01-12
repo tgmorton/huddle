@@ -19,6 +19,7 @@ from ..core.vec2 import Vec2
 from ..core.entities import Player, Ball, BallState, Team, ThrowType
 from ..core.clock import Clock
 from ..core.events import EventBus, EventType
+from ..core.ratings import get_matchup_modifier
 
 
 # =============================================================================
@@ -598,11 +599,18 @@ class PassingSystem:
         catch_skill = ctx.receiver_catch_rating / 100
         cover_skill = ctx.defender_coverage_rating / 100
 
-        # Contest factor
+        # Continuous rating modifier for catch vs coverage matchup
+        rating_mod = get_matchup_modifier(
+            ctx.receiver_catch_rating,
+            ctx.defender_coverage_rating,
+        )
+
+        # Contest factor (includes rating modifier)
         contest_factor = (
             CONTEST_BASE
             + ctx.separation * CONTEST_SEPARATION_WEIGHT
             + (catch_skill - cover_skill) * CONTEST_SKILL_WEIGHT
+            + rating_mod  # Continuous rating bonus/penalty
         )
         contest_factor = clamp(contest_factor, 0.1, 0.9)
 

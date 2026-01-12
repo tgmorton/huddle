@@ -18,6 +18,7 @@ from ..core.vec2 import Vec2
 from ..core.events import EventBus, EventType
 from ..core.entities import Position
 from ..core.variance import sigmoid_matchup_probability
+from ..core.ratings import get_matchup_modifier, get_composite_rating
 
 if TYPE_CHECKING:
     from ..core.entities import Player
@@ -166,7 +167,12 @@ PLAY_QUALITY_POOR_CHANCE = 0.17   # 17% of plays DL wins up front
 # 65% average
 
 GREAT_BLOCKING_LEVERAGE_BONUS = 0.25   # OL gets big initial leverage boost
-POOR_BLOCKING_LEVERAGE_PENALTY = 0.30  # DL gets leverage advantage
+POOR_BLOCKING_LEVERAGE_PENALTY = 0.50  # DL gets leverage advantage (puts DL in winning zone)
+
+# Run-specific penetration rates (yards per second)
+# DL penetration on run plays must be faster - they need to get to RB
+RUN_DL_PENETRATION_DOMINANT = 2.5   # DL dominates → gets into backfield fast
+RUN_DL_PENETRATION_WINNING = 1.5   # DL winning → steady backfield pressure
 
 # Track current play quality (set at snap)
 _current_play_quality: str = "average"  # "great", "average", "poor"
@@ -698,6 +704,13 @@ class BlockResolver:
         attr_diff = (ol_score - dl_score) / 10.0
         shift = attr_diff * LEVERAGE_SHIFT_RATE
 
+        # Continuous rating modifier (smooth interpolation, no hard tiers)
+        # Uses composite ratings for multi-attribute blocking battles
+        ol_composite = get_composite_rating(ol.attributes, ol_weights)
+        dl_composite = get_composite_rating(dl.attributes, dl_weights)
+        rating_mod = get_matchup_modifier(ol_composite, dl_composite)
+        shift += rating_mod * LEVERAGE_SHIFT_RATE
+
         # Action matchup modifier
         matchup_mod = self._get_action_matchup(dl_action, ol_action)
         shift -= matchup_mod * LEVERAGE_SHIFT_RATE * 2  # Actions have big impact
@@ -891,17 +904,31 @@ class BlockResolver:
             # DL pressure overwhelms OL, drives through
             # DL advances toward QB while maintaining contact with OL
             # Both move toward backfield together until shed
-            push_rate = PUSH_RATE_DOMINANT * drive_bonus
-            # Both move toward backfield, DL slightly faster (closing in)
-            ol_new = ol_pos + target_dir * push_rate * dt * 0.8
-            dl_new = dl_pos + target_dir * push_rate * dt  # DL advances toward QB
+            if is_run_block:
+                # Run blocking: DL penetrates into backfield FAST
+                # This creates TFLs and disrupts the run
+                push_rate = RUN_DL_PENETRATION_DOMINANT * drive_bonus
+                ol_new = ol_pos + target_dir * push_rate * dt * 0.6
+                dl_new = dl_pos + target_dir * push_rate * dt  # DL explodes into backfield
+            else:
+                # Pass pro: DL pushes toward QB
+                push_rate = PUSH_RATE_DOMINANT * drive_bonus
+                ol_new = ol_pos + target_dir * push_rate * dt * 0.8
+                dl_new = dl_pos + target_dir * push_rate * dt
 
         elif outcome == BlockOutcome.DL_WINNING:
-            # DL pressure winning, pushing through slowly
-            # Both move toward backfield, maintaining contact
-            push_rate = PUSH_RATE_WINNING * drive_bonus
-            ol_new = ol_pos + target_dir * push_rate * dt * 0.5
-            dl_new = dl_pos + target_dir * push_rate * dt * 0.7  # DL advances
+            # DL pressure winning, pushing through
+            if is_run_block:
+                # Run blocking: DL penetrates toward backfield
+                # Creates run stuffs and forces cutbacks
+                push_rate = RUN_DL_PENETRATION_WINNING * drive_bonus
+                ol_new = ol_pos + target_dir * push_rate * dt * 0.5
+                dl_new = dl_pos + target_dir * push_rate * dt * 0.8  # DL advances
+            else:
+                # Pass pro: Both move toward backfield, maintaining contact
+                push_rate = PUSH_RATE_WINNING * drive_bonus
+                ol_new = ol_pos + target_dir * push_rate * dt * 0.5
+                dl_new = dl_pos + target_dir * push_rate * dt * 0.7
 
         elif outcome == BlockOutcome.DL_SHED:
             # DL breaks free, sprints toward QB area

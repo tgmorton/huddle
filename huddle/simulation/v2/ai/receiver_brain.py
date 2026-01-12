@@ -19,7 +19,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+from typing import Union
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import WRContext, RBContext
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team, BallState
 from ..core.trace import get_trace_system, TraceCategory
@@ -405,10 +407,14 @@ def _get_route_target(world: WorldState) -> Optional[Vec2]:
 
     Uses route_target from WorldState if available (provided by route_runner),
     otherwise falls back to running upfield.
+
+    Note: Uses getattr() for compatibility with RBContext which may not have route_target.
     """
     # Use route target from orchestrator/route_runner if available
-    if world.route_target is not None:
-        return world.route_target
+    # Safe access since RBContext doesn't have route_target attribute
+    route_target = getattr(world, 'route_target', None)
+    if route_target is not None:
+        return route_target
 
     # Fallback: run 10 yards upfield from current position
     return world.me.pos + Vec2(0, 10)
@@ -617,11 +623,11 @@ def _get_hot_route_target(world: WorldState, hot_type: HotRouteType) -> Vec2:
 # Main Brain Function
 # =============================================================================
 
-def receiver_brain(world: WorldState) -> BrainDecision:
-    """Receiver brain - called every tick for WRs and TEs.
+def receiver_brain(world: Union[WRContext, RBContext]) -> BrainDecision:
+    """Receiver brain - called every tick for WRs, TEs, and RBs running routes.
 
     Args:
-        world: Complete world state from receiver's perspective
+        world: Context from receiver's perspective (WRContext or RBContext)
 
     Returns:
         BrainDecision with action and reasoning

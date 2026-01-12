@@ -16,6 +16,7 @@ from ..core.vec2 import Vec2
 from ..core.entities import Player, Team, Position
 from ..core.events import EventBus, EventType
 from ..core.variance import sigmoid_matchup_probability
+from ..core.ratings import get_matchup_modifier
 
 
 # =============================================================================
@@ -544,6 +545,11 @@ class TackleResolver:
         diff = (bc_score - t_score) / 100.0  # Normalize
         shift = diff * TACKLE_LEVERAGE_SHIFT_RATE
 
+        # Continuous rating modifier for core matchup: elusiveness vs tackling
+        # This is the key 1v1 battle in tackle resolution
+        rating_mod = get_matchup_modifier(bc_elusiveness, t_tackling)
+        shift += rating_mod * TACKLE_LEVERAGE_SHIFT_RATE
+
         # Gang tackle reduces BC's ability to break free
         if engagement.assist_tackler_ids:
             shift -= 0.02 * len(engagement.assist_tackler_ids)
@@ -775,8 +781,12 @@ class TackleResolver:
         type_mod = type_mods.get(attempt.tackle_type, 0)
         modifiers["tackle_type"] = type_mod
 
+        # Continuous rating modifier for core matchup: tackling vs elusiveness
+        rating_mod = get_matchup_modifier(tackling, elusiveness)
+        modifiers["rating_matchup"] = rating_mod
+
         # Calculate final (using sigmoid-based attribute_mod instead of linear tackle/elusive mods)
-        final = base + dist_mod + attribute_mod + strength_mod + angle_mod + type_mod
+        final = base + dist_mod + attribute_mod + strength_mod + angle_mod + type_mod + rating_mod
 
         # Clamp to reasonable range
         final = max(0.10, min(0.98, final))

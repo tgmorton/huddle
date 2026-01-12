@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Optional, List
 
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import RBContext
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 
@@ -232,11 +233,11 @@ def _get_route_target(world: WorldState, route_type: str) -> Vec2:
 # Main Brain Function
 # =============================================================================
 
-def rusher_brain(world: WorldState) -> BrainDecision:
+def rusher_brain(world: RBContext) -> BrainDecision:
     """Rusher brain - for RBs and FBs before receiving ball.
 
     Args:
-        world: Complete world state
+        world: RBContext with run path and assignment info
 
     Returns:
         BrainDecision with action and reasoning

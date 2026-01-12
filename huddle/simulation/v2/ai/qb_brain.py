@@ -21,11 +21,13 @@ Lifecycle: PRE_SNAP → SNAP → DROPBACK → POCKET → THROW/SCRAMBLE/SACK
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple
 
 from ..orchestrator import WorldState, BrainDecision, PlayerView, PlayPhase
+from ..core.contexts import QBContext
 from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
@@ -235,6 +237,152 @@ def _pressure_to_float(pressure: PressureLevel) -> float:
         PressureLevel.CRITICAL: 1.0,
     }
     return pressure_map.get(pressure, 0.0)
+
+
+# =============================================================================
+# QB Intangible Effects
+# =============================================================================
+
+def _calculate_poise_effects(poise: int) -> dict:
+    """Calculate behavioral effects based on poise rating.
+
+    BEHAVIORAL PHILOSOPHY: High poise QBs LOOK different, not just perform better.
+    - Low poise: Bails from clean pockets early, locks onto first read
+    - High poise: Stays in pocket until real pressure, continues progression
+
+    From research (msg 068): 28.4% pressure penalty difference between high/low poise QBs.
+
+    Args:
+        poise: QB's poise rating (0-99)
+
+    Returns:
+        Dict with behavioral modifiers:
+        - pressure_escalation: How much worse pressure feels (0.6-1.4)
+        - progression_under_pressure: Can continue reads under heavy pressure (bool)
+        - pocket_bail_threshold: PressureLevel at which QB starts escaping
+        - read_lock_under_pressure: Locks onto current read under pressure (bool)
+    """
+    # Normalize poise to -0.5 to +0.5 range (50 = baseline)
+    poise_factor = (poise - 50) / 100.0
+
+    # How early QB perceives pressure as threatening
+    # Low poise (30): pressure_escalation = 1.4 (MODERATE feels like HEAVY)
+    # High poise (90): pressure_escalation = 0.6 (HEAVY feels like MODERATE)
+    pressure_escalation = 1.0 - poise_factor * 0.8
+
+    # Can QB continue through read progression under heavy pressure?
+    # High poise (75+): Can still progress through reads
+    # Low poise (<60): Locks onto current read, can't process further
+    progression_under_pressure = poise >= 75
+    read_lock_under_pressure = poise < 60
+
+    # At what pressure level does QB start looking to escape?
+    # High poise (85+): Only CRITICAL makes them bail
+    # Normal (60-84): HEAVY makes them bail
+    # Low poise (<60): MODERATE makes them bail
+    if poise >= 85:
+        pocket_bail_threshold = PressureLevel.CRITICAL
+    elif poise >= 60:
+        pocket_bail_threshold = PressureLevel.HEAVY
+    else:
+        pocket_bail_threshold = PressureLevel.MODERATE
+
+    return {
+        "pressure_escalation": pressure_escalation,
+        "progression_under_pressure": progression_under_pressure,
+        "pocket_bail_threshold": pocket_bail_threshold,
+        "read_lock_under_pressure": read_lock_under_pressure,
+    }
+
+
+def _calculate_decision_making_effects(decision_making: int) -> dict:
+    """Calculate behavioral effects based on decision-making rating.
+
+    BEHAVIORAL PHILOSOPHY: Decision-making affects WHAT the QB throws, not HOW.
+    - Low decision-making: Forces throws into coverage, doesn't check down
+    - High decision-making: Takes what defense gives, knows when to live for another play
+
+    From research (msg 068): 10x INT rate difference on short throws between good/bad decision-makers.
+
+    Args:
+        decision_making: QB's decision-making rating (0-99)
+
+    Returns:
+        Dict with behavioral modifiers:
+        - coverage_threshold: Separation needed to consider "throwable" (lower = more aggressive)
+        - force_throw_chance: Chance to force throw into coverage (higher = worse decisions)
+        - checkdown_willingness: How readily QB takes checkdown (higher = smarter)
+        - tight_window_willingness: Will attempt contested throws (higher = more willing)
+    """
+    # Normalize to -0.5 to +0.5 range (50 = baseline)
+    dm_factor = (decision_making - 50) / 100.0
+
+    # Coverage threshold - separation required to throw
+    # Low DM (30): 1.0 yd separation = "throw it" (too aggressive)
+    # High DM (90): 2.5 yd separation required (patient, smart)
+    coverage_threshold = 1.5 - dm_factor * 1.0
+
+    # Chance to force a bad throw into coverage
+    # Low DM: 30% chance to throw into tight coverage anyway
+    # High DM: 5% chance (occasional brain fart)
+    if decision_making >= 85:
+        force_throw_chance = 0.05
+    elif decision_making >= 70:
+        force_throw_chance = 0.10
+    elif decision_making >= 55:
+        force_throw_chance = 0.15
+    else:
+        force_throw_chance = 0.25 + (55 - decision_making) / 100.0  # Up to 0.30
+
+    # Checkdown willingness - how readily QB takes the short safe option
+    # High DM: Immediately takes checkdown when primary is covered
+    # Low DM: Keeps looking for home run, misses easy completion
+    checkdown_willingness = 0.5 + dm_factor * 0.5  # 0.25 to 0.75
+
+    # Tight window willingness - will attempt contested catches
+    # This is more of a style trait - aggressive vs conservative
+    tight_window_willingness = 1.0 - dm_factor * 0.6  # Low DM = more willing to force
+
+    return {
+        "coverage_threshold": coverage_threshold,
+        "force_throw_chance": force_throw_chance,
+        "checkdown_willingness": checkdown_willingness,
+        "tight_window_willingness": tight_window_willingness,
+    }
+
+
+def _get_effective_pressure(
+    actual_pressure: PressureLevel,
+    poise: int,
+) -> PressureLevel:
+    """Get the pressure level as perceived by the QB based on poise.
+
+    Low poise QBs feel more pressure than actually exists.
+    High poise QBs stay calm even when pressure is real.
+
+    This is the key behavioral difference - it affects everything downstream:
+    - When to look for escape routes
+    - Whether to accelerate reads
+    - When to throw it away vs staying patient
+    """
+    poise_effects = _calculate_poise_effects(poise)
+    escalation = poise_effects["pressure_escalation"]
+
+    # Map pressure to numeric value
+    pressure_values = {
+        PressureLevel.CLEAN: 0,
+        PressureLevel.LIGHT: 1,
+        PressureLevel.MODERATE: 2,
+        PressureLevel.HEAVY: 3,
+        PressureLevel.CRITICAL: 4,
+    }
+    value_to_pressure = {v: k for k, v in pressure_values.items()}
+
+    actual_value = pressure_values[actual_pressure]
+    perceived_value = int(actual_value * escalation)
+    perceived_value = max(0, min(4, perceived_value))  # Clamp to valid range
+
+    return value_to_pressure[perceived_value]
 
 
 def _get_qb_facing(world: WorldState) -> Vec2:
@@ -534,18 +682,20 @@ def _can_throw_anticipation(
     receiver: ReceiverEval,
     pressure: PressureLevel,
     time_in_pocket: float = 0.0,
+    anticipation: int = 50,
 ) -> Tuple[bool, str]:
     """Check if QB can throw anticipation pass.
 
-    From design doc:
-        90+ accuracy: Can throw 0.3s before break
-        80-89 accuracy: Can throw 0.15s before break
-        70-79 accuracy: Must wait for break
-        <70 accuracy: Must wait until receiver is open
+    ANTICIPATION ATTRIBUTE determines how early QB can throw before receiver breaks:
+        - Rating 95: releases 0.18s BEFORE break (elite timing)
+        - Rating 50: releases AT break (average)
+        - Rating 30: must wait until receiver is visibly open
+
+    The formula: throw_timing = route_break_time - (anticipation - 50) / 100 * 0.4
 
     Requirements for anticipation:
         1. Receiver is pre-break
-        2. QB accuracy allows anticipation
+        2. QB anticipation rating allows early throw
         3. Defender is trailing (not undercutting)
         4. Clean pocket (not heavy/critical pressure)
         5. Minimum time in pocket (0.4s) - QB needs time to evaluate
@@ -574,16 +724,23 @@ def _can_throw_anticipation(
     if not receiver.defender_trailing:
         return False, "defender not trailing"
 
-    # Accuracy thresholds
-    if accuracy >= 90:
-        return True, f"elite accuracy ({accuracy}), 0.3s anticipation window"
-    elif accuracy >= 80:
-        # Can anticipate only late stem / during break
-        if receiver.route_phase == "break" or (receiver.route_phase == "stem" and receiver.separation > 2.0):
-            return True, f"good accuracy ({accuracy}), 0.15s anticipation window"
-        return False, "accuracy allows limited anticipation, too early"
+    # ANTICIPATION THRESHOLDS (primary factor for timing)
+    # High anticipation QBs can throw earlier in the route
+    if anticipation >= 90:
+        # Elite anticipation - can throw 0.3s before break on any route
+        return True, f"elite anticipation ({anticipation}), 0.3s before break"
+    elif anticipation >= 75:
+        # Good anticipation - can throw 0.2s before break
+        return True, f"good anticipation ({anticipation}), 0.2s before break"
+    elif anticipation >= 60:
+        # Average anticipation - can throw only late stem / during break
+        if receiver.route_phase == "break" or (receiver.route_phase == "stem" and receiver.separation > 2.5):
+            return True, f"average anticipation ({anticipation}), timing at break"
+        return False, f"anticipation ({anticipation}) requires later throw timing"
     else:
-        return False, f"accuracy ({accuracy}) requires receiver to be open"
+        # Low anticipation - must wait until receiver is visibly open
+        # Ball arrives late, defenders can close
+        return False, f"low anticipation ({anticipation}), must see receiver open"
 
 
 def _find_best_receiver(
@@ -592,6 +749,7 @@ def _find_best_receiver(
     pressure: PressureLevel,
     accuracy: int = 75,
     time_in_pocket: float = 0.0,
+    anticipation: int = 50,
 ) -> Tuple[Optional[ReceiverEval], bool, str]:
     """Find the best receiver to throw to.
 
@@ -601,6 +759,7 @@ def _find_best_receiver(
         pressure: Current pressure level
         accuracy: QB throw accuracy attribute
         time_in_pocket: How long QB has been set in pocket
+        anticipation: QB anticipation attribute (affects early throw timing)
 
     Returns:
         (best_receiver, is_anticipation, reasoning)
@@ -635,7 +794,7 @@ def _find_best_receiver(
 
         # Check for anticipation throw
         can_anticipate, anticipate_reason = _can_throw_anticipation(
-            accuracy, current_eval, pressure, time_in_pocket
+            accuracy, current_eval, pressure, time_in_pocket, anticipation
         )
         if can_anticipate:
             _trace(f"[READ] -> ANTICIPATION to read {current_read}")
@@ -654,7 +813,7 @@ def _find_best_receiver(
                 return eval, False, f"progressed to read {eval.read_order}"
             # Check anticipation on next reads too
             can_anticipate, anticipate_reason = _can_throw_anticipation(
-                accuracy, eval, pressure, time_in_pocket
+                accuracy, eval, pressure, time_in_pocket, anticipation
             )
             if can_anticipate:
                 return eval, True, f"anticipation on read {eval.read_order}: {anticipate_reason}"
@@ -662,7 +821,7 @@ def _find_best_receiver(
     # All reads exhausted - check for any anticipation opportunity as last resort
     for eval in evaluations:
         can_anticipate, anticipate_reason = _can_throw_anticipation(
-            accuracy, eval, pressure, time_in_pocket
+            accuracy, eval, pressure, time_in_pocket, anticipation
         )
         if can_anticipate and eval.separation > 2.0:  # Require good separation for last resort
             return eval, True, f"anticipation: {anticipate_reason}"
@@ -1315,7 +1474,7 @@ def _get_time_thresholds(awareness: int) -> dict:
 # Main Brain Function
 # =============================================================================
 
-def qb_brain(world: WorldState) -> BrainDecision:
+def qb_brain(world: QBContext) -> BrainDecision:
     """QB brain - called every tick while QB has the ball.
 
     Args:
@@ -1382,8 +1541,26 @@ def qb_brain(world: WorldState) -> BrainDecision:
         return BrainDecision.hold("No longer have ball")
 
     # Calculate pressure
-    pressure, threats = _calculate_pressure(world)
+    actual_pressure, threats = _calculate_pressure(world)
+
+    # Apply poise to determine how QB perceives pressure
+    # Low poise: feels more pressure than exists (panics early)
+    # High poise: stays calm under fire
+    poise = world.me.attributes.get("poise", 60)  # Default to average poise
+    perceived_pressure = _get_effective_pressure(actual_pressure, poise)
+    poise_effects = _calculate_poise_effects(poise)
+
+    # Use perceived pressure for decision-making (this is the key behavioral change)
+    pressure = perceived_pressure
     state.pressure_level = pressure
+
+    _trace(f"[POISE] poise={poise}, actual={actual_pressure.value}, perceived={pressure.value}")
+
+    # Calculate decision-making effects
+    # Low DM: forces throws into coverage, doesn't check down
+    # High DM: takes what defense gives, knows when to live for another play
+    decision_making = world.me.attributes.get("decision_making", 55)  # Default slightly above average
+    dm_effects = _calculate_decision_making_effects(decision_making)
 
     # Get timing thresholds
     thresholds = _get_time_thresholds(world.me.attributes.awareness)
@@ -1472,11 +1649,12 @@ def qb_brain(world: WorldState) -> BrainDecision:
     # =========================================================================
     accuracy = world.me.attributes.throw_accuracy
     throw_power = getattr(world.me.attributes, 'throw_power', 80)
+    anticipation_attr = world.me.attributes.get("anticipation", 50)  # QB anticipation attribute
 
     if pressure == PressureLevel.CRITICAL:
         # Platform lost - must complete quickly or move
         best, is_anticipation, find_reason = _find_best_receiver(
-            receivers, state.current_read, pressure, accuracy, time_in_pocket
+            receivers, state.current_read, pressure, accuracy, time_in_pocket, anticipation_attr
         )
 
         if best and best.status in (ReceiverStatus.OPEN, ReceiverStatus.WINDOW):
@@ -1542,18 +1720,40 @@ def qb_brain(world: WorldState) -> BrainDecision:
                 reasoning=f"Completing to read {state.current_read} ({current_eval.separation:.1f}yd open)",
             )
 
-        # Current read covered - move to maintain platform
-        escape = _find_escape_lane(world)
-        if escape:
-            return BrainDecision(
-                move_target=escape,
-                move_type="run",
-                intent="extend_play",
-                reasoning=f"Moving to maintain platform, looking for completion",
-            )
+        # POISE EFFECT: Low poise QBs lock onto current read under pressure
+        # They can't process going to the next read - tunnel vision
+        if poise_effects["read_lock_under_pressure"]:
+            # Low poise: staring down first read, force throw or bail
+            _trace(f"[POISE] Low poise ({poise}) - locked onto R{state.current_read}")
+            if current_eval:
+                # Force throw even into coverage (bad decision)
+                lead_pos = _calculate_throw_lead(world.me.pos, current_eval, throw_power)
+                return BrainDecision(
+                    action="throw",
+                    target_id=current_eval.player_id,
+                    action_target=lead_pos,
+                    reasoning=f"Forced throw to R{state.current_read} (low poise, locked on)",
+                )
 
-        # No movement available - accelerate reads
-        state.current_read = min(state.current_read + 1, 4)
+        # Current read covered - high poise can still progress
+        if poise_effects["progression_under_pressure"]:
+            # High poise: can advance reads even under heavy pressure
+            _trace(f"[POISE] High poise ({poise}) - continuing progression under pressure")
+            state.current_read = min(state.current_read + 1, 4)
+            # Don't immediately bail - let read progression continue
+        else:
+            # Average poise: move to maintain platform
+            escape = _find_escape_lane(world)
+            if escape:
+                return BrainDecision(
+                    move_target=escape,
+                    move_type="run",
+                    intent="extend_play",
+                    reasoning=f"Moving to maintain platform, looking for completion",
+                )
+
+            # No movement available - accelerate reads
+            state.current_read = min(state.current_read + 1, 4)
 
     # =========================================================================
     # Moderate Pressure Response - Platform starting to degrade
@@ -1654,6 +1854,20 @@ def qb_brain(world: WorldState) -> BrainDecision:
 
         # CONTESTED = might open up, dwell full time before moving on
         if status == ReceiverStatus.CONTESTED:
+            # DECISION-MAKING EFFECT: Low DM QBs may force throw into coverage
+            # This is the key behavioral difference - they see "tight window" where
+            # high DM QBs see "covered, check down"
+            if random.random() < dm_effects["force_throw_chance"]:
+                # Bad decision: force the throw anyway
+                _trace(f"[DM] Low decision-making ({decision_making}) - forcing into contested!")
+                lead_pos = _calculate_throw_lead(world.me.pos, current_eval, throw_power)
+                return BrainDecision(
+                    action="throw",
+                    target_id=current_eval.player_id,
+                    action_target=lead_pos,
+                    reasoning=f"Forcing to R{state.current_read} (contested - bad decision)",
+                )
+
             if time_on_current_read >= effective_dwell:
                 # Dwell complete, move to next read
                 if state.current_read < 4:
@@ -1673,6 +1887,18 @@ def qb_brain(world: WorldState) -> BrainDecision:
 
         # COVERED = move on quickly (no point dwelling)
         if status == ReceiverStatus.COVERED:
+            # DECISION-MAKING EFFECT: Really bad QBs might even throw into COVERED receivers
+            # This creates interceptions and the dramatic "what was he thinking?!" moments
+            if decision_making < 45 and random.random() < dm_effects["force_throw_chance"] * 0.5:
+                _trace(f"[DM] Poor decision-making ({decision_making}) - throwing into coverage!")
+                lead_pos = _calculate_throw_lead(world.me.pos, current_eval, throw_power)
+                return BrainDecision(
+                    action="throw",
+                    target_id=current_eval.player_id,
+                    action_target=lead_pos,
+                    reasoning=f"Forcing to R{state.current_read} (covered - terrible decision)",
+                )
+
             if state.current_read < 4:
                 state.current_read += 1
                 _trace(f"[READ] R{state.current_read - 1} COVERED, quick advance to R{state.current_read}")
