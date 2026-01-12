@@ -15,6 +15,7 @@ export type LeftPanelView =
   | 'league'         // League stats, leaders
   | 'drawer'         // Archived workspace items
   | 'week'           // Weekly gameplay loop view
+  | 'settings'       // Appearance and preferences
   | null;
 
 export type WorkspaceItemStatus = 'active' | 'pinned' | 'archived';

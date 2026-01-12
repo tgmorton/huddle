@@ -46,7 +46,7 @@ import type { PaneSize } from './types';
 import { DEMO_EVENTS, INITIAL_WORKSPACE_ITEMS, DEMO_NEWS } from './data/demo';
 // TimeControls removed - using day-based progression now
 import { EventModal } from './components/EventModal';
-import { AdminSidebar, WorkshopPanel, DeskDrawer, ManagementEventModal } from './components';
+import { AdminSidebar, SettingsPanel, WorkshopPanel, DeskDrawer, ManagementEventModal } from './components';
 import type { LogEntry } from './components';
 import { ReferencePanel } from './panels/ReferencePanel';
 import { WorkspaceItemComponent } from './workspace';
@@ -866,6 +866,18 @@ export const ManagementV2: React.FC = () => {
         </div>
 
         <div className="mgmt2__nav-bottom">
+          {/* Settings */}
+          <button
+            className={`mgmt2__nav-btn ${leftPanel === 'settings' ? 'active' : ''}`}
+            onClick={() => togglePanel('settings')}
+            title="Settings"
+          >
+            <Settings size={18} />
+            {sidebarExpanded && <span className="mgmt2__nav-label">Settings</span>}
+          </button>
+
+          <div className="mgmt2__nav-divider" />
+
           {/* Demo Event Trigger */}
           <button
             className="mgmt2__nav-btn mgmt2__nav-btn--event"
@@ -993,6 +1005,8 @@ export const ManagementV2: React.FC = () => {
                   onDelete={deleteFromDrawer}
                   onUpdateNote={updateDrawerNote}
                 />
+              ) : leftPanel === 'settings' ? (
+                <SettingsPanel />
               ) : (
                 <ReferencePanel type={leftPanel} onAddPlayerToWorkspace={addPlayerToWorkspace} onAddProspectToWorkspace={addProspectToWorkspace} onAddContractToWorkspace={addContractToWorkspace} onStartNegotiation={addNegotiationToWorkspace} onResumeNegotiation={addNegotiationToWorkspace} onStartAuction={addAuctionToWorkspace} franchiseId={franchiseId} />
               )}

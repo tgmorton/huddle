@@ -168,11 +168,7 @@
 .mgmt2 {
   display: flex;
   height: 100vh;
-  /* Grid aligned to unit size, offset by quarter-unit so buttons sit on grid */
-  background:
-    linear-gradient(to right, rgba(42, 42, 50, 0.3) 1px, transparent 1px) var(--unit-quarter) var(--unit-quarter) / var(--unit) var(--unit),
-    linear-gradient(to bottom, rgba(42, 42, 50, 0.3) 1px, transparent 1px) var(--unit-quarter) var(--unit-quarter) / var(--unit) var(--unit),
-    var(--bg-base);
+  background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-base);
@@ -2547,9 +2543,13 @@
   padding-left: 0;                /* No gap between left panel and main */
   padding-bottom: 0;              /* Extend to ticker */
   gap: var(--unit-quarter);
-  background: transparent; /* Let grid show through */
   min-height: 0;
   overflow-y: auto;
+  /* Grid on workspace */
+  background:
+    linear-gradient(to right, rgba(42, 42, 50, 0.3) 1px, transparent 1px) 0 0 / var(--unit) var(--unit),
+    linear-gradient(to bottom, rgba(42, 42, 50, 0.3) 1px, transparent 1px) 0 0 / var(--unit) var(--unit),
+    var(--bg-base);
 }
 
 
@@ -5367,6 +5367,137 @@ button.stat-table__row {
   flex: 1;
   font-size: 10px;
   color: var(--text-muted);
+}
+
+/* === Settings Content (Left Sideview) === */
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--font-mono);
+}
+
+.settings-content__header {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-content__header h2 {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.settings-content__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+}
+
+.settings-content__section {
+  margin-bottom: var(--space-lg);
+}
+
+.settings-content__section:last-child {
+  margin-bottom: 0;
+}
+
+.settings-content__section h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.settings-content__setting {
+  margin-bottom: var(--space-md);
+}
+
+.settings-content__setting:last-child {
+  margin-bottom: 0;
+}
+
+.settings-content__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.settings-content__hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: var(--space-sm) 0 0 0;
+  line-height: 1.4;
+}
+
+/* Theme Options */
+.settings-content__theme-options {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.settings-content__theme-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.settings-content__theme-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+.settings-content__theme-btn--active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.settings-content__theme-btn--active:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.settings-content__theme-btn span {
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+/* Light Mode Overrides for Settings Content */
+:root.sepia-mode .settings-content__theme-btn {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+:root.sepia-mode .settings-content__theme-btn:hover {
+  background: var(--bg-hover);
+}
+
+:root.sepia-mode .settings-content__theme-btn--active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* === Workshop Panel === */
@@ -11941,4 +12072,307 @@ button.stat-table__row {
   border-top: 1px solid var(--border);
   font-size: var(--text-xs);
   color: var(--text-muted);
+}
+
+/* ============================================================================
+   LIGHT MODE (Clean Ops Center)
+   ============================================================================
+   Triggered by sepia-mode class on document root.
+   Maintains ops center aesthetic with clean light grays and darkened amber.
+   ============================================================================ */
+
+/* --- Core Token Overrides --- */
+:root.sepia-mode .mgmt2 {
+  /* Background hierarchy - Zinc palette */
+  --bg-base: #f4f4f5;      /* Zinc-100 */
+  --bg-surface: #fafafa;   /* Zinc-50 */
+  --bg-elevated: #ffffff;  /* Pure white */
+  --bg-hover: #e4e4e7;     /* Zinc-200 */
+
+  /* Borders */
+  --border: #d4d4d8;       /* Zinc-300 */
+  --border-light: #e4e4e7; /* Zinc-200 */
+
+  /* Text - WCAG AA compliant */
+  --text-primary: #18181b;   /* Zinc-900, 15.4:1 contrast */
+  --text-secondary: #3f3f46; /* Zinc-700, 9.8:1 contrast */
+  --text-muted: #71717a;     /* Zinc-500, 4.7:1 contrast */
+
+  /* Accent - darkened for light mode contrast */
+  --accent: #b45309;                    /* Amber-700 */
+  --accent-hover: #92400e;              /* Amber-800 */
+  --accent-dim: rgba(180, 83, 9, 0.12); /* Tinted bg */
+
+  /* Semantic colors - darkened */
+  --warning: #b45309;  /* Amber-700 */
+  --success: #16a34a;  /* Green-600 */
+  --danger: #dc2626;   /* Red-600 */
+}
+
+/* Grid background on workspace only */
+:root.sepia-mode .mgmt2__main {
+  background:
+    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px) 0 0 / var(--unit) var(--unit),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px) 0 0 / var(--unit) var(--unit),
+    var(--bg-base);
+}
+
+/* --- Shadows (softer for light mode) --- */
+:root.sepia-mode .mgmt2__app-nav-dropdown {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+:root.sepia-mode .reference-panel__dropdown {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+:root.sepia-mode .player-modal,
+:root.sepia-mode .event-modal {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+:root.sepia-mode .event-modal-overlay,
+:root.sepia-mode .player-modal-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+:root.sepia-mode .tooltip {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Type-Based Card Backgrounds (reduced opacity) --- */
+:root.sepia-mode .queue-card__abbr[data-type="deadline"],
+:root.sepia-mode .workspace-item__abbr[data-type="deadline"],
+:root.sepia-mode .agenda-card__abbr[data-type="deadline"],
+:root.sepia-mode .focus-card__abbr[data-type="deadline"] {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+:root.sepia-mode .queue-card__abbr[data-type="decision"],
+:root.sepia-mode .workspace-item__abbr[data-type="decision"],
+:root.sepia-mode .agenda-card__abbr[data-type="decision"],
+:root.sepia-mode .focus-card__abbr[data-type="decision"] {
+  background: rgba(180, 83, 9, 0.1);
+}
+
+:root.sepia-mode .queue-card__abbr[data-type="scout"],
+:root.sepia-mode .workspace-item__abbr[data-type="scout"],
+:root.sepia-mode .agenda-card__abbr[data-type="scout"],
+:root.sepia-mode .focus-card__abbr[data-type="scout"] {
+  background: rgba(22, 163, 74, 0.1);
+}
+
+:root.sepia-mode .queue-card__abbr[data-type="injury"],
+:root.sepia-mode .workspace-item__abbr[data-type="injury"],
+:root.sepia-mode .agenda-card__abbr[data-type="injury"],
+:root.sepia-mode .focus-card__abbr[data-type="injury"] {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+:root.sepia-mode .queue-card__abbr[data-type="contract"],
+:root.sepia-mode .workspace-item__abbr[data-type="contract"],
+:root.sepia-mode .agenda-card__abbr[data-type="contract"],
+:root.sepia-mode .focus-card__abbr[data-type="contract"] {
+  background: rgba(22, 163, 74, 0.1);
+}
+
+/* --- Scrollbars --- */
+:root.sepia-mode .mgmt2 ::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+}
+
+:root.sepia-mode .mgmt2 ::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+:root.sepia-mode .mgmt2 * {
+  scrollbar-color: #d4d4d8 transparent;
+}
+
+/* --- Corner Brackets (ensure bg variable is picked up) --- */
+:root.sepia-mode .bracketed {
+  background:
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 0 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 100% 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 0 100% / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 100% 100% / 1px var(--bracket-size) no-repeat,
+    var(--bg-surface);
+}
+
+:root.sepia-mode .bracketed--elevated {
+  background:
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 0 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 100% 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 0 100% / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 100% 100% / 1px var(--bracket-size) no-repeat,
+    var(--bg-elevated);
+}
+
+/* --- Left Panel (corner brackets on surface) --- */
+:root.sepia-mode .mgmt2__left-panel {
+  background:
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 0 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 100% 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 0 100% / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 100% 100% / 1px var(--bracket-size) no-repeat,
+    var(--bg-surface);
+}
+
+/* --- Focus Area (corner brackets on surface) --- */
+:root.sepia-mode .mgmt2__focus {
+  background:
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 0 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 0 / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to bottom, var(--bracket-color) 100%, transparent 100%) 100% 0 / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to right, var(--bracket-color) 100%, transparent 100%) 0 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 0 100% / 1px var(--bracket-size) no-repeat,
+    linear-gradient(to left, var(--bracket-color) 100%, transparent 100%) 100% 100% / var(--bracket-size) 1px no-repeat,
+    linear-gradient(to top, var(--bracket-color) 100%, transparent 100%) 100% 100% / 1px var(--bracket-size) no-repeat,
+    var(--bg-surface);
+}
+
+/* --- Sticky name columns in tables --- */
+:root.sepia-mode .team-stats__td--name {
+  background: var(--bg-surface);
+}
+
+:root.sepia-mode .team-stats__tr:hover .team-stats__td--name {
+  background: var(--bg-hover);
+}
+
+/* --- Active/Selected states with accent --- */
+:root.sepia-mode .mgmt2__nav-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* --- Buttons on accent background --- */
+:root.sepia-mode .btn--primary {
+  color: #ffffff;
+}
+
+/* --- Input fields --- */
+:root.sepia-mode input,
+:root.sepia-mode textarea,
+:root.sepia-mode select {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+:root.sepia-mode input::placeholder,
+:root.sepia-mode textarea::placeholder {
+  color: var(--text-muted);
+}
+
+:root.sepia-mode input:focus,
+:root.sepia-mode textarea:focus,
+:root.sepia-mode select:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+/* --- Tables --- */
+:root.sepia-mode .roster-table__row:nth-child(even) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+:root.sepia-mode .roster-table__row:hover {
+  background: var(--bg-hover);
+}
+
+/* --- Depth Chart --- */
+:root.sepia-mode .depth-slot--empty {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px dashed var(--border);
+}
+
+/* --- Draft/Prospect Cards --- */
+:root.sepia-mode .prospect-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+
+:root.sepia-mode .prospect-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
+}
+
+/* --- Contract/Salary highlighting --- */
+:root.sepia-mode .salary--high {
+  color: var(--danger);
+}
+
+:root.sepia-mode .salary--medium {
+  color: var(--warning);
+}
+
+:root.sepia-mode .salary--low {
+  color: var(--success);
+}
+
+/* --- Progress bars --- */
+:root.sepia-mode .progress-bar {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+:root.sepia-mode .progress-bar__fill {
+  background: var(--accent);
+}
+
+/* --- Stat bars --- */
+:root.sepia-mode .stat-bar {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* --- Ticker --- */
+:root.sepia-mode .mgmt2__ticker {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+}
+
+/* --- Header --- */
+:root.sepia-mode .mgmt2__header {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* --- Tags/Badges --- */
+:root.sepia-mode .tag,
+:root.sepia-mode .badge {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-secondary);
+}
+
+:root.sepia-mode .tag--accent,
+:root.sepia-mode .badge--accent {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* --- Selection/Highlights --- */
+:root.sepia-mode ::selection {
+  background: rgba(180, 83, 9, 0.25);
+  color: var(--text-primary);
+}
+
+/* --- Focus rings --- */
+:root.sepia-mode .mgmt2 *:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

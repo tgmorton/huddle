@@ -19,8 +19,8 @@ import type {
   LeagueLeader,
   LeagueLeadersCategory,
   StatCategory,
-  POSITION_TO_STAT_GROUP,
 } from '../types/stats';
+import { POSITION_TO_STAT_GROUP } from '../types/stats';
 
 // === Helpers ===
 
@@ -599,7 +599,7 @@ export function generateMockCareerStats(
     player_id: playerId,
     player_name: playerName,
     position,
-    seasons,
+    seasons, // Chronological order (oldest first, most recent last)
     career_totals: aggregateSeasons(seasons),
     career_highs: extractCareerHighs(seasons),
   };

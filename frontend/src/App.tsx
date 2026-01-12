@@ -14,6 +14,7 @@ import { V2SimScreen } from './components/V2Sim/V2SimScreen'
 import { AgentMailScreen } from './components/AgentMail/AgentMailScreen'
 import { PlayerCardDemo } from './components/PlayerCard'
 import { ManagementV2 } from './components/ManagementV2'
+import { GameView } from './components/GameView'
 import { SimAnalyzer } from './components/SimAnalyzer/SimAnalyzer'
 import { Sim3D } from './components/Sim3D'
 import { ArmsPrototype } from './components/ArmsPrototype'
@@ -46,6 +47,7 @@ function useTheme() {
 // Navigation header for non-AgentMail views
 const NAV_ITEMS = [
   { path: '/', label: 'Game' },
+  { path: '/coach', label: 'Coach' },
   { path: '/sandbox', label: 'Sandbox' },
   { path: '/pocket', label: 'Pocket' },
   { path: '/routes', label: 'Routes' },
@@ -119,6 +121,8 @@ function App() {
         <Route path="/manage" element={<WithHeader><ManagementScreenWrapper /></WithHeader>} />
         {/* ManagementV2 - Redesign prototype (standalone, no header) */}
         <Route path="/manage-v2" element={<ManagementV2 />} />
+        {/* GameView - Coach's game day experience (standalone, no header) */}
+        <Route path="/coach" element={<GameView />} />
         {/* SimExplorer - Historical simulation explorer (standalone, no header) */}
         <Route path="/sim-explorer" element={<SimExplorer />} />
         <Route path="/admin" element={<WithHeader><AdminScreen /></WithHeader>} />

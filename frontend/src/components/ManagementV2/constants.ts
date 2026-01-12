@@ -10,6 +10,7 @@ import {
   GitBranch,
   ClipboardList,
   Settings,
+  Eye,
 } from 'lucide-react';
 import type { ItemType, PaneSize } from './types';
 
@@ -54,6 +55,7 @@ export const NAV_GROUPS = [
   {
     label: 'Simulation',
     items: [
+      { to: '/coach', label: 'Watch Game', icon: Eye },
       { to: '/', label: 'Game', icon: Gamepad2 },
       { to: '/sandbox', label: 'Sandbox', icon: Box },
       { to: '/integrated', label: 'Integrated', icon: Zap },
@@ -88,6 +90,7 @@ export const PANEL_WIDTHS: Record<string, number> = {
   team: 380,
   week: 320,
   league: 640, // Wider for stats tables
+  settings: 300, // Compact settings panel
 };
 
 // === Player Stats Column Definitions ===

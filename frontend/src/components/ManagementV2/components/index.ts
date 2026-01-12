@@ -5,6 +5,7 @@ export { EventModal } from './EventModal';
 export { ManagementEventModal } from './ManagementEventModal';
 export { QueuePanel } from './QueuePanel';
 export { AdminSidebar } from './AdminSidebar';
+export { SettingsPanel } from './SettingsPanel';
 export { WorkshopPanel } from './WorkshopPanel';
 export type { LogEntry } from './WorkshopPanel';
 export { StatBar, getStatColor } from './StatBar';

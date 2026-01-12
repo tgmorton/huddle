@@ -256,6 +256,20 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     fetchPortraitAttrs();
   }, [sections.debug, leagueId, playerId, portraitAttrs]);
 
+  // Generate mock career stats (memoized to avoid regeneration on re-renders)
+  // Must be before early returns to maintain hooks order
+  const careerStats = useMemo(() => {
+    if (!player) return null;
+    return generateMockCareerStats(
+      player.id,
+      player.full_name,
+      player.position,
+      player.overall,
+      player.experience,
+      player.team_abbreviation || 'FA'
+    );
+  }, [player]);
+
   // Get categories with attributes for this player
   const getRelevantCategories = (attributes: Record<string, number>) => {
     return Object.entries(ATTRIBUTE_CATEGORIES)
@@ -302,18 +316,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     .map(key => ({ key, label: formatAttrName(key), value: attrs[key] }));
 
   const isPaneVariant = variant === 'pane';
-
-  // Generate mock career stats (memoized to avoid regeneration on re-renders)
-  const careerStats = useMemo(() => {
-    return generateMockCareerStats(
-      player.id,
-      player.full_name,
-      player.position,
-      player.overall,
-      player.experience,
-      player.team_abbreviation || 'FA'
-    );
-  }, [player.id, player.full_name, player.position, player.overall, player.experience, player.team_abbreviation]);
 
   return (
     <div className={`player-view player-view--${variant}`}>
