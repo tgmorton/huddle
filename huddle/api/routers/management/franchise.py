@@ -314,3 +314,58 @@ async def list_sessions() -> dict:
         "active_sessions": [str(sid) for sid in management_session_manager.active_sessions],
         "count": len(management_session_manager.active_sessions),
     }
+
+
+@router.get("/teams")
+async def get_teams() -> dict:
+    """Get all teams from the loaded league.
+
+    Returns teams from any active management session's league,
+    or from the admin's active league if no session exists.
+    Used by GameView to populate team selection.
+    """
+    league = None
+
+    # First, look for a session with a loaded league
+    for session in management_session_manager._sessions.values():
+        if session.service and session.service.league:
+            league = session.service.league
+            break
+
+    # Fall back to admin's active league
+    if not league:
+        league = get_active_league()
+
+    if league:
+        teams = []
+        for team in league.teams.values():
+            # Get conference/division from league structure
+            division = league.get_division_for_team(team.abbreviation)
+            conference = league.get_conference_for_team(team.abbreviation)
+
+            teams.append({
+                "id": str(team.id),
+                "abbreviation": team.abbreviation,
+                "name": team.full_name,
+                "city": team.city,
+                "nickname": team.name,  # team.name is the nickname (e.g., "Patriots")
+                "conference": conference.value if conference else "NFC",
+                "division": division.value if division else "",
+            })
+
+        # Sort by abbreviation for consistent ordering
+        teams.sort(key=lambda t: t["abbreviation"])
+
+        return {
+            "teams": teams,
+            "count": len(teams),
+            "league_loaded": True,
+        }
+
+    # No league loaded
+    return {
+        "teams": [],
+        "count": 0,
+        "league_loaded": False,
+        "message": "No league loaded. Generate or load a league first.",
+    }

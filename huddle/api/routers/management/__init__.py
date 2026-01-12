@@ -12,6 +12,7 @@ Sub-routers:
 - practice: Practice allocation, mastery, development
 - game: Game simulation
 - clipboard: Events, drawer, journal
+- stats: Game logs, player stats, league leaders
 """
 
 from fastapi import APIRouter
@@ -23,6 +24,7 @@ from .draft import router as draft_router
 from .practice import router as practice_router
 from .game import router as game_router
 from .clipboard import router as clipboard_router
+from .stats import router as stats_router
 
 # Create the combined router
 router = APIRouter()
@@ -36,6 +38,7 @@ router.include_router(draft_router)
 router.include_router(practice_router)
 router.include_router(game_router)
 router.include_router(clipboard_router)
+router.include_router(stats_router)
 
 # Re-export for convenience
 __all__ = [
@@ -47,4 +50,5 @@ __all__ = [
     "practice_router",
     "game_router",
     "clipboard_router",
+    "stats_router",
 ]

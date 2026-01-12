@@ -699,6 +699,85 @@ class GameResultResponse(BaseModel):
     mvp: Optional[dict] = None  # {player_id, name, position, stat_line}
 
 
+# === Stats API Response Types ===
+
+
+class GameLogSummaryResponse(BaseModel):
+    """Summary of a game for list views."""
+    game_id: str
+    week: int
+    opponent_abbr: str
+    opponent_name: str
+    is_home: bool
+    user_score: int
+    opponent_score: int
+    won: bool
+    passing_yards: int
+    rushing_yards: int
+
+
+class GameLogsListResponse(BaseModel):
+    """List of game log summaries."""
+    games: list[GameLogSummaryResponse]
+    total: int
+
+
+class PlayerStatLineResponse(BaseModel):
+    """Individual player's stats for a single game."""
+    player_id: str
+    player_name: str
+    position: str
+    team_abbr: str
+    passing: Optional[dict] = None
+    rushing: Optional[dict] = None
+    receiving: Optional[dict] = None
+    defense: Optional[dict] = None
+
+
+class GameLogDetailResponse(BaseModel):
+    """Full game log with all details."""
+    game_id: str
+    week: int
+    home_team: str
+    away_team: str
+    home_score: int
+    away_score: int
+    home_stats: dict
+    away_stats: dict
+    player_stats: list[PlayerStatLineResponse]
+
+
+class PlayerSeasonStatsResponse(BaseModel):
+    """Player's accumulated season statistics."""
+    player_id: str
+    player_name: str
+    team_abbr: str
+    position: str
+    games_played: int
+    passing: Optional[dict] = None
+    rushing: Optional[dict] = None
+    receiving: Optional[dict] = None
+    defense: Optional[dict] = None
+
+
+class LeaderEntryResponse(BaseModel):
+    """Single entry in league leaders list."""
+    rank: int
+    player_id: str
+    player_name: str
+    team_abbr: str
+    position: str
+    value: float
+    games_played: int
+
+
+class LeadersResponse(BaseModel):
+    """League leaders for a specific stat."""
+    category: str
+    stat: str
+    leaders: list[LeaderEntryResponse]
+
+
 # === WebSocket Message Types ===
 
 class ManagementWSMessageType(str, Enum):

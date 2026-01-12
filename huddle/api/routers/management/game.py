@@ -15,6 +15,7 @@ from huddle.api.schemas.management import (
     GameStatsResponse,
 )
 from huddle.api.routers.admin import get_active_league
+from huddle.core.stats import CorrelatedStatsGenerator, GameContext, select_mvp
 from .deps import get_session
 
 router = APIRouter(tags=["game"])
@@ -65,75 +66,77 @@ async def sim_game(franchise_id: UUID, request: SimGameRequest) -> GameResultRes
     opp_score = opp_base
     won = user_score > opp_score
 
-    # Generate random stats
-    def gen_stats(score: int) -> GameStatsResponse:
-        """Generate plausible stats based on score."""
-        # Higher scores = more yards
-        base_passing = 180 + (score * 5) + random.randint(-30, 50)
-        base_rushing = 80 + (score * 2) + random.randint(-20, 40)
+    # Get league and opponent team for stats generation
+    league = get_active_league()
+    opponent_id = event.payload.get("opponent_id")
+    opponent_team = None
+    opponent_abbr = None
 
-        return GameStatsResponse(
-            passing_yards=max(100, base_passing),
-            rushing_yards=max(40, base_rushing),
-            total_yards=max(150, base_passing + base_rushing),
-            turnovers=random.randint(0, 3),
-            time_of_possession=f"{random.randint(25, 35)}:{random.randint(0, 59):02d}",
-            third_down_pct=round(random.uniform(30, 55), 1),
-            sacks=random.randint(0, 4),
-        )
+    if league and opponent_id:
+        opponent_team = league.get_team_by_id(UUID(opponent_id))
+        if opponent_team:
+            opponent_abbr = opponent_team.abbreviation
 
-    user_stats = gen_stats(user_score)
-    opp_stats = gen_stats(opp_score)
+    # Generate correlated stats using the stats generator
+    generator = CorrelatedStatsGenerator()
 
-    # Generate MVP (placeholder - pick random position with good stat line)
-    mvp_positions = ["QB", "RB", "WR"]
-    mvp_pos = random.choice(mvp_positions)
-    if mvp_pos == "QB":
-        mvp_stat = f"{random.randint(18, 28)}/{random.randint(28, 38)}, {user_stats.passing_yards} yds, {random.randint(1, 4)} TD"
-    elif mvp_pos == "RB":
-        mvp_stat = f"{random.randint(15, 25)} car, {user_stats.rushing_yards} yds, {random.randint(0, 2)} TD"
-    else:
-        mvp_stat = (
-            f"{random.randint(5, 10)} rec, {random.randint(80, 140)} yds, {random.randint(0, 2)} TD"
-        )
+    # Determine home/away teams
+    home_team_obj = user_team if is_home else opponent_team
+    away_team_obj = opponent_team if is_home else user_team
 
-    mvp = (
-        {
-            "player_id": None,
-            "name": "Player MVP",  # Would be actual player in real implementation
-            "position": mvp_pos,
-            "stat_line": mvp_stat,
-        }
-        if won
-        else None
+    ctx = GameContext(
+        week=week,
+        home_team=home_team_obj,
+        away_team=away_team_obj,
+        home_score=home_score,
+        away_score=away_score,
+    )
+    game_log = generator.generate(ctx)
+
+    # Store the game log on the league (auto-aggregates season stats)
+    if league:
+        league.add_game_log(game_log)
+
+    # Extract team stats for response
+    user_team_stats = game_log.home_stats if is_home else game_log.away_stats
+    opp_team_stats = game_log.away_stats if is_home else game_log.home_stats
+
+    user_stats = GameStatsResponse(
+        passing_yards=user_team_stats.passing_yards,
+        rushing_yards=user_team_stats.rushing_yards,
+        total_yards=user_team_stats.total_yards,
+        turnovers=user_team_stats.turnovers,
+        time_of_possession=user_team_stats.time_of_possession_display,
+        third_down_pct=round(user_team_stats.third_down_pct, 1),
+        sacks=0,  # Sacks taken stored on player stats
+    )
+    opp_stats = GameStatsResponse(
+        passing_yards=opp_team_stats.passing_yards,
+        rushing_yards=opp_team_stats.rushing_yards,
+        total_yards=opp_team_stats.total_yards,
+        turnovers=opp_team_stats.turnovers,
+        time_of_possession=opp_team_stats.time_of_possession_display,
+        third_down_pct=round(opp_team_stats.third_down_pct, 1),
+        sacks=0,
     )
 
+    # Select MVP from actual player stats
+    mvp = select_mvp(game_log, user_team_name if won else None)
+
     # Update standings in the league
-    league = get_active_league()
-    if league:
-        # Get opponent abbreviation from event payload
-        opponent_id = event.payload.get("opponent_id")
-        opponent_abbr = None
-
-        # Try to find opponent abbreviation
-        if opponent_id:
-            opponent_team = league.get_team_by_id(UUID(opponent_id))
-            if opponent_team:
-                opponent_abbr = opponent_team.abbreviation
-
-        if opponent_abbr:
-            # Find and update the scheduled game
-            for game in league.schedule:
-                if game.week == week and not game.is_played:
-                    # Check if this is the right game (user team vs opponent)
-                    game_teams = {game.home_team_abbr, game.away_team_abbr}
-                    if user_team_name in game_teams and opponent_abbr in game_teams:
-                        # Update the game with scores
-                        game.home_score = home_score
-                        game.away_score = away_score
-                        # Update standings
-                        league.update_standings_from_game(game)
-                        break
+    if league and opponent_abbr:
+        # Find and update the scheduled game
+        for game in league.schedule:
+            if game.week == week and not game.is_played:
+                # Check if this is the right game (user team vs opponent)
+                game_teams = {game.home_team_abbr, game.away_team_abbr}
+                if user_team_name in game_teams and opponent_abbr in game_teams:
+                    # Update the game with scores
+                    game.home_score = home_score
+                    game.away_score = away_score
+                    # Update standings
+                    league.update_standings_from_game(game)
+                    break
 
     # Mark event as attended
     event.complete()

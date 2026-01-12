@@ -34,21 +34,34 @@ class PlayTypeEnum(str, Enum):
     KICKOFF = "kickoff"
 
 
+class PacingEnum(str, Enum):
+    """Auto-play pacing options."""
+    SLOW = "slow"      # 2.0 seconds between plays
+    NORMAL = "normal"  # 1.0 seconds between plays
+    FAST = "fast"      # 0.3 seconds between plays
+
+
 # =============================================================================
 # Request Schemas
 # =============================================================================
 
 class StartGameRequest(BaseModel):
-    """Request to start a new coach mode game."""
-    home_team_id: UUID
-    away_team_id: UUID
+    """Request to start a new coach mode game.
+
+    Can specify teams by UUID or abbreviation. If abbreviations are used,
+    teams are looked up from the loaded league.
+    """
+    home_team_id: Optional[UUID] = None
+    away_team_id: Optional[UUID] = None
+    home_team_abbr: Optional[str] = None  # "NYG", "DAL", etc.
+    away_team_abbr: Optional[str] = None
     user_controls_home: bool = True
 
     class Config:
         json_schema_extra = {
             "example": {
-                "home_team_id": "550e8400-e29b-41d4-a716-446655440001",
-                "away_team_id": "550e8400-e29b-41d4-a716-446655440002",
+                "home_team_abbr": "NYG",
+                "away_team_abbr": "DAL",
                 "user_controls_home": True,
             }
         }
@@ -283,3 +296,22 @@ class GameOverResponse(BaseModel):
     winner: str  # "home", "away", or "tie"
     box_score: BoxScoreResponse
     drives: List[DriveResultResponse]
+
+
+class AutoPlayRequest(BaseModel):
+    """Request to start auto-play mode."""
+    pacing: PacingEnum = PacingEnum.NORMAL
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "pacing": "normal",
+            }
+        }
+
+
+class AutoPlayResponse(BaseModel):
+    """Response when auto-play is started."""
+    message: str
+    pacing: str
+    is_running: bool

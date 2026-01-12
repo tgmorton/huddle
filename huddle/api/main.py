@@ -87,7 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(team_routes_router, prefix="/api/v1")
     app.include_router(play_sim_router, prefix="/api/v1")
     app.include_router(integrated_sim_router, prefix="/api/v1")
-    app.include_router(management_router, prefix="/api/v1")
+    app.include_router(management_router, prefix="/api/v1/management")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(v2_sim_router, prefix="/api/v1")
     app.include_router(agentmail_router, prefix="/api/v1")  # Agent communication
