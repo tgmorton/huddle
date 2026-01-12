@@ -25,39 +25,56 @@ if TYPE_CHECKING:
 # Constants - NFL Statistical Baselines
 # =============================================================================
 
-# Kickoff outcomes
-KICKOFF_TOUCHBACK_RATE = 0.65  # Modern NFL with touchback at 25
+# Kickoff outcomes (from research/exports/special_teams_model.json)
+KICKOFF_TOUCHBACK_RATE = 0.625  # NFL 2019-2024 average
 KICKOFF_OUT_OF_BOUNDS_RATE = 0.02  # Penalty, ball at 40
-KICKOFF_RETURN_AVG_YARDS = 23.0  # Average return when not touchback
-KICKOFF_RETURN_STD = 8.0  # Standard deviation
+KICKOFF_RETURN_AVG_YARDS = 21.4  # Average return when not touchback
+KICKOFF_RETURN_STD = 12.5  # Standard deviation
 
-# Punt outcomes
+# Punt outcomes (from research/exports/special_teams_model.json)
 PUNT_INSIDE_20_RATE = 0.40  # Coffin corner success
-PUNT_TOUCHBACK_RATE = 0.10  # Kicked into end zone
-PUNT_FAIR_CATCH_RATE = 0.35  # Fair catch called
-PUNT_AVG_NET = 42.0  # Average net yards
-PUNT_NET_STD = 8.0  # Standard deviation
+PUNT_TOUCHBACK_RATE = 0.069  # Kicked into end zone
+PUNT_FAIR_CATCH_RATE = 0.279  # Fair catch called
+PUNT_GROSS_AVG = 46.3  # Gross punt yards
+PUNT_AVG_NET = 42.5  # Average net yards
+PUNT_NET_STD = 10.8  # Standard deviation
 
-# Field goal rates by distance (yards from goal line)
-FG_BASE_RATES = {
-    (0, 25): 0.98,    # Chip shots
-    (25, 30): 0.95,
-    (30, 35): 0.92,
-    (35, 40): 0.87,
-    (40, 45): 0.80,
-    (45, 50): 0.70,
-    (50, 55): 0.55,
-    (55, 60): 0.40,
-    (60, 65): 0.25,
+# Field goal rates by kick distance (from research/exports/special_teams_model.json)
+# Note: kick_distance = 100 - yard_line + 17 (snap + hold)
+FG_BY_DISTANCE = {
+    19: 1.0, 20: 0.987, 21: 1.0, 22: 0.986, 23: 1.0, 24: 0.986, 25: 0.980,
+    26: 0.981, 27: 0.965, 28: 0.982, 29: 0.938, 30: 0.983, 31: 0.971,
+    32: 0.948, 33: 0.955, 34: 0.920, 35: 0.907, 36: 0.911, 37: 0.910,
+    38: 0.921, 39: 0.888, 40: 0.884, 41: 0.792, 42: 0.817, 43: 0.805,
+    44: 0.800, 45: 0.746, 46: 0.773, 47: 0.694, 48: 0.728, 49: 0.741,
+    50: 0.739, 51: 0.715, 52: 0.741, 53: 0.667, 54: 0.745, 55: 0.617,
+    56: 0.583, 57: 0.569, 58: 0.585, 59: 0.625, 60: 0.388, 61: 0.388,
+    62: 0.388, 63: 0.200, 64: 0.200, 65: 0.200,
+}
+
+# Fallback bucket rates for distances outside specific data
+FG_BUCKET_RATES = {
+    (0, 20): 1.0,
+    (20, 25): 0.992,
+    (25, 30): 0.968,
+    (30, 35): 0.955,
+    (35, 40): 0.908,
+    (40, 45): 0.819,
+    (45, 50): 0.736,
+    (50, 55): 0.720,
+    (55, 60): 0.596,
+    (60, 65): 0.388,
     (65, 100): 0.10,  # Hail mary kicks
 }
 
-# PAT rates
-PAT_BASE_RATE = 0.94  # Post-2015 NFL rate (33 yards)
+# PAT rates (from research/exports/special_teams_model.json)
+PAT_BASE_RATE = 0.944  # NFL 2019-2024 rate
 PAT_DISTANCE = 33  # Yards from goal line
 
-# Two-point conversion rate (statistical fallback)
-TWO_PT_BASE_RATE = 0.48
+# Two-point conversion rate (from research/exports/two_point_model.json)
+TWO_PT_BASE_RATE = 0.477
+TWO_PT_PASS_RATE = 0.448  # Pass 2PT success rate
+TWO_PT_RUN_RATE = 0.551  # Run 2PT success rate
 
 
 # =============================================================================
@@ -350,27 +367,40 @@ class SpecialTeamsResolver:
         """Resolve a field goal attempt.
 
         Args:
-            distance: Distance in yards from goal line
+            distance: Distance in yards (kick distance, not yard line)
             kicker: Kicker for accuracy modifier
 
         Returns:
             Outcome with points if made
+
+        Note:
+            Kick distance = 100 - yard_line + 17 (snap + hold)
+            E.g., from the 30 yard line: kick distance = 100 - 30 + 17 = 87... wait no.
+            Actually: from own 30 yard line means 70 yards to goal, + 17 = 87 (impossible)
+            From opponent 30: 30 + 17 = 47 yard FG attempt
         """
-        # Get base rate for distance
-        base_rate = 0.50
-        for (low, high), rate in FG_BASE_RATES.items():
-            if low <= distance < high:
-                base_rate = rate
-                break
+        kick_dist = int(distance)
+
+        # Get base rate from precise lookup or fallback to bucket
+        if kick_dist in FG_BY_DISTANCE:
+            base_rate = FG_BY_DISTANCE[kick_dist]
+        else:
+            # Fallback to bucket rates
+            base_rate = 0.10
+            for (low, high), rate in FG_BUCKET_RATES.items():
+                if low <= kick_dist < high:
+                    base_rate = rate
+                    break
 
         # Modify based on kicker accuracy
         kicker_acc = 75
         if kicker:
             kicker_acc = kicker.attributes.get("kick_accuracy", 75)
 
-        # +/- 10% based on kicker rating
-        accuracy_mod = (kicker_acc - 75) * 0.004
-        make_rate = min(0.99, max(0.05, base_rate + accuracy_mod))
+        # P(make) = base_rate * (1 + (kicker_rating - 75) / 100)
+        # From research implementation hints
+        accuracy_mod = (kicker_acc - 75) / 100
+        make_rate = min(0.99, max(0.05, base_rate * (1 + accuracy_mod)))
 
         # Blocked chance (1.5%)
         if random.random() < 0.015:

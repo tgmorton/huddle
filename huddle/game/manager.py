@@ -32,6 +32,7 @@ from huddle.game.roster_bridge import RosterBridge
 from huddle.game.play_adapter import PlayAdapter, build_play_config
 from huddle.game.special_teams import SpecialTeamsResolver, SpecialTeamsOutcome
 from huddle.game.drive import DriveManager, DriveResult, DriveEndReason
+from huddle.game.decision_logic import should_call_timeout
 
 if TYPE_CHECKING:
     from huddle.core.models.team import Team
@@ -116,6 +117,9 @@ class GameManager:
     _drives: List[DriveResult] = field(default_factory=list)
     _possession_home: bool = True  # True = home has ball
     _receiving_2nd_half: Optional[bool] = None  # Track deferred choice
+    # Timeout tracking (3 per half)
+    _home_timeouts: int = 3
+    _away_timeouts: int = 3
 
     def __post_init__(self):
         # Initialize game state
@@ -136,6 +140,9 @@ class GameManager:
         self._away_bridge = RosterBridge(self.away_team)
 
         self._drives = []
+        # Initialize timeouts (3 per half)
+        self._home_timeouts = 3
+        self._away_timeouts = 3
 
     # =========================================================================
     # Full Auto-Play
@@ -319,11 +326,10 @@ class GameManager:
         """Handle change of possession after drive ends."""
         last_drive = self._drives[-1] if self._drives else None
 
-        # Flip possession
-        self._possession_home = not self._possession_home
-
         if last_drive:
             if last_drive.end_reason == DriveEndReason.PUNT:
+                # Flip possession first, then punt
+                self._possession_home = not self._possession_home
                 punt_result = self._handle_punt()
                 new_los = 100 - punt_result.new_los  # Flip perspective
 
@@ -332,24 +338,36 @@ class GameManager:
                 DriveEndReason.TURNOVER_FUMBLE,
             ):
                 # Ball at turnover spot
+                self._possession_home = not self._possession_home
                 new_los = 100 - last_drive.ending_los
 
             elif last_drive.end_reason == DriveEndReason.TURNOVER_ON_DOWNS:
+                self._possession_home = not self._possession_home
                 new_los = 100 - last_drive.ending_los
+
+            elif last_drive.end_reason == DriveEndReason.FIELD_GOAL_MISSED:
+                # Missed FG: ball goes to other team at spot of kick or 20, whichever is farther
+                self._possession_home = not self._possession_home
+                kick_spot = last_drive.ending_los
+                new_los = max(100 - kick_spot, 20.0)
 
             elif last_drive.end_reason in (
                 DriveEndReason.TOUCHDOWN,
                 DriveEndReason.FIELD_GOAL_MADE,
-                DriveEndReason.FIELD_GOAL_MISSED,
                 DriveEndReason.SAFETY,
             ):
-                # Kickoff
+                # Kickoff: team that just had possession kicks BEFORE flip
+                # (scoring team kicks after TD/FG, team that gave up safety kicks)
                 kickoff_result = self._handle_kickoff()
                 new_los = kickoff_result.new_los
+                # Now flip possession to receiving team
+                self._possession_home = not self._possession_home
 
             else:
+                self._possession_home = not self._possession_home
                 new_los = 25.0
         else:
+            self._possession_home = not self._possession_home
             new_los = 25.0
 
         self._set_possession(self._possession_home, new_los)
@@ -402,7 +420,11 @@ class GameManager:
                 self._game_state.phase = GamePhase.FINAL
 
     def _handle_halftime(self) -> None:
-        """Handle halftime kickoff switch."""
+        """Handle halftime kickoff switch and timeout reset."""
+        # Reset timeouts for second half
+        self._home_timeouts = 3
+        self._away_timeouts = 3
+
         # Team that deferred gets ball
         if self._receiving_2nd_half is not None:
             self._possession_home = self._receiving_2nd_half
@@ -434,6 +456,80 @@ class GameManager:
     def time_remaining(self) -> float:
         return float(self._game_state.clock.time_remaining_seconds)
 
+    @property
+    def home_timeouts(self) -> int:
+        return self._home_timeouts
+
+    @property
+    def away_timeouts(self) -> int:
+        return self._away_timeouts
+
+    # =========================================================================
+    # Timeout Management
+    # =========================================================================
+
+    def use_timeout(self, is_home: bool) -> bool:
+        """Use a timeout for the specified team.
+
+        Args:
+            is_home: True for home team, False for away team
+
+        Returns:
+            True if timeout was used, False if none remaining
+        """
+        if is_home:
+            if self._home_timeouts > 0:
+                self._home_timeouts -= 1
+                return True
+        else:
+            if self._away_timeouts > 0:
+                self._away_timeouts -= 1
+                return True
+        return False
+
+    def get_timeouts(self, is_home: bool) -> int:
+        """Get remaining timeouts for a team."""
+        return self._home_timeouts if is_home else self._away_timeouts
+
+    def check_auto_timeout(self) -> Optional[bool]:
+        """Check if AI should call a timeout based on game situation.
+
+        Returns:
+            True if home should call timeout, False if away should,
+            None if no timeout should be called.
+        """
+        clock = self._game_state.clock
+        score_diff = self.home_score - self.away_score
+
+        # Check if defense (non-possession team) should call timeout
+        defense_is_home = not self._possession_home
+        defense_timeouts = self._home_timeouts if defense_is_home else self._away_timeouts
+        defense_score_diff = score_diff if defense_is_home else -score_diff
+
+        if should_call_timeout(
+            time_remaining=clock.time_remaining_seconds,
+            quarter=clock.quarter,
+            score_diff=defense_score_diff,
+            timeouts_remaining=defense_timeouts,
+            is_offense=False,
+        ):
+            return defense_is_home
+
+        # Check if offense should call timeout
+        offense_timeouts = self._home_timeouts if self._possession_home else self._away_timeouts
+        offense_score_diff = score_diff if self._possession_home else -score_diff
+
+        if should_call_timeout(
+            time_remaining=clock.time_remaining_seconds,
+            quarter=clock.quarter,
+            score_diff=offense_score_diff,
+            timeouts_remaining=offense_timeouts,
+            is_offense=True,
+        ):
+            return self._possession_home
+
+        return None
+
     # =========================================================================
     # Coach Mode Interface
     # =========================================================================
@@ -452,6 +548,8 @@ class GameManager:
             "los": down_state.line_of_scrimmage,
             "yard_line": self._format_yard_line(down_state.line_of_scrimmage),
             "is_red_zone": down_state.line_of_scrimmage >= 80,
+            "home_timeouts": self._home_timeouts,
+            "away_timeouts": self._away_timeouts,
         }
 
     def execute_play(self, play_config: PlayConfig) -> DriveResult:
@@ -468,6 +566,7 @@ class GameManager:
         # Set up and run single play
         los_y = self._game_state.down_state.line_of_scrimmage
         self._orchestrator.setup_play(offense, defense, play_config, los_y)
+        self._orchestrator.register_default_brains()
         result = self._orchestrator.run()
 
         # Process result and update state

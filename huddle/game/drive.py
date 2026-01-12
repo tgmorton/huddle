@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional
 from huddle.core.models.game import GameState, DownState
 from huddle.core.models.field import FieldPosition
 from huddle.simulation.v2.orchestrator import Orchestrator, PlayConfig, PlayResult
+from huddle.game.penalties import check_for_penalty, PenaltyResult
 
 if TYPE_CHECKING:
     from huddle.core.models.team import Team
@@ -62,6 +63,11 @@ class PlayLog:
     touchdown: bool
     turnover: bool
     time_elapsed: float  # Seconds
+    # Penalty info
+    penalty: Optional[PenaltyResult] = None
+    description: str = ""  # Human-readable play description
+    yard_line: str = ""  # Formatted yard line for display
+    safety: bool = False  # Ball carrier tackled in own end zone
 
 
 @dataclass
@@ -204,6 +210,9 @@ class DriveManager:
             los_y=los_y,
         )
 
+        # Register AI brains for all players
+        self.orchestrator.register_default_brains()
+
         # Run simulation
         result = self.orchestrator.run()
 
@@ -283,11 +292,42 @@ class DriveManager:
 
         down_state = self.game_state.down_state
         yards = result.yards_gained
+        play_type = "run" if "run" in result.outcome else "pass"
 
-        # Check for turnover
+        # Check for penalty (~6% of plays)
+        penalty = check_for_penalty(
+            play_type=play_type,
+            down=down_state.down,
+            distance=down_state.yards_to_go,
+            los=self._current_los,
+            play_yards=yards,
+        )
+
+        # Determine effective yards (considering penalty)
+        effective_yards = yards
+        penalty_description = ""
+
+        if penalty.has_penalty:
+            # Apply penalty yardage
+            if penalty.on_offense:
+                # Offensive penalty - subtract yards, replay down or loss of down
+                effective_yards = -penalty.yards
+                penalty_description = f"PENALTY: {penalty.penalty_type.value} on offense, {penalty.yards} yards"
+            else:
+                # Defensive penalty - add yards, possible automatic first down
+                effective_yards = penalty.yards
+                penalty_description = f"PENALTY: {penalty.penalty_type.value} on defense, {penalty.yards} yards"
+
+        # Check for turnover (penalties can negate turnovers if on defense)
         is_turnover = result.outcome in ("interception", "fumble_lost")
-        is_touchdown = self._check_touchdown(yards)
-        is_safety = self._check_safety(yards)
+        if is_turnover and penalty.has_penalty and not penalty.on_offense:
+            # Defensive penalty negates turnover - offense can decline
+            # For simplicity, always decline penalty on turnovers
+            penalty = PenaltyResult(has_penalty=False)
+            effective_yards = yards
+
+        is_touchdown = self._check_touchdown(effective_yards)
+        is_safety = self._check_safety(effective_yards)
 
         # Calculate realistic time elapsed:
         # - Play action: result.duration (typically 3-8 seconds)
@@ -296,20 +336,29 @@ class DriveManager:
         play_clock_time = random.uniform(20.0, 35.0)
         total_play_time = play_action_time + play_clock_time
 
+        # Build play description
+        base_description = f"{play_type.upper()} for {yards:.0f} yards"
+        if penalty.has_penalty:
+            base_description += f". {penalty_description}"
+
         # Create play log
         play_log = PlayLog(
             play_number=len(self._plays) + 1,
             down=down_state.down,
             distance=down_state.yards_to_go,
             los=self._current_los,
-            play_type="run" if "run" in result.outcome else "pass",
+            play_type=play_type,
             play_call="unknown",  # Would come from config
-            yards_gained=yards,
+            yards_gained=effective_yards,
             result=result.outcome,
-            first_down=yards >= down_state.yards_to_go,
+            first_down=(effective_yards >= down_state.yards_to_go) or (penalty.penalty_info and penalty.penalty_info.automatic_first_down),
             touchdown=is_touchdown,
-            turnover=is_turnover,
+            turnover=is_turnover and not (penalty.has_penalty and not penalty.on_offense),
             time_elapsed=total_play_time,
+            penalty=penalty if penalty.has_penalty else None,
+            description=base_description,
+            yard_line=self._get_yard_line_display(),
+            safety=is_safety,
         )
         self._plays.append(play_log)
 
@@ -317,20 +366,39 @@ class DriveManager:
         self._total_time += total_play_time
 
         # Update field position
-        self._current_los += yards
+        self._current_los += effective_yards
+        # Clamp to field bounds
+        self._current_los = max(1, min(99, self._current_los))
 
         # Update down state
-        if is_turnover or is_touchdown or is_safety:
+        if play_log.turnover or is_touchdown or is_safety:
             # Drive over
             return
 
-        if yards >= down_state.yards_to_go:
+        # Handle penalty effects on down/distance
+        if penalty.has_penalty and penalty.penalty_info:
+            if penalty.penalty_info.automatic_first_down:
+                # Automatic first down
+                self._reset_downs()
+            elif penalty.on_offense:
+                # Offensive penalty - replay down or loss of down
+                if penalty.penalty_info.loss_of_down:
+                    down_state.down += 1
+                # Distance increases by penalty yards
+                down_state.yards_to_go = min(99, down_state.yards_to_go + penalty.yards)
+            else:
+                # Defensive penalty - add yards, check for first down
+                if effective_yards >= down_state.yards_to_go:
+                    self._reset_downs()
+                else:
+                    down_state.yards_to_go = max(1, down_state.yards_to_go - int(effective_yards))
+        elif effective_yards >= down_state.yards_to_go:
             # First down!
             self._reset_downs()
         else:
             # Advance down
             down_state.down += 1
-            down_state.yards_to_go = max(1, down_state.yards_to_go - int(yards))
+            down_state.yards_to_go = max(1, down_state.yards_to_go - int(effective_yards))
 
     def _check_touchdown(self, yards: float) -> bool:
         """Check if the play resulted in a touchdown."""
@@ -364,8 +432,8 @@ class DriveManager:
         if last_play.turnover:
             return True
 
-        # Safety (rare edge case)
-        if self._current_los <= 0:
+        # Safety (ball carrier tackled in own end zone)
+        if last_play.safety:
             return True
 
         # Fourth down not converted
@@ -436,7 +504,7 @@ class DriveManager:
                     end_reason = DriveEndReason.TURNOVER_INTERCEPTION
                 else:
                     end_reason = DriveEndReason.TURNOVER_FUMBLE
-            elif self._current_los <= 0:
+            elif last_play.safety:
                 end_reason = DriveEndReason.SAFETY
             elif self.game_state.down_state.down > 4:
                 end_reason = DriveEndReason.TURNOVER_ON_DOWNS
