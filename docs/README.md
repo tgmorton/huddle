@@ -9,6 +9,7 @@ Welcome to the Huddle project documentation. This is a football simulation game 
 | Run the project | [Quick Start](QUICK_START.md) |
 | Understand the system | [Architecture](ARCHITECTURE.md) |
 | Work on simulation | [Simulation](simulation/README.md) |
+| Work on game layer | [Game Layer](game/README.md) |
 | Work on management UI | [Management](management/README.md) |
 | Use the API | [API Reference](api/README.md) |
 | Contribute as an agent | [AgentMail](agentmail/README.md) |
@@ -40,6 +41,9 @@ docs/
 │       ├── ballcarrier.md # Run decisions
 │       ├── receiver.md    # Route running
 │       └── ...            # Other positions
+│
+├── game/                  # Game manager layer
+│   └── README.md          # Bridges management ↔ simulation
 │
 ├── management/            # Franchise management
 │   ├── README.md          # Management overview
@@ -74,6 +78,18 @@ The v2 simulation models football plays from snap to whistle:
 - **Resolution** - Block/tackle/catch outcomes
 
 See [simulation/README.md](simulation/README.md).
+
+### Game Layer
+
+Bridges management and simulation to run complete games:
+
+- **GameManager** - Full game orchestration (quarters, halftime, overtime)
+- **DriveManager** - Down/distance tracking, play execution
+- **SpecialTeams** - Statistical kick resolution (NFL-backed rates)
+- **DecisionLogic** - 4th down, 2PT, clock management AI
+- **Coach Mode API** - REST + WebSocket for interactive play
+
+See [game/README.md](game/README.md).
 
 ### Management System
 

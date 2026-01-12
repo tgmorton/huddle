@@ -236,6 +236,8 @@ Reusable UI building blocks:
 | **QueuePanel.tsx** | Upcoming agenda items with queue cards |
 | **AdminSidebar.tsx** | Dev controls for league/franchise management |
 | **WorkshopPanel.tsx** | Debug panel with 5 tabs: Status, Events, Calendar, Actions, Log |
+| **StatsTable.tsx** | Reusable stats table component |
+| **SettingsPanel.tsx** | User settings and preferences panel |
 
 ---
 
@@ -252,6 +254,8 @@ Left sidebar panel containers with tabbed interfaces:
 | **TeamPanel.tsx** | Strategy, Playbook, Chemistry, Front Office |
 | **SeasonPanel.tsx** | Schedule, Standings, Playoffs |
 | **ReferencePanel.tsx** | Reference documentation |
+| **WeekPanel.tsx** | Weekly loop and journal |
+| **LeagueStatsPanel.tsx** | League-wide stats and leaders |
 
 ---
 
@@ -286,6 +290,7 @@ Content modules plugged into panels:
 | **ScheduleContent.tsx** | Season schedule (wired to API) |
 | **StandingsContent.tsx** | Division standings (wired to API) |
 | **PlayoffsContent.tsx** | Playoff picture/seeding and bracket visualization |
+| **TeamStatsContent.tsx** | Team stats display and comparison |
 
 ### Draft Management
 | Component | Description |
@@ -306,6 +311,7 @@ Focused decision-making panes for workspace items:
 | **PlayerPane.tsx** | Player detail pane wrapping PlayerView |
 | **ProspectPane.tsx** | Prospect detail pane (matches PlayerPane design) |
 | **ContractDetailPane.tsx** | Player contract detail with restructure/cut options |
+| **PlayerStatsPane.tsx** | Player career and season statistics view |
 
 ### Event/Decision Panes
 | Pane | Purpose |
@@ -330,11 +336,11 @@ Focused decision-making panes for workspace items:
 
 | Category | Count |
 |----------|-------|
-| Components | 12 |
-| Panels | 7 |
-| Content Views | 16 |
-| Workspace Panes | 12 |
-| **Total** | **47** |
+| Components | 14 |
+| Panels | 9 |
+| Content Views | 17 |
+| Workspace Panes | 13 |
+| **Total** | **53** |
 
 ---
 
