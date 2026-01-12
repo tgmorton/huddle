@@ -1,0 +1,2550 @@
+{
+  "meta": {
+    "description": "College production model for draft class generation",
+    "source": "NFL draft picks 2010-2024",
+    "total_picks_analyzed": 3836,
+    "years": "2010-2024"
+  },
+  "schools": {
+    "top_overall": [
+      {
+        "school": "Alabama",
+        "conference": "SEC",
+        "total_picks": 129,
+        "starters": 62,
+        "probowlers": 29,
+        "allpros": 12,
+        "starter_rate": 48.1,
+        "total_career_av": 0
+      },
+      {
+        "school": "LSU",
+        "conference": "SEC",
+        "total_picks": 105,
+        "starters": 44,
+        "probowlers": 21,
+        "allpros": 7,
+        "starter_rate": 41.9,
+        "total_career_av": 0
+      },
+      {
+        "school": "Georgia",
+        "conference": "SEC",
+        "total_picks": 101,
+        "starters": 34,
+        "probowlers": 15,
+        "allpros": 6,
+        "starter_rate": 33.7,
+        "total_career_av": 0
+      },
+      {
+        "school": "Ohio St.",
+        "conference": "Big Ten",
+        "total_picks": 98,
+        "starters": 46,
+        "probowlers": 16,
+        "allpros": 5,
+        "starter_rate": 46.9,
+        "total_career_av": 0
+      },
+      {
+        "school": "Florida",
+        "conference": "SEC",
+        "total_picks": 85,
+        "starters": 40,
+        "probowlers": 10,
+        "allpros": 1,
+        "starter_rate": 47.1,
+        "total_career_av": 0
+      },
+      {
+        "school": "Michigan",
+        "conference": "Big Ten",
+        "total_picks": 82,
+        "starters": 22,
+        "probowlers": 6,
+        "allpros": 0,
+        "starter_rate": 26.8,
+        "total_career_av": 0
+      },
+      {
+        "school": "Clemson",
+        "conference": "ACC",
+        "total_picks": 79,
+        "starters": 30,
+        "probowlers": 8,
+        "allpros": 2,
+        "starter_rate": 38.0,
+        "total_career_av": 0
+      },
+      {
+        "school": "Oklahoma",
+        "conference": "SEC",
+        "total_picks": 79,
+        "starters": 26,
+        "probowlers": 15,
+        "allpros": 8,
+        "starter_rate": 32.9,
+        "total_career_av": 0
+      },
+      {
+        "school": "Penn St.",
+        "conference": "Big Ten",
+        "total_picks": 72,
+        "starters": 28,
+        "probowlers": 9,
+        "allpros": 4,
+        "starter_rate": 38.9,
+        "total_career_av": 0
+      },
+      {
+        "school": "USC",
+        "conference": "Big Ten",
+        "total_picks": 70,
+        "starters": 31,
+        "probowlers": 11,
+        "allpros": 3,
+        "starter_rate": 44.3,
+        "total_career_av": 0
+      },
+      {
+        "school": "Notre Dame",
+        "conference": "ACC",
+        "total_picks": 70,
+        "starters": 29,
+        "probowlers": 14,
+        "allpros": 5,
+        "starter_rate": 41.4,
+        "total_career_av": 0
+      },
+      {
+        "school": "Florida St.",
+        "conference": "ACC",
+        "total_picks": 70,
+        "starters": 27,
+        "probowlers": 12,
+        "allpros": 3,
+        "starter_rate": 38.6,
+        "total_career_av": 0
+      },
+      {
+        "school": "Miami (FL)",
+        "conference": "Other",
+        "total_picks": 68,
+        "starters": 18,
+        "probowlers": 5,
+        "allpros": 2,
+        "starter_rate": 26.5,
+        "total_career_av": 0
+      },
+      {
+        "school": "Stanford",
+        "conference": "ACC",
+        "total_picks": 56,
+        "starters": 26,
+        "probowlers": 9,
+        "allpros": 4,
+        "starter_rate": 46.4,
+        "total_career_av": 0
+      },
+      {
+        "school": "Iowa",
+        "conference": "Big Ten",
+        "total_picks": 56,
+        "starters": 25,
+        "probowlers": 10,
+        "allpros": 4,
+        "starter_rate": 44.6,
+        "total_career_av": 0
+      },
+      {
+        "school": "Auburn",
+        "conference": "SEC",
+        "total_picks": 55,
+        "starters": 14,
+        "probowlers": 3,
+        "allpros": 2,
+        "starter_rate": 25.5,
+        "total_career_av": 0
+      },
+      {
+        "school": "Oregon",
+        "conference": "Big Ten",
+        "total_picks": 54,
+        "starters": 13,
+        "probowlers": 6,
+        "allpros": 2,
+        "starter_rate": 24.1,
+        "total_career_av": 0
+      },
+      {
+        "school": "Wisconsin",
+        "conference": "Big Ten",
+        "total_picks": 54,
+        "starters": 23,
+        "probowlers": 12,
+        "allpros": 6,
+        "starter_rate": 42.6,
+        "total_career_av": 0
+      },
+      {
+        "school": "UCLA",
+        "conference": "Big Ten",
+        "total_picks": 54,
+        "starters": 14,
+        "probowlers": 4,
+        "allpros": 1,
+        "starter_rate": 25.9,
+        "total_career_av": 0
+      },
+      {
+        "school": "Texas",
+        "conference": "SEC",
+        "total_picks": 54,
+        "starters": 20,
+        "probowlers": 5,
+        "allpros": 3,
+        "starter_rate": 37.0,
+        "total_career_av": 0
+      },
+      {
+        "school": "Washington",
+        "conference": "Big Ten",
+        "total_picks": 53,
+        "starters": 22,
+        "probowlers": 5,
+        "allpros": 3,
+        "starter_rate": 41.5,
+        "total_career_av": 0
+      },
+      {
+        "school": "Texas A&M",
+        "conference": "SEC",
+        "total_picks": 51,
+        "starters": 20,
+        "probowlers": 8,
+        "allpros": 2,
+        "starter_rate": 39.2,
+        "total_career_av": 0
+      },
+      {
+        "school": "North Carolina",
+        "conference": "ACC",
+        "total_picks": 51,
+        "starters": 19,
+        "probowlers": 5,
+        "allpros": 1,
+        "starter_rate": 37.3,
+        "total_career_av": 0
+      },
+      {
+        "school": "South Carolina",
+        "conference": "SEC",
+        "total_picks": 50,
+        "starters": 15,
+        "probowlers": 7,
+        "allpros": 3,
+        "starter_rate": 30.0,
+        "total_career_av": 0
+      },
+      {
+        "school": "Utah",
+        "conference": "Big 12",
+        "total_picks": 46,
+        "starters": 15,
+        "probowlers": 4,
+        "allpros": 0,
+        "starter_rate": 32.6,
+        "total_career_av": 0
+      },
+      {
+        "school": "Mississippi St.",
+        "conference": "SEC",
+        "total_picks": 45,
+        "starters": 19,
+        "probowlers": 10,
+        "allpros": 3,
+        "starter_rate": 42.2,
+        "total_career_av": 0
+      },
+      {
+        "school": "TCU",
+        "conference": "Big 12",
+        "total_picks": 45,
+        "starters": 14,
+        "probowlers": 3,
+        "allpros": 0,
+        "starter_rate": 31.1,
+        "total_career_av": 0
+      },
+      {
+        "school": "Arkansas",
+        "conference": "SEC",
+        "total_picks": 44,
+        "starters": 10,
+        "probowlers": 1,
+        "allpros": 0,
+        "starter_rate": 22.7,
+        "total_career_av": 0
+      },
+      {
+        "school": "Tennessee",
+        "conference": "SEC",
+        "total_picks": 42,
+        "starters": 15,
+        "probowlers": 7,
+        "allpros": 2,
+        "starter_rate": 35.7,
+        "total_career_av": 0
+      },
+      {
+        "school": "Mississippi",
+        "conference": "SEC",
+        "total_picks": 42,
+        "starters": 13,
+        "probowlers": 7,
+        "allpros": 0,
+        "starter_rate": 31.0,
+        "total_career_av": 0
+      }
+    ],
+    "by_position": {
+      "QB": [
+        {
+          "school": "Alabama",
+          "total": 5,
+          "starters": 2,
+          "probowlers": 2,
+          "starter_rate": 40.0
+        },
+        {
+          "school": "Oklahoma",
+          "total": 5,
+          "starters": 4,
+          "probowlers": 3,
+          "starter_rate": 80.0
+        },
+        {
+          "school": "LSU",
+          "total": 4,
+          "starters": 1,
+          "probowlers": 2,
+          "starter_rate": 25.0
+        },
+        {
+          "school": "USC",
+          "total": 4,
+          "starters": 1,
+          "probowlers": 1,
+          "starter_rate": 25.0
+        },
+        {
+          "school": "Tennessee",
+          "total": 4,
+          "starters": 0,
+          "probowlers": 0,
+          "starter_rate": 0.0
+        },
+        {
+          "school": "Stanford",
+          "total": 4,
+          "starters": 2,
+          "probowlers": 1,
+          "starter_rate": 50.0
+        },
+        {
+          "school": "North Carolina",
+          "total": 4,
+          "starters": 1,
+          "probowlers": 2,
+          "starter_rate": 25.0
+        },
+        {
+          "school": "Ohio St.",
+          "total": 4,
+          "starters": 2,
+          "probowlers": 1,
+          "starter_rate": 50.0
+        },
+        {
+          "school": "Florida St.",
+          "total": 4,
+          "starters": 2,
+          "probowlers": 1,
+          "starter_rate": 50.0
+        },
+        {
+          "school": "Iowa",
+          "total": 3,
+          "starters": 0,
+          "probowlers": 0,
+          "starter_rate": 0.0
+        }
+      ],
+      "RB": [
+        {
+          "school": "Alabama",
+          "total": 14,
+          "starters": 10,
+          "probowlers": 6,
+          "starter_rate": 71.4
+        },
+        {
+          "school": "LSU",
+          "total": 10,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 20.0
+        },
+        {
+          "school": "Georgia",
+          "total": 9,
+          "starters": 5,
+          "probowlers": 4,
+          "starter_rate": 55.6
+        },
+        {
+          "school": "USC",
+          "total": 8,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 25.0
+        },
+        {
+          "school": "Oklahoma",
+          "total": 8,
+          "starters": 3,
+          "probowlers": 2,
+          "starter_rate": 37.5
+        },
+        {
+          "school": "Florida",
+          "total": 7,
+          "starters": 0,
+          "probowlers": 0,
+          "starter_rate": 0.0
+        },
+        {
+          "school": "North Carolina",
+          "total": 7,
+          "starters": 3,
+          "probowlers": 0,
+          "starter_rate": 42.9
+        },
+        {
+          "school": "Miami (FL)",
+          "total": 7,
+          "starters": 1,
+          "probowlers": 1,
+          "starter_rate": 14.3
+        },
+        {
+          "school": "Wisconsin",
+          "total": 7,
+          "starters": 2,
+          "probowlers": 2,
+          "starter_rate": 28.6
+        },
+        {
+          "school": "Clemson",
+          "total": 7,
+          "starters": 2,
+          "probowlers": 1,
+          "starter_rate": 28.6
+        }
+      ],
+      "WR": [
+        {
+          "school": "LSU",
+          "total": 16,
+          "starters": 7,
+          "probowlers": 7,
+          "starter_rate": 43.8
+        },
+        {
+          "school": "Ohio St.",
+          "total": 14,
+          "starters": 6,
+          "probowlers": 3,
+          "starter_rate": 42.9
+        },
+        {
+          "school": "USC",
+          "total": 13,
+          "starters": 8,
+          "probowlers": 2,
+          "starter_rate": 61.5
+        },
+        {
+          "school": "Alabama",
+          "total": 12,
+          "starters": 6,
+          "probowlers": 3,
+          "starter_rate": 50.0
+        },
+        {
+          "school": "Georgia",
+          "total": 12,
+          "starters": 4,
+          "probowlers": 3,
+          "starter_rate": 33.3
+        },
+        {
+          "school": "Clemson",
+          "total": 12,
+          "starters": 4,
+          "probowlers": 2,
+          "starter_rate": 33.3
+        },
+        {
+          "school": "Oklahoma",
+          "total": 11,
+          "starters": 4,
+          "probowlers": 2,
+          "starter_rate": 36.4
+        },
+        {
+          "school": "Michigan",
+          "total": 11,
+          "starters": 1,
+          "probowlers": 1,
+          "starter_rate": 9.1
+        },
+        {
+          "school": "Florida",
+          "total": 10,
+          "starters": 3,
+          "probowlers": 0,
+          "starter_rate": 30.0
+        },
+        {
+          "school": "North Carolina",
+          "total": 9,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 22.2
+        }
+      ],
+      "TE": [
+        {
+          "school": "Notre Dame",
+          "total": 9,
+          "starters": 4,
+          "probowlers": 2,
+          "starter_rate": 44.4
+        },
+        {
+          "school": "Stanford",
+          "total": 8,
+          "starters": 6,
+          "probowlers": 2,
+          "starter_rate": 75.0
+        },
+        {
+          "school": "Georgia",
+          "total": 8,
+          "starters": 0,
+          "probowlers": 1,
+          "starter_rate": 0.0
+        },
+        {
+          "school": "Miami (FL)",
+          "total": 8,
+          "starters": 3,
+          "probowlers": 2,
+          "starter_rate": 37.5
+        },
+        {
+          "school": "Penn St.",
+          "total": 7,
+          "starters": 4,
+          "probowlers": 0,
+          "starter_rate": 57.1
+        },
+        {
+          "school": "Iowa",
+          "total": 7,
+          "starters": 6,
+          "probowlers": 3,
+          "starter_rate": 85.7
+        },
+        {
+          "school": "Oklahoma",
+          "total": 6,
+          "starters": 4,
+          "probowlers": 2,
+          "starter_rate": 66.7
+        },
+        {
+          "school": "Alabama",
+          "total": 5,
+          "starters": 1,
+          "probowlers": 0,
+          "starter_rate": 20.0
+        },
+        {
+          "school": "Washington",
+          "total": 5,
+          "starters": 4,
+          "probowlers": 0,
+          "starter_rate": 80.0
+        },
+        {
+          "school": "South Carolina",
+          "total": 5,
+          "starters": 0,
+          "probowlers": 0,
+          "starter_rate": 0.0
+        }
+      ],
+      "OL": [
+        {
+          "school": "Alabama",
+          "total": 20,
+          "starters": 9,
+          "probowlers": 2,
+          "starter_rate": 45.0
+        },
+        {
+          "school": "Georgia",
+          "total": 18,
+          "starters": 7,
+          "probowlers": 1,
+          "starter_rate": 38.9
+        },
+        {
+          "school": "Ohio St.",
+          "total": 18,
+          "starters": 10,
+          "probowlers": 3,
+          "starter_rate": 55.6
+        },
+        {
+          "school": "Michigan",
+          "total": 18,
+          "starters": 8,
+          "probowlers": 1,
+          "starter_rate": 44.4
+        },
+        {
+          "school": "Oklahoma",
+          "total": 16,
+          "starters": 7,
+          "probowlers": 4,
+          "starter_rate": 43.8
+        },
+        {
+          "school": "Wisconsin",
+          "total": 16,
+          "starters": 10,
+          "probowlers": 3,
+          "starter_rate": 62.5
+        },
+        {
+          "school": "Notre Dame",
+          "total": 14,
+          "starters": 8,
+          "probowlers": 4,
+          "starter_rate": 57.1
+        },
+        {
+          "school": "Florida",
+          "total": 13,
+          "starters": 9,
+          "probowlers": 4,
+          "starter_rate": 69.2
+        },
+        {
+          "school": "LSU",
+          "total": 13,
+          "starters": 7,
+          "probowlers": 1,
+          "starter_rate": 53.8
+        },
+        {
+          "school": "Penn St.",
+          "total": 12,
+          "starters": 6,
+          "probowlers": 1,
+          "starter_rate": 50.0
+        }
+      ],
+      "EDGE": [
+        {
+          "school": "Ohio St.",
+          "total": 14,
+          "starters": 8,
+          "probowlers": 4,
+          "starter_rate": 57.1
+        },
+        {
+          "school": "Clemson",
+          "total": 14,
+          "starters": 3,
+          "probowlers": 1,
+          "starter_rate": 21.4
+        },
+        {
+          "school": "Penn St.",
+          "total": 10,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 20.0
+        },
+        {
+          "school": "Michigan",
+          "total": 10,
+          "starters": 6,
+          "probowlers": 3,
+          "starter_rate": 60.0
+        },
+        {
+          "school": "Alabama",
+          "total": 9,
+          "starters": 2,
+          "probowlers": 1,
+          "starter_rate": 22.2
+        },
+        {
+          "school": "Florida St.",
+          "total": 9,
+          "starters": 3,
+          "probowlers": 2,
+          "starter_rate": 33.3
+        },
+        {
+          "school": "Oklahoma",
+          "total": 9,
+          "starters": 0,
+          "probowlers": 1,
+          "starter_rate": 0.0
+        },
+        {
+          "school": "LSU",
+          "total": 9,
+          "starters": 4,
+          "probowlers": 3,
+          "starter_rate": 44.4
+        },
+        {
+          "school": "USC",
+          "total": 8,
+          "starters": 5,
+          "probowlers": 2,
+          "starter_rate": 62.5
+        },
+        {
+          "school": "Wisconsin",
+          "total": 8,
+          "starters": 4,
+          "probowlers": 3,
+          "starter_rate": 50.0
+        }
+      ],
+      "DL": [
+        {
+          "school": "Alabama",
+          "total": 16,
+          "starters": 7,
+          "probowlers": 3,
+          "starter_rate": 43.8
+        },
+        {
+          "school": "LSU",
+          "total": 14,
+          "starters": 4,
+          "probowlers": 0,
+          "starter_rate": 28.6
+        },
+        {
+          "school": "Clemson",
+          "total": 10,
+          "starters": 5,
+          "probowlers": 2,
+          "starter_rate": 50.0
+        },
+        {
+          "school": "Georgia",
+          "total": 9,
+          "starters": 3,
+          "probowlers": 2,
+          "starter_rate": 33.3
+        },
+        {
+          "school": "Auburn",
+          "total": 9,
+          "starters": 2,
+          "probowlers": 1,
+          "starter_rate": 22.2
+        },
+        {
+          "school": "Ohio St.",
+          "total": 9,
+          "starters": 4,
+          "probowlers": 0,
+          "starter_rate": 44.4
+        },
+        {
+          "school": "Iowa",
+          "total": 9,
+          "starters": 1,
+          "probowlers": 1,
+          "starter_rate": 11.1
+        },
+        {
+          "school": "Florida",
+          "total": 9,
+          "starters": 5,
+          "probowlers": 0,
+          "starter_rate": 55.6
+        },
+        {
+          "school": "Notre Dame",
+          "total": 8,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 25.0
+        },
+        {
+          "school": "Texas",
+          "total": 8,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 25.0
+        }
+      ],
+      "LB": [
+        {
+          "school": "Alabama",
+          "total": 18,
+          "starters": 11,
+          "probowlers": 3,
+          "starter_rate": 61.1
+        },
+        {
+          "school": "Georgia",
+          "total": 15,
+          "starters": 6,
+          "probowlers": 2,
+          "starter_rate": 40.0
+        },
+        {
+          "school": "Florida",
+          "total": 12,
+          "starters": 6,
+          "probowlers": 0,
+          "starter_rate": 50.0
+        },
+        {
+          "school": "LSU",
+          "total": 12,
+          "starters": 7,
+          "probowlers": 2,
+          "starter_rate": 58.3
+        },
+        {
+          "school": "Michigan",
+          "total": 11,
+          "starters": 2,
+          "probowlers": 1,
+          "starter_rate": 18.2
+        },
+        {
+          "school": "Ohio St.",
+          "total": 10,
+          "starters": 3,
+          "probowlers": 1,
+          "starter_rate": 30.0
+        },
+        {
+          "school": "Penn St.",
+          "total": 10,
+          "starters": 3,
+          "probowlers": 3,
+          "starter_rate": 30.0
+        },
+        {
+          "school": "Oregon",
+          "total": 8,
+          "starters": 1,
+          "probowlers": 0,
+          "starter_rate": 12.5
+        },
+        {
+          "school": "Mississippi St.",
+          "total": 7,
+          "starters": 3,
+          "probowlers": 2,
+          "starter_rate": 42.9
+        },
+        {
+          "school": "North Carolina",
+          "total": 7,
+          "starters": 3,
+          "probowlers": 1,
+          "starter_rate": 42.9
+        }
+      ],
+      "CB": [
+        {
+          "school": "LSU",
+          "total": 10,
+          "starters": 4,
+          "probowlers": 2,
+          "starter_rate": 40.0
+        },
+        {
+          "school": "Ohio St.",
+          "total": 9,
+          "starters": 4,
+          "probowlers": 2,
+          "starter_rate": 44.4
+        },
+        {
+          "school": "Washington",
+          "total": 8,
+          "starters": 6,
+          "probowlers": 2,
+          "starter_rate": 75.0
+        },
+        {
+          "school": "Florida",
+          "total": 7,
+          "starters": 3,
+          "probowlers": 0,
+          "starter_rate": 42.9
+        },
+        {
+          "school": "Penn St.",
+          "total": 7,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 28.6
+        },
+        {
+          "school": "Auburn",
+          "total": 7,
+          "starters": 3,
+          "probowlers": 0,
+          "starter_rate": 42.9
+        },
+        {
+          "school": "Clemson",
+          "total": 6,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 33.3
+        },
+        {
+          "school": "Miami (FL)",
+          "total": 6,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 33.3
+        },
+        {
+          "school": "Mississippi St.",
+          "total": 5,
+          "starters": 2,
+          "probowlers": 0,
+          "starter_rate": 40.0
+        },
+        {
+          "school": "USC",
+          "total": 5,
+          "starters": 1,
+          "probowlers": 0,
+          "starter_rate": 20.0
+        }
+      ],
+      "S": [
+        {
+          "school": "Alabama",
+          "total": 22,
+          "starters": 11,
+          "probowlers": 7,
+          "starter_rate": 50.0
+        },
+        {
+          "school": "Georgia",
+          "total": 16,
+          "starters": 4,
+          "probowlers": 1,
+          "starter_rate": 25.0
+        },
+        {
+          "school": "LSU",
+          "total": 13,
+          "starters": 7,
+          "probowlers": 4,
+          "starter_rate": 53.8
+        },
+        {
+          "school": "Virginia Tech",
+          "total": 12,
+          "starters": 5,
+          "probowlers": 2,
+          "starter_rate": 41.7
+        },
+        {
+          "school": "Florida St.",
+          "total": 12,
+          "starters": 4,
+          "probowlers": 2,
+          "starter_rate": 33.3
+        },
+        {
+          "school": "Florida",
+          "total": 11,
+          "starters": 7,
+          "probowlers": 2,
+          "starter_rate": 63.6
+        },
+        {
+          "school": "Iowa",
+          "total": 11,
+          "starters": 5,
+          "probowlers": 2,
+          "starter_rate": 45.5
+        },
+        {
+          "school": "Oregon",
+          "total": 10,
+          "starters": 3,
+          "probowlers": 2,
+          "starter_rate": 30.0
+        },
+        {
+          "school": "California",
+          "total": 10,
+          "starters": 1,
+          "probowlers": 0,
+          "starter_rate": 10.0
+        },
+        {
+          "school": "Clemson",
+          "total": 10,
+          "starters": 5,
+          "probowlers": 0,
+          "starter_rate": 50.0
+        }
+      ]
+    },
+    "school_archetypes": {
+      "Michigan": {
+        "total_picks": 82,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 22.0,
+            "count": 18
+          }
+        ]
+      },
+      "Oklahoma": {
+        "total_picks": 79,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 20.3,
+            "count": 16
+          }
+        ]
+      },
+      "Notre Dame": {
+        "total_picks": 70,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 20.0,
+            "count": 14
+          }
+        ]
+      },
+      "Oregon": {
+        "total_picks": 54,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 20.4,
+            "count": 11
+          }
+        ]
+      },
+      "Wisconsin": {
+        "total_picks": 54,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 29.6,
+            "count": 16
+          }
+        ]
+      },
+      "Utah": {
+        "total_picks": 46,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 21.7,
+            "count": 10
+          }
+        ]
+      },
+      "TCU": {
+        "total_picks": 45,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 22.2,
+            "count": 10
+          }
+        ]
+      },
+      "Tennessee": {
+        "total_picks": 42,
+        "specialties": [
+          {
+            "position": "WR",
+            "pct": 21.4,
+            "count": 9
+          }
+        ]
+      },
+      "Mississippi": {
+        "total_picks": 42,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 21.4,
+            "count": 9
+          }
+        ]
+      },
+      "Pittsburgh": {
+        "total_picks": 40,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 20.0,
+            "count": 8
+          }
+        ]
+      },
+      "Baylor": {
+        "total_picks": 39,
+        "specialties": [
+          {
+            "position": "WR",
+            "pct": 20.5,
+            "count": 8
+          }
+        ]
+      },
+      "Virginia Tech": {
+        "total_picks": 39,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 30.8,
+            "count": 12
+          }
+        ]
+      },
+      "Nebraska": {
+        "total_picks": 37,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 21.6,
+            "count": 8
+          }
+        ]
+      },
+      "California": {
+        "total_picks": 36,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 27.8,
+            "count": 10
+          }
+        ]
+      },
+      "West Virginia": {
+        "total_picks": 35,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 20.0,
+            "count": 7
+          }
+        ]
+      },
+      "Louisville": {
+        "total_picks": 35,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 20.0,
+            "count": 7
+          }
+        ]
+      },
+      "Illinois": {
+        "total_picks": 34,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 26.5,
+            "count": 9
+          },
+          {
+            "position": "S",
+            "pct": 20.6,
+            "count": 7
+          }
+        ]
+      },
+      "Arizona St.": {
+        "total_picks": 30,
+        "specialties": [
+          {
+            "position": "WR",
+            "pct": 20.0,
+            "count": 6
+          }
+        ]
+      },
+      "Oklahoma St.": {
+        "total_picks": 29,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 20.7,
+            "count": 6
+          }
+        ]
+      },
+      "Maryland": {
+        "total_picks": 29,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 27.6,
+            "count": 8
+          }
+        ]
+      },
+      "Oregon St.": {
+        "total_picks": 28,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 25.0,
+            "count": 7
+          }
+        ]
+      },
+      "Boston Col.": {
+        "total_picks": 28,
+        "specialties": [
+          {
+            "position": "OL",
+            "pct": 25.0,
+            "count": 7
+          }
+        ]
+      },
+      "Minnesota": {
+        "total_picks": 27,
+        "specialties": [
+          {
+            "position": "S",
+            "pct": 25.9,
+            "count": 7
+          }
+        ]
+      }
+    }
+  },
+  "conferences": {
+    "by_conference": {
+      "SEC": {
+        "total": 976,
+        "starter_rate": 37.0,
+        "probowl_rate": 15.2,
+        "allpro_rate": 5.2,
+        "avg_games": 56.2,
+        "avg_career_av": 0.0,
+        "first_round_pct": 18.2,
+        "tier": "Power 5"
+      },
+      "Big Ten": {
+        "total": 842,
+        "starter_rate": 36.3,
+        "probowl_rate": 11.2,
+        "allpro_rate": 4.3,
+        "avg_games": 55.9,
+        "avg_career_av": 0.0,
+        "first_round_pct": 14.6,
+        "tier": "Power 5"
+      },
+      "ACC": {
+        "total": 570,
+        "starter_rate": 37.0,
+        "probowl_rate": 12.1,
+        "allpro_rate": 3.7,
+        "avg_games": 56.5,
+        "avg_career_av": 0.0,
+        "first_round_pct": 14.9,
+        "tier": "Power 5"
+      },
+      "Big 12": {
+        "total": 409,
+        "starter_rate": 25.9,
+        "probowl_rate": 7.1,
+        "allpro_rate": 2.9,
+        "avg_games": 46.8,
+        "avg_career_av": 0.0,
+        "first_round_pct": 10.5,
+        "tier": "Power 5"
+      },
+      "Mountain West": {
+        "total": 142,
+        "starter_rate": 34.5,
+        "probowl_rate": 9.2,
+        "allpro_rate": 4.2,
+        "avg_games": 53.7,
+        "avg_career_av": 0.0,
+        "first_round_pct": 5.6,
+        "tier": "Group of 5"
+      },
+      "AAC": {
+        "total": 118,
+        "starter_rate": 30.5,
+        "probowl_rate": 10.2,
+        "allpro_rate": 0.8,
+        "avg_games": 60.9,
+        "avg_career_av": 0.0,
+        "first_round_pct": 5.9,
+        "tier": "Group of 5"
+      },
+      "Sun Belt": {
+        "total": 117,
+        "starter_rate": 18.8,
+        "probowl_rate": 3.4,
+        "allpro_rate": 1.7,
+        "avg_games": 46.8,
+        "avg_career_av": 0.0,
+        "first_round_pct": 0.9,
+        "tier": "Group of 5"
+      },
+      "MAC": {
+        "total": 79,
+        "starter_rate": 26.6,
+        "probowl_rate": 11.4,
+        "allpro_rate": 2.5,
+        "avg_games": 47.8,
+        "avg_career_av": 0.0,
+        "first_round_pct": 6.3,
+        "tier": "Group of 5"
+      },
+      "Pac-12": {
+        "total": 46,
+        "starter_rate": 17.4,
+        "probowl_rate": 8.7,
+        "allpro_rate": 2.2,
+        "avg_games": 43.6,
+        "avg_career_av": 0.0,
+        "first_round_pct": 8.7,
+        "tier": "Power 5"
+      }
+    },
+    "by_tier": {
+      "Power 5": {
+        "total": 2843,
+        "starter_rate": 34.9,
+        "probowl_rate": 12.1,
+        "allpro_rate": 4.3,
+        "avg_games": 54.6,
+        "avg_career_av": 0.0,
+        "round_distribution": {
+          "1": 433,
+          "2": 398,
+          "3": 400,
+          "4": 416,
+          "5": 402,
+          "6": 408,
+          "7": 386
+        }
+      },
+      "Group of 5": {
+        "total": 456,
+        "starter_rate": 28.1,
+        "probowl_rate": 8.3,
+        "allpro_rate": 2.4,
+        "avg_games": 52.8,
+        "avg_career_av": 0.0,
+        "round_distribution": {
+          "1": 21,
+          "2": 41,
+          "3": 73,
+          "4": 56,
+          "5": 76,
+          "6": 97,
+          "7": 92
+        }
+      },
+      "Other": {
+        "total": 537,
+        "starter_rate": 30.5,
+        "probowl_rate": 8.9,
+        "allpro_rate": 3.5,
+        "avg_games": 52.5,
+        "avg_career_av": 0.0,
+        "round_distribution": {
+          "1": 24,
+          "2": 38,
+          "3": 83,
+          "4": 84,
+          "5": 80,
+          "6": 96,
+          "7": 132
+        }
+      }
+    },
+    "by_round": {
+      "Power 5": {
+        "1": {
+          "total": 433,
+          "starter_rate": 75.5,
+          "probowl_rate": 39.5,
+          "allpro_rate": 15.9,
+          "avg_games": 86.7,
+          "avg_career_av": 0.0
+        },
+        "2": {
+          "total": 398,
+          "starter_rate": 56.8,
+          "probowl_rate": 18.8,
+          "allpro_rate": 5.3,
+          "avg_games": 72.6,
+          "avg_career_av": 0.0
+        },
+        "3": {
+          "total": 400,
+          "starter_rate": 38.2,
+          "probowl_rate": 8.8,
+          "allpro_rate": 3.0,
+          "avg_games": 61.0,
+          "avg_career_av": 0.0
+        },
+        "4": {
+          "total": 416,
+          "starter_rate": 28.4,
+          "probowl_rate": 6.0,
+          "allpro_rate": 1.4,
+          "avg_games": 53.9,
+          "avg_career_av": 0.0
+        },
+        "5": {
+          "total": 402,
+          "starter_rate": 22.6,
+          "probowl_rate": 5.5,
+          "allpro_rate": 2.5,
+          "avg_games": 45.0,
+          "avg_career_av": 0.0
+        },
+        "6": {
+          "total": 408,
+          "starter_rate": 10.5,
+          "probowl_rate": 2.2,
+          "allpro_rate": 0.5,
+          "avg_games": 33.0,
+          "avg_career_av": 0.0
+        },
+        "7": {
+          "total": 386,
+          "starter_rate": 8.8,
+          "probowl_rate": 1.8,
+          "allpro_rate": 0.3,
+          "avg_games": 26.9,
+          "avg_career_av": 0.0
+        }
+      },
+      "Group of 5": {
+        "1": {
+          "total": 21,
+          "starter_rate": 85.7,
+          "probowl_rate": 57.1,
+          "allpro_rate": 14.3,
+          "avg_games": 93.6,
+          "avg_career_av": 0.0
+        },
+        "2": {
+          "total": 41,
+          "starter_rate": 65.9,
+          "probowl_rate": 26.8,
+          "allpro_rate": 7.3,
+          "avg_games": 95.9,
+          "avg_career_av": 0.0
+        },
+        "3": {
+          "total": 73,
+          "starter_rate": 31.5,
+          "probowl_rate": 8.2,
+          "allpro_rate": 1.4,
+          "avg_games": 59.9,
+          "avg_career_av": 0.0
+        },
+        "4": {
+          "total": 56,
+          "starter_rate": 25.0,
+          "probowl_rate": 3.6,
+          "allpro_rate": 0.0,
+          "avg_games": 47.4,
+          "avg_career_av": 0.0
+        },
+        "5": {
+          "total": 76,
+          "starter_rate": 30.3,
+          "probowl_rate": 5.3,
+          "allpro_rate": 2.6,
+          "avg_games": 61.8,
+          "avg_career_av": 0.0
+        },
+        "6": {
+          "total": 97,
+          "starter_rate": 13.4,
+          "probowl_rate": 2.1,
+          "allpro_rate": 1.0,
+          "avg_games": 39.4,
+          "avg_career_av": 0.0
+        },
+        "7": {
+          "total": 92,
+          "starter_rate": 10.9,
+          "probowl_rate": 1.1,
+          "allpro_rate": 1.1,
+          "avg_games": 28.5,
+          "avg_career_av": 0.0
+        }
+      }
+    }
+  },
+  "draft_value": {
+    "hit_rates_by_round": {
+      "Power 5": {
+        "1": {
+          "n": 433,
+          "starter_rate": 75.5,
+          "avg_games": 86.7,
+          "avg_av": 0.0
+        },
+        "2": {
+          "n": 398,
+          "starter_rate": 56.8,
+          "avg_games": 72.6,
+          "avg_av": 0.0
+        },
+        "3": {
+          "n": 400,
+          "starter_rate": 38.2,
+          "avg_games": 61.0,
+          "avg_av": 0.0
+        },
+        "4": {
+          "n": 416,
+          "starter_rate": 28.4,
+          "avg_games": 53.9,
+          "avg_av": 0.0
+        },
+        "5": {
+          "n": 402,
+          "starter_rate": 22.6,
+          "avg_games": 45.0,
+          "avg_av": 0.0
+        },
+        "6": {
+          "n": 408,
+          "starter_rate": 10.5,
+          "avg_games": 33.0,
+          "avg_av": 0.0
+        },
+        "7": {
+          "n": 386,
+          "starter_rate": 8.8,
+          "avg_games": 26.9,
+          "avg_av": 0.0
+        }
+      },
+      "Group of 5": {
+        "1": {
+          "n": 21,
+          "starter_rate": 85.7,
+          "avg_games": 93.6,
+          "avg_av": 0.0
+        },
+        "2": {
+          "n": 41,
+          "starter_rate": 65.9,
+          "avg_games": 95.9,
+          "avg_av": 0.0
+        },
+        "3": {
+          "n": 73,
+          "starter_rate": 31.5,
+          "avg_games": 59.9,
+          "avg_av": 0.0
+        },
+        "4": {
+          "n": 56,
+          "starter_rate": 25.0,
+          "avg_games": 47.4,
+          "avg_av": 0.0
+        },
+        "5": {
+          "n": 76,
+          "starter_rate": 30.3,
+          "avg_games": 61.8,
+          "avg_av": 0.0
+        },
+        "6": {
+          "n": 97,
+          "starter_rate": 13.4,
+          "avg_games": 39.4,
+          "avg_av": 0.0
+        },
+        "7": {
+          "n": 92,
+          "starter_rate": 10.9,
+          "avg_games": 28.5,
+          "avg_av": 0.0
+        }
+      },
+      "Other": {
+        "1": {
+          "n": 24,
+          "starter_rate": 70.8,
+          "avg_games": 87.0,
+          "avg_av": 0.0
+        },
+        "2": {
+          "n": 38,
+          "starter_rate": 65.8,
+          "avg_games": 68.8,
+          "avg_av": 0.0
+        },
+        "3": {
+          "n": 83,
+          "starter_rate": 55.4,
+          "avg_games": 78.8,
+          "avg_av": 0.0
+        },
+        "4": {
+          "n": 84,
+          "starter_rate": 34.5,
+          "avg_games": 61.4,
+          "avg_av": 0.0
+        },
+        "5": {
+          "n": 80,
+          "starter_rate": 22.5,
+          "avg_games": 44.4,
+          "avg_av": 0.0
+        },
+        "6": {
+          "n": 96,
+          "starter_rate": 13.5,
+          "avg_games": 47.7,
+          "avg_av": 0.0
+        },
+        "7": {
+          "n": 132,
+          "starter_rate": 12.1,
+          "avg_games": 27.9,
+          "avg_av": 0.0
+        }
+      }
+    },
+    "expected_av_by_pick": {
+      "1-10": {
+        "n": 150,
+        "avg_av": 0.0,
+        "avg_games": 92.2,
+        "starter_rate": 83.3
+      },
+      "11-32": {
+        "n": 330,
+        "avg_av": 0.0,
+        "avg_games": 84.7,
+        "starter_rate": 72.4
+      },
+      "33-64": {
+        "n": 480,
+        "avg_av": 0.0,
+        "avg_games": 74.6,
+        "starter_rate": 58.1
+      },
+      "65-100": {
+        "n": 540,
+        "avg_av": 0.0,
+        "avg_games": 64.5,
+        "starter_rate": 40.9
+      },
+      "101-150": {
+        "n": 750,
+        "avg_av": 0.0,
+        "avg_games": 52.3,
+        "starter_rate": 27.6
+      },
+      "151-224": {
+        "n": 1110,
+        "avg_av": 0.0,
+        "avg_games": 38.8,
+        "starter_rate": 15.0
+      },
+      "225-300": {
+        "n": 476,
+        "avg_av": 0.0,
+        "avg_games": 26.8,
+        "starter_rate": 9.9
+      }
+    }
+  },
+  "generation_weights": {
+    "school_weights": {
+      "Alabama": {
+        "weight": 33.63,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "LSU": {
+        "weight": 27.37,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Georgia": {
+        "weight": 26.33,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Ohio St.": {
+        "weight": 25.55,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Florida": {
+        "weight": 22.16,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Michigan": {
+        "weight": 21.38,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Oklahoma": {
+        "weight": 20.59,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Clemson": {
+        "weight": 20.59,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Penn St.": {
+        "weight": 18.77,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "USC": {
+        "weight": 18.25,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Notre Dame": {
+        "weight": 18.25,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Florida St.": {
+        "weight": 18.25,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Miami (FL)": {
+        "weight": 17.73,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Stanford": {
+        "weight": 14.6,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Iowa": {
+        "weight": 14.6,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Auburn": {
+        "weight": 14.34,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Wisconsin": {
+        "weight": 14.08,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "UCLA": {
+        "weight": 14.08,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Texas": {
+        "weight": 14.08,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Oregon": {
+        "weight": 14.08,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Washington": {
+        "weight": 13.82,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Texas A&M": {
+        "weight": 13.3,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "North Carolina": {
+        "weight": 13.3,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "South Carolina": {
+        "weight": 13.03,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Utah": {
+        "weight": 11.99,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Mississippi St.": {
+        "weight": 11.73,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "TCU": {
+        "weight": 11.73,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Arkansas": {
+        "weight": 11.47,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Mississippi": {
+        "weight": 10.95,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Tennessee": {
+        "weight": 10.95,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Pittsburgh": {
+        "weight": 10.43,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Baylor": {
+        "weight": 10.17,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Virginia Tech": {
+        "weight": 10.17,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Missouri": {
+        "weight": 9.91,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Michigan St.": {
+        "weight": 9.65,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Nebraska": {
+        "weight": 9.65,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "North Carolina St.": {
+        "weight": 9.65,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "California": {
+        "weight": 9.38,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "West Virginia": {
+        "weight": 9.12,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Louisville": {
+        "weight": 9.12,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Kentucky": {
+        "weight": 9.12,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Illinois": {
+        "weight": 8.86,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Cincinnati": {
+        "weight": 8.34,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Boise St.": {
+        "weight": 8.08,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Arizona St.": {
+        "weight": 7.82,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Maryland": {
+        "weight": 7.56,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Oklahoma St.": {
+        "weight": 7.56,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Oregon St.": {
+        "weight": 7.3,
+        "conference": "Pac-12",
+        "tier": "Power 5"
+      },
+      "Boston Col.": {
+        "weight": 7.3,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Minnesota": {
+        "weight": 7.04,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Central Florida": {
+        "weight": 6.52,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Kansas St.": {
+        "weight": 6.52,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Purdue": {
+        "weight": 6.52,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "San Diego St.": {
+        "weight": 6.26,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Wake Forest": {
+        "weight": 6.0,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Houston": {
+        "weight": 6.0,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Rutgers": {
+        "weight": 5.74,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Temple": {
+        "weight": 5.47,
+        "conference": "AAC",
+        "tier": "Group of 5"
+      },
+      "Arizona": {
+        "weight": 5.47,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Texas Tech": {
+        "weight": 5.21,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Northwestern": {
+        "weight": 5.21,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "Connecticut": {
+        "weight": 5.21,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Syracuse": {
+        "weight": 5.21,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Georgia Tech": {
+        "weight": 5.21,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "South Florida": {
+        "weight": 4.95,
+        "conference": "AAC",
+        "tier": "Group of 5"
+      },
+      "Virginia": {
+        "weight": 4.95,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Colorado": {
+        "weight": 4.95,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Washington St.": {
+        "weight": 4.69,
+        "conference": "Pac-12",
+        "tier": "Power 5"
+      },
+      "SMU": {
+        "weight": 4.69,
+        "conference": "AAC",
+        "tier": "Group of 5"
+      },
+      "Indiana": {
+        "weight": 4.69,
+        "conference": "Big Ten",
+        "tier": "Power 5"
+      },
+      "BYU": {
+        "weight": 4.43,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Louisiana Tech": {
+        "weight": 4.43,
+        "conference": "Sun Belt",
+        "tier": "Group of 5"
+      },
+      "Iowa St.": {
+        "weight": 4.17,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Memphis": {
+        "weight": 4.17,
+        "conference": "AAC",
+        "tier": "Group of 5"
+      },
+      "Vanderbilt": {
+        "weight": 4.17,
+        "conference": "SEC",
+        "tier": "Power 5"
+      },
+      "Louisiana": {
+        "weight": 3.91,
+        "conference": "Sun Belt",
+        "tier": "Group of 5"
+      },
+      "Tulane": {
+        "weight": 3.91,
+        "conference": "AAC",
+        "tier": "Group of 5"
+      },
+      "Appalachian St.": {
+        "weight": 3.91,
+        "conference": "Sun Belt",
+        "tier": "Group of 5"
+      },
+      "Fresno St.": {
+        "weight": 3.91,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Western Kentucky": {
+        "weight": 3.65,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Western Michigan": {
+        "weight": 3.65,
+        "conference": "MAC",
+        "tier": "Group of 5"
+      },
+      "Nevada": {
+        "weight": 3.39,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Utah St.": {
+        "weight": 3.39,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Kansas": {
+        "weight": 3.13,
+        "conference": "Big 12",
+        "tier": "Power 5"
+      },
+      "Duke": {
+        "weight": 3.13,
+        "conference": "ACC",
+        "tier": "Power 5"
+      },
+      "Central Michigan": {
+        "weight": 2.87,
+        "conference": "MAC",
+        "tier": "Group of 5"
+      },
+      "Southern Miss": {
+        "weight": 2.87,
+        "conference": "Sun Belt",
+        "tier": "Group of 5"
+      },
+      "Marshall": {
+        "weight": 2.87,
+        "conference": "Sun Belt",
+        "tier": "Group of 5"
+      },
+      "Wyoming": {
+        "weight": 2.87,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "North Dakota St.": {
+        "weight": 2.87,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Colorado St.": {
+        "weight": 2.87,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Toledo": {
+        "weight": 2.61,
+        "conference": "MAC",
+        "tier": "Group of 5"
+      },
+      "Florida Atlantic": {
+        "weight": 2.61,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "San Jose St.": {
+        "weight": 2.35,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Troy": {
+        "weight": 2.35,
+        "conference": "Sun Belt",
+        "tier": "Group of 5"
+      },
+      "South Dakota St.": {
+        "weight": 2.09,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Ala-Birmingham": {
+        "weight": 2.09,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Hawaii": {
+        "weight": 2.09,
+        "conference": "Mountain West",
+        "tier": "Group of 5"
+      },
+      "Florida International": {
+        "weight": 2.09,
+        "conference": "Other",
+        "tier": "Other"
+      },
+      "Coastal Carolina": {
+        "weight": 1.82,
+        "conference": "Sun Belt",
+        "tier": "Group of 5"
+      }
+    },
+    "conference_weights": {
+      "SEC": {
+        "weight": 25.4,
+        "tier": "Power 5"
+      },
+      "Big Ten": {
+        "weight": 21.9,
+        "tier": "Power 5"
+      },
+      "ACC": {
+        "weight": 14.9,
+        "tier": "Power 5"
+      },
+      "Big 12": {
+        "weight": 10.7,
+        "tier": "Power 5"
+      },
+      "Mountain West": {
+        "weight": 3.7,
+        "tier": "Group of 5"
+      },
+      "AAC": {
+        "weight": 3.1,
+        "tier": "Group of 5"
+      },
+      "Sun Belt": {
+        "weight": 3.1,
+        "tier": "Group of 5"
+      },
+      "MAC": {
+        "weight": 2.1,
+        "tier": "Group of 5"
+      },
+      "Pac-12": {
+        "weight": 1.2,
+        "tier": "Power 5"
+      }
+    },
+    "position_by_conference": {
+      "SEC": {
+        "OL": 16.3,
+        "S": 13.2,
+        "WR": 12.0,
+        "DL": 11.2,
+        "LB": 11.2,
+        "EDGE": 9.7,
+        "RB": 9.5,
+        "CB": 5.2,
+        "TE": 4.7,
+        "QB": 4.4,
+        "K": 1.1,
+        "P": 0.7,
+        "Other": 0.4,
+        "LS": 0.3
+      },
+      "Big Ten": {
+        "OL": 18.2,
+        "S": 13.4,
+        "EDGE": 11.3,
+        "WR": 11.3,
+        "LB": 10.3,
+        "DL": 8.7,
+        "RB": 8.2,
+        "TE": 6.5,
+        "CB": 6.5,
+        "QB": 4.0,
+        "P": 0.8,
+        "K": 0.4,
+        "Other": 0.2,
+        "LS": 0.1
+      },
+      "ACC": {
+        "S": 16.0,
+        "OL": 14.9,
+        "WR": 12.3,
+        "EDGE": 11.2,
+        "DL": 9.1,
+        "LB": 8.9,
+        "RB": 8.8,
+        "TE": 6.0,
+        "CB": 5.4,
+        "QB": 5.3,
+        "P": 1.2,
+        "K": 0.7,
+        "LS": 0.2
+      },
+      "Big 12": {
+        "OL": 16.4,
+        "WR": 15.2,
+        "S": 14.4,
+        "LB": 11.0,
+        "EDGE": 9.3,
+        "RB": 8.8,
+        "DL": 7.8,
+        "CB": 7.1,
+        "QB": 4.6,
+        "TE": 3.9,
+        "K": 0.5,
+        "Other": 0.5,
+        "LS": 0.2,
+        "P": 0.2
+      }
+    }
+  },
+  "implementation_hints": {
+    "draft_class_generation": "\n                To generate a realistic draft class:\n\n                1. Use conference_weights to distribute prospects across conferences\n                   - SEC: ~22%, Big Ten: ~18%, ACC: ~12%, Big 12: ~10%\n                   - Group of 5: ~15%, Other: ~23%\n\n                2. Use school_weights within each conference\n                   - Top schools (Alabama, Ohio St, Georgia) produce 2-4% each\n                   - Mid-tier P5 schools produce 0.5-1% each\n\n                3. Use position_by_conference for school specialties\n                   - SEC: Strong at RB, LB, CB\n                   - Big Ten: Strong at OL, DL\n                   - ACC: Strong at WR, EDGE\n\n                4. Use hit_rates_by_round for prospect quality\n                   - Power 5 R1: 75% starter rate\n                   - Group of 5 R1: 55% starter rate\n                   - Power 5 R7: 15% starter rate\n            ",
+    "school_flavor": "\n                For narrative richness, tag schools with archetypes:\n                - \"QB Factory\": USC, Oklahoma, Alabama\n                - \"O-Line U\": Wisconsin, Iowa, Notre Dame\n                - \"WR U\": Alabama, Ohio St, Clemson\n                - \"DB U\": LSU, Florida, Ohio St\n                - \"Edge Factory\": Clemson, Ohio St, Georgia\n            ",
+    "variability_guidance": "\nFor realistic draft class generation with variability:\n\n1. PICKS PER SCHOOL PER DRAFT:\n   - Alabama: 8-9 picks (std 1.7)\n   - Top 10 schools: 5-7 picks (std 2-3)\n   - Most schools: 0-2 picks per draft\n   \n2. SCHOOL POOL SIZE:\n   - ~100 unique schools per draft\n   - Top 24 schools produce 44% of all picks\n   - 79 schools have exactly 1 pick in 15 years\n\n3. GEM RATES BY ROUND:\n   - R1: 40% Pro Bowl rate\n   - R2: 19% Pro Bowl rate\n   - R3: 11% Pro Bowl rate\n   - R5-7: 3.2% Pro Bowl rate (late-round gems exist!)\n\n4. BUST RATES BY ROUND:\n   - R1: 2% bust rate\n   - R4: 19% bust rate\n   - R7: 35% bust rate\n\n5. SMALL SCHOOL SURPRISE FACTOR:\n   - 79 one-pick schools in 15 years\n   - 8% of tiny school picks become Pro Bowlers\n   - Generate 1-2 small school gems per class\n"
+  },
+  "variability": {
+    "per_draft_stats": {
+      "picks_per_draft": {
+        "mean": 255.7,
+        "std": 2.6,
+        "min": 253,
+        "max": 262
+      },
+      "picks_by_round": {
+        "1": 32,
+        "2": 32,
+        "3": 37,
+        "4": 37,
+        "5": 37,
+        "6": 40,
+        "7": 41
+      },
+      "unique_schools_per_draft": {
+        "mean": 102,
+        "std": 8,
+        "min": 86,
+        "max": 113
+      }
+    },
+    "hit_rates_by_round": {
+      "1": {
+        "bust_rate": 2.1,
+        "starter_rate": 75.7,
+        "probowl_rate": 40.0,
+        "n": 478
+      },
+      "2": {
+        "bust_rate": 4.0,
+        "starter_rate": 58.3,
+        "probowl_rate": 19.1,
+        "n": 477
+      },
+      "3": {
+        "bust_rate": 10.8,
+        "starter_rate": 39.9,
+        "probowl_rate": 10.6,
+        "n": 556
+      },
+      "4": {
+        "bust_rate": 18.7,
+        "starter_rate": 29.0,
+        "probowl_rate": 5.8,
+        "n": 556
+      },
+      "5": {
+        "bust_rate": 23.7,
+        "starter_rate": 23.7,
+        "probowl_rate": 5.7,
+        "n": 558
+      },
+      "6": {
+        "bust_rate": 30.1,
+        "starter_rate": 11.5,
+        "probowl_rate": 2.7,
+        "n": 601
+      },
+      "7": {
+        "bust_rate": 35.2,
+        "starter_rate": 9.8,
+        "probowl_rate": 1.5,
+        "n": 610
+      }
+    },
+    "school_size_tiers": {
+      "large": {
+        "school_count": 24,
+        "total_picks": 1696,
+        "starter_rate": 38.2,
+        "probowl_rate": 14.4,
+        "bust_rate": 15.9
+      },
+      "medium": {
+        "school_count": 40,
+        "total_picks": 1249,
+        "starter_rate": 30.7,
+        "probowl_rate": 8.8,
+        "bust_rate": 20.8
+      },
+      "small": {
+        "school_count": 207,
+        "total_picks": 891,
+        "starter_rate": 28.4,
+        "probowl_rate": 8.4,
+        "bust_rate": 21.5
+      }
+    },
+    "top_school_variability": {
+      "Alabama": {
+        "mean": 8.6,
+        "std": 1.7,
+        "min": 5,
+        "max": 12
+      },
+      "LSU": {
+        "mean": 7.0,
+        "std": 2.6,
+        "min": 3,
+        "max": 14
+      },
+      "Georgia": {
+        "mean": 6.7,
+        "std": 3.2,
+        "min": 1,
+        "max": 15
+      },
+      "Ohio St.": {
+        "mean": 6.5,
+        "std": 2.6,
+        "min": 3,
+        "max": 12
+      },
+      "Florida": {
+        "mean": 5.7,
+        "std": 2.4,
+        "min": 1,
+        "max": 9
+      },
+      "Michigan": {
+        "mean": 5.5,
+        "std": 3.6,
+        "min": 2,
+        "max": 13
+      },
+      "Clemson": {
+        "mean": 5.3,
+        "std": 1.6,
+        "min": 2,
+        "max": 9
+      },
+      "Oklahoma": {
+        "mean": 5.3,
+        "std": 1.5,
+        "min": 3,
+        "max": 8
+      }
+    },
+    "late_round_gems": {
+      "total_late_picks": 1769,
+      "probowl_rate": 3.2,
+      "examples": [
+        {
+          "name": "Tyreek Hill",
+          "school": "West Alabama",
+          "round": 5,
+          "pick": 165,
+          "probowls": 8
+        },
+        {
+          "name": "Jason Kelce",
+          "school": "Cincinnati",
+          "round": 6,
+          "pick": 191,
+          "probowls": 7
+        },
+        {
+          "name": "Antonio Brown",
+          "school": "Central Michigan",
+          "round": 6,
+          "pick": 195,
+          "probowls": 7
+        },
+        {
+          "name": "George Kittle",
+          "school": "Iowa",
+          "round": 5,
+          "pick": 146,
+          "probowls": 7
+        },
+        {
+          "name": "Richard Sherman",
+          "school": "Stanford",
+          "round": 5,
+          "pick": 154,
+          "probowls": 5
+        }
+      ]
+    },
+    "small_school_gems": {
+      "schools_with_1_to_5_picks": 155,
+      "total_picks": 311,
+      "starter_rate": 28.0,
+      "probowl_rate": 7.4,
+      "one_pick_schools": 79,
+      "notable_examples": [
+        {
+          "name": "Kyle Juszczyk",
+          "school": "Harvard",
+          "round": 4,
+          "probowls": 10
+        },
+        {
+          "name": "Tyreek Hill",
+          "school": "West Alabama",
+          "round": 5,
+          "probowls": 8
+        },
+        {
+          "name": "Terron Armstead",
+          "school": "Ark-Pine Bluff",
+          "round": 3,
+          "probowls": 5
+        },
+        {
+          "name": "Maxx Crosby",
+          "school": "Eastern Michigan",
+          "round": 4,
+          "probowls": 5
+        },
+        {
+          "name": "Matt Judon",
+          "school": "Grand Valley St.",
+          "round": 5,
+          "probowls": 4
+        }
+      ]
+    }
+  }
+}

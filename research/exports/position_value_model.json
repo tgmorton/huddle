@@ -1,0 +1,773 @@
+{
+  "meta": {
+    "description": "Position value model for salary/market value calculations",
+    "source": "NFL contract and performance data 2019-2024",
+    "generated_for": "claude_code_agent salary system improvements"
+  },
+  "win_contribution": {
+    "description": "Correlation between cap investment and team wins",
+    "notes": [
+      "Positive correlation = investing more correlates with winning more",
+      "Negative or zero = diminishing returns or market inefficiency",
+      "high_vs_low_win_diff = win % difference between top/bottom half spenders"
+    ],
+    "by_position_group": {
+      "CB": {
+        "win_correlation": 0.0065,
+        "point_diff_correlation": 0.0482,
+        "avg_cap_share_pct": 10.01,
+        "high_vs_low_win_diff": 0.0037,
+        "sample_size": 192
+      },
+      "DL": {
+        "win_correlation": 0.0115,
+        "point_diff_correlation": -0.0076,
+        "avg_cap_share_pct": 10.11,
+        "high_vs_low_win_diff": 0.0081,
+        "sample_size": 192
+      },
+      "K": {
+        "win_correlation": -0.1368,
+        "point_diff_correlation": -0.1135,
+        "avg_cap_share_pct": 2.03,
+        "high_vs_low_win_diff": -0.0152,
+        "sample_size": 192
+      },
+      "LB": {
+        "win_correlation": -0.2148,
+        "point_diff_correlation": -0.1871,
+        "avg_cap_share_pct": 7.82,
+        "high_vs_low_win_diff": -0.0615,
+        "sample_size": 192
+      },
+      "LS": {
+        "win_correlation": 0.0784,
+        "point_diff_correlation": 0.1241,
+        "avg_cap_share_pct": 0.77,
+        "high_vs_low_win_diff": 0.0132,
+        "sample_size": 190
+      },
+      "OL": {
+        "win_correlation": -0.0794,
+        "point_diff_correlation": -0.1079,
+        "avg_cap_share_pct": 17.29,
+        "high_vs_low_win_diff": -0.0245,
+        "sample_size": 192
+      },
+      "OTHER": {
+        "win_correlation": 0.1326,
+        "point_diff_correlation": 0.1867,
+        "avg_cap_share_pct": 10.77,
+        "high_vs_low_win_diff": 0.0429,
+        "sample_size": 192
+      },
+      "P": {
+        "win_correlation": 0.0654,
+        "point_diff_correlation": 0.0982,
+        "avg_cap_share_pct": 0.96,
+        "high_vs_low_win_diff": -0.0164,
+        "sample_size": 192
+      },
+      "QB": {
+        "win_correlation": 0.1291,
+        "point_diff_correlation": 0.0593,
+        "avg_cap_share_pct": 10.19,
+        "high_vs_low_win_diff": 0.0389,
+        "sample_size": 192
+      },
+      "RB": {
+        "win_correlation": 0.002,
+        "point_diff_correlation": 0.0464,
+        "avg_cap_share_pct": 5.28,
+        "high_vs_low_win_diff": 0.0046,
+        "sample_size": 192
+      },
+      "S": {
+        "win_correlation": 0.0433,
+        "point_diff_correlation": 0.0358,
+        "avg_cap_share_pct": 7.42,
+        "high_vs_low_win_diff": 0.0044,
+        "sample_size": 192
+      },
+      "TE": {
+        "win_correlation": 0.0229,
+        "point_diff_correlation": -0.0214,
+        "avg_cap_share_pct": 5.03,
+        "high_vs_low_win_diff": 0.0203,
+        "sample_size": 192
+      },
+      "WR": {
+        "win_correlation": -0.0881,
+        "point_diff_correlation": -0.0883,
+        "avg_cap_share_pct": 12.33,
+        "high_vs_low_win_diff": -0.0542,
+        "sample_size": 192
+      }
+    }
+  },
+  "replacement_value": {
+    "description": "Elite vs replacement salary spread (WAR proxy)",
+    "notes": [
+      "replacement_salary = ~10th percentile (league minimum territory)",
+      "elite_salary = ~90th percentile (top of market)",
+      "elite_to_replacement_ratio = how much more elite costs vs replacement",
+      "implied_war_spread = rough conversion to wins (~$10M per win)"
+    ],
+    "by_position": {
+      "C": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 42.66,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 4.0
+        },
+        "sample_size": 7577
+      },
+      "CB": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 5.0,
+        "elite_to_replacement_ratio": 59.62,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 5.0
+        },
+        "sample_size": 26440
+      },
+      "DT": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 5.0,
+        "elite_to_replacement_ratio": 54.27,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 5.0
+        },
+        "sample_size": 25273
+      },
+      "ED": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 8.0,
+        "elite_to_replacement_ratio": 73.71,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 3.0,
+          "90": 8.0
+        },
+        "sample_size": 18656
+      },
+      "FB": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 2.0,
+        "elite_to_replacement_ratio": 17.43,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 1.0,
+          "90": 2.0
+        },
+        "sample_size": 1950
+      },
+      "K": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 36.24,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 3.0,
+          "90": 4.0
+        },
+        "sample_size": 5025
+      },
+      "LB": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 42.15,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 4.0
+        },
+        "sample_size": 21116
+      },
+      "LG": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 48.05,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 1.0,
+          "90": 4.0
+        },
+        "sample_size": 8335
+      },
+      "LS": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 1.0,
+        "elite_to_replacement_ratio": 5.87,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 1.0,
+          "50": 1.0,
+          "75": 1.0,
+          "90": 1.0
+        },
+        "sample_size": 3333
+      },
+      "LT": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 9.0,
+        "elite_to_replacement_ratio": 107.16,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 3.0,
+          "90": 9.0
+        },
+        "sample_size": 8005
+      },
+      "P": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 3.0,
+        "elite_to_replacement_ratio": 11.85,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 1.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 3.0
+        },
+        "sample_size": 2851
+      },
+      "QB": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 13.0,
+        "elite_to_replacement_ratio": 104.84,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 4.0,
+          "90": 13.0
+        },
+        "sample_size": 14507
+      },
+      "RB": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 48.18,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 1.0,
+          "90": 4.0
+        },
+        "sample_size": 15993
+      },
+      "RG": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 58.75,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 4.0
+        },
+        "sample_size": 7283
+      },
+      "RT": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 6.0,
+        "elite_to_replacement_ratio": 62.42,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 6.0
+        },
+        "sample_size": 8378
+      },
+      "S": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 40.71,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 2.0,
+          "90": 4.0
+        },
+        "sample_size": 18062
+      },
+      "TE": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 4.0,
+        "elite_to_replacement_ratio": 57.97,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 1.0,
+          "90": 4.0
+        },
+        "sample_size": 15045
+      },
+      "WR": {
+        "replacement_salary_k": 0.0,
+        "median_salary_k": 1.0,
+        "elite_salary_k": 5.0,
+        "elite_to_replacement_ratio": 68.54,
+        "implied_war_spread": 0.0,
+        "salary_percentiles": {
+          "10": 0.0,
+          "25": 0.0,
+          "50": 1.0,
+          "75": 1.0,
+          "90": 5.0
+        },
+        "sample_size": 30972
+      }
+    }
+  },
+  "salary_distribution": {
+    "description": "Actual NFL salary distribution by position",
+    "notes": [
+      "avg_cap_pct = average percentage of total team salary",
+      "Use this to validate/calibrate position multipliers"
+    ],
+    "by_position": {
+      "C": {
+        "avg_cap_pct": 4.09,
+        "std_cap_pct": 8.44,
+        "min_cap_pct": 0.02,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 19.0,
+        "sample_size": 633
+      },
+      "CB": {
+        "avg_cap_pct": 13.06,
+        "std_cap_pct": 15.17,
+        "min_cap_pct": 0.19,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 59.0,
+        "sample_size": 758
+      },
+      "DT": {
+        "avg_cap_pct": 12.92,
+        "std_cap_pct": 14.96,
+        "min_cap_pct": 0.24,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 60.0,
+        "sample_size": 771
+      },
+      "ED": {
+        "avg_cap_pct": 15.47,
+        "std_cap_pct": 17.35,
+        "min_cap_pct": 0.2,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 67.0,
+        "sample_size": 776
+      },
+      "FB": {
+        "avg_cap_pct": 0.94,
+        "std_cap_pct": 1.29,
+        "min_cap_pct": 0.01,
+        "max_cap_pct": 8.15,
+        "avg_cap_hit_k": 6.0,
+        "sample_size": 314
+      },
+      "K": {
+        "avg_cap_pct": 3.62,
+        "std_cap_pct": 7.3,
+        "min_cap_pct": 0.01,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 15.0,
+        "sample_size": 550
+      },
+      "LB": {
+        "avg_cap_pct": 10.54,
+        "std_cap_pct": 16.71,
+        "min_cap_pct": 0.1,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 45.0,
+        "sample_size": 739
+      },
+      "LG": {
+        "avg_cap_pct": 3.78,
+        "std_cap_pct": 6.02,
+        "min_cap_pct": 0.04,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 20.0,
+        "sample_size": 626
+      },
+      "LS": {
+        "avg_cap_pct": 0.86,
+        "std_cap_pct": 0.97,
+        "min_cap_pct": 0.04,
+        "max_cap_pct": 14.98,
+        "avg_cap_hit_k": 6.0,
+        "sample_size": 468
+      },
+      "LT": {
+        "avg_cap_pct": 8.93,
+        "std_cap_pct": 14.6,
+        "min_cap_pct": 0.02,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 33.0,
+        "sample_size": 700
+      },
+      "P": {
+        "avg_cap_pct": 1.88,
+        "std_cap_pct": 5.54,
+        "min_cap_pct": 0.06,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 9.0,
+        "sample_size": 506
+      },
+      "QB": {
+        "avg_cap_pct": 26.51,
+        "std_cap_pct": 27.57,
+        "min_cap_pct": 0.25,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 70.0,
+        "sample_size": 910
+      },
+      "RB": {
+        "avg_cap_pct": 10.0,
+        "std_cap_pct": 17.6,
+        "min_cap_pct": 0.12,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 30.0,
+        "sample_size": 758
+      },
+      "RG": {
+        "avg_cap_pct": 3.2,
+        "std_cap_pct": 3.83,
+        "min_cap_pct": 0.02,
+        "max_cap_pct": 50.0,
+        "avg_cap_hit_k": 20.0,
+        "sample_size": 604
+      },
+      "RT": {
+        "avg_cap_pct": 4.04,
+        "std_cap_pct": 4.33,
+        "min_cap_pct": 0.01,
+        "max_cap_pct": 59.07,
+        "avg_cap_hit_k": 26.0,
+        "sample_size": 634
+      },
+      "S": {
+        "avg_cap_pct": 8.41,
+        "std_cap_pct": 9.76,
+        "min_cap_pct": 0.1,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 43.0,
+        "sample_size": 717
+      },
+      "TE": {
+        "avg_cap_pct": 7.29,
+        "std_cap_pct": 12.54,
+        "min_cap_pct": 0.12,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 31.0,
+        "sample_size": 693
+      },
+      "WR": {
+        "avg_cap_pct": 15.17,
+        "std_cap_pct": 15.85,
+        "min_cap_pct": 0.29,
+        "max_cap_pct": 100.0,
+        "avg_cap_hit_k": 70.0,
+        "sample_size": 785
+      }
+    },
+    "by_group": {
+      "CB": {
+        "avg_cap_pct": 13.06,
+        "std_cap_pct": 15.17,
+        "sample_size": 758
+      },
+      "DL": {
+        "avg_cap_pct": 12.92,
+        "std_cap_pct": 14.96,
+        "sample_size": 771
+      },
+      "K": {
+        "avg_cap_pct": 3.62,
+        "std_cap_pct": 7.3,
+        "sample_size": 550
+      },
+      "LB": {
+        "avg_cap_pct": 10.54,
+        "std_cap_pct": 16.71,
+        "sample_size": 739
+      },
+      "LS": {
+        "avg_cap_pct": 0.86,
+        "std_cap_pct": 0.97,
+        "sample_size": 468
+      },
+      "OL": {
+        "avg_cap_pct": 19.16,
+        "std_cap_pct": 15.37,
+        "sample_size": 820
+      },
+      "OTHER": {
+        "avg_cap_pct": 15.47,
+        "std_cap_pct": 17.35,
+        "sample_size": 776
+      },
+      "P": {
+        "avg_cap_pct": 1.88,
+        "std_cap_pct": 5.54,
+        "sample_size": 506
+      },
+      "QB": {
+        "avg_cap_pct": 26.51,
+        "std_cap_pct": 27.57,
+        "sample_size": 910
+      },
+      "RB": {
+        "avg_cap_pct": 10.32,
+        "std_cap_pct": 17.49,
+        "sample_size": 763
+      },
+      "S": {
+        "avg_cap_pct": 8.41,
+        "std_cap_pct": 9.76,
+        "sample_size": 717
+      },
+      "TE": {
+        "avg_cap_pct": 7.29,
+        "std_cap_pct": 12.54,
+        "sample_size": 693
+      },
+      "WR": {
+        "avg_cap_pct": 15.17,
+        "std_cap_pct": 15.85,
+        "sample_size": 785
+      }
+    }
+  },
+  "pff_war_estimates": {
+    "description": "PFF-style WAR estimates from published research",
+    "notes": [
+      "WAR = Wins Above Replacement over a full season",
+      "Replacement level = ~10th percentile player at position",
+      "Elite level = ~90th percentile",
+      "Values reflect 2019-2023 NFL data"
+    ],
+    "positions": {
+      "QB": {
+        "elite_war": 3.5,
+        "median_war": 0.8,
+        "war_range": 4.5,
+        "market_efficiency": 0.06
+      },
+      "RB": {
+        "elite_war": 0.6,
+        "median_war": 0.2,
+        "war_range": 0.8,
+        "market_efficiency": 0.04
+      },
+      "WR": {
+        "elite_war": 1.2,
+        "median_war": 0.3,
+        "war_range": 1.5,
+        "market_efficiency": 0.12
+      },
+      "TE": {
+        "elite_war": 0.7,
+        "median_war": 0.2,
+        "war_range": 0.9,
+        "market_efficiency": 0.08
+      },
+      "LT": {
+        "elite_war": 0.9,
+        "median_war": 0.3,
+        "war_range": 1.1,
+        "market_efficiency": 0.44
+      },
+      "LG": {
+        "elite_war": 0.7,
+        "median_war": 0.2,
+        "war_range": 0.9,
+        "market_efficiency": 0.35
+      },
+      "C": {
+        "elite_war": 0.6,
+        "median_war": 0.2,
+        "war_range": 0.8,
+        "market_efficiency": 0.3
+      },
+      "RG": {
+        "elite_war": 0.7,
+        "median_war": 0.2,
+        "war_range": 0.9,
+        "market_efficiency": 0.35
+      },
+      "RT": {
+        "elite_war": 0.8,
+        "median_war": 0.3,
+        "war_range": 1.0,
+        "market_efficiency": 0.39
+      },
+      "DE": {
+        "elite_war": 1.4,
+        "median_war": 0.4,
+        "war_range": 1.8,
+        "market_efficiency": 0.18
+      },
+      "DT": {
+        "elite_war": 0.8,
+        "median_war": 0.2,
+        "war_range": 1.0,
+        "market_efficiency": 0.15
+      },
+      "NT": {
+        "elite_war": 0.5,
+        "median_war": 0.1,
+        "war_range": 0.6,
+        "market_efficiency": 0.1
+      },
+      "OLB": {
+        "elite_war": 1.1,
+        "median_war": 0.3,
+        "war_range": 1.4,
+        "market_efficiency": 0.14
+      },
+      "MLB": {
+        "elite_war": 0.7,
+        "median_war": 0.2,
+        "war_range": 0.9,
+        "market_efficiency": 0.12
+      },
+      "ILB": {
+        "elite_war": 0.6,
+        "median_war": 0.2,
+        "war_range": 0.8,
+        "market_efficiency": 0.12
+      },
+      "CB": {
+        "elite_war": 1.3,
+        "median_war": 0.3,
+        "war_range": 1.6,
+        "market_efficiency": 0.16
+      },
+      "FS": {
+        "elite_war": 0.8,
+        "median_war": 0.2,
+        "war_range": 1.0,
+        "market_efficiency": 0.14
+      },
+      "SS": {
+        "elite_war": 0.7,
+        "median_war": 0.2,
+        "war_range": 0.9,
+        "market_efficiency": 0.12
+      },
+      "K": {
+        "elite_war": 0.4,
+        "median_war": 0.1,
+        "war_range": 0.5,
+        "market_efficiency": 0.2
+      },
+      "P": {
+        "elite_war": 0.3,
+        "median_war": 0.1,
+        "war_range": 0.4,
+        "market_efficiency": 0.15
+      },
+      "LS": {
+        "elite_war": 0.05,
+        "median_war": 0.02,
+        "war_range": 0.06,
+        "market_efficiency": 0.5
+      }
+    }
+  },
+  "implementation_hints": {
+    "position_multiplier_formula": "\n                Based on this research, recommended multipliers:\n\n                multiplier = (elite_war * 10) + (market_efficiency_penalty)\n\n                Where:\n                - elite_war = wins above replacement for elite player\n                - market_efficiency_penalty = negative adjustment for positions\n                  where salary poorly predicts performance (QB, RB)\n\n                High-value positions (invest in draft/development):\n                - QB: Huge impact but market inefficient (low R\u00b2)\n                - DE/EDGE: High impact, moderately efficient market\n                - CB: High impact, moderately efficient market\n\n                Market overvalued (avoid big FA contracts):\n                - RB: Low WAR, very inefficient market (overpaid)\n                - LT: Decent WAR, but \"blind side\" premium is a myth\n\n                Market undervalued (bargain opportunities):\n                - Guards (LG/RG): Good WAR, underpaid\n                - ILB: Solid WAR, underpaid\n                - RT: Similar to LT but paid less\n            ",
+    "recommended_multipliers": {
+      "QB": 5.0,
+      "DE": 2.5,
+      "CB": 2.0,
+      "WR": 2.2,
+      "LT": 1.5,
+      "RT": 1.5,
+      "LG": 1.3,
+      "RG": 1.3,
+      "C": 1.2,
+      "TE": 1.3,
+      "DT": 1.6,
+      "OLB": 1.5,
+      "MLB": 1.0,
+      "ILB": 1.0,
+      "FS": 1.2,
+      "SS": 1.1,
+      "RB": 0.6,
+      "FB": 0.4,
+      "NT": 0.8,
+      "K": 0.4,
+      "P": 0.3,
+      "LS": 0.2
+    }
+  }
+}
