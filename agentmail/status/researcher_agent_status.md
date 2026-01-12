@@ -1,6 +1,6 @@
 # Researcher Agent - Status
 
-**Last Updated:** 2025-12-31
+**Last Updated:** 2026-01-11
 **Agent Role:** Cross-domain research, cognitive science, unified conceptual models, UX analysis, **NFL data analysis for AI decision systems**
 
 ---
@@ -11,7 +11,128 @@ I explore the codebase looking for connections between systems, design unified c
 
 ---
 
-## TODAY'S WORK (2025-12-31)
+## TODAY'S WORK (2026-01-11)
+
+### Comprehensive Playbook Document - IN PROGRESS
+
+Planning an exhaustive NFL playbook reference document for football education. Scope:
+- **Goal:** Teach the system (and devs) how real NFL playbooks work conceptually
+- **Coverage:** Offense + Defense (100+ concepts)
+- **Depth:** Exhaustive - every concept, variation, and adjustment
+
+Currently in plan mode exploring codebase to understand existing play structures.
+
+---
+
+### Key Defender Read Spec - COMPLETE
+
+Delivered the comprehensive specification for concept-aware QB decision-making that behavior_tree_agent has been waiting for since 2025-12-19.
+
+**Core Insight:** Real NFL QBs read 1-2 key defenders, not 11. Example:
+- **Smash concept**: Read the corner. Corner sinks → throw hitch. Corner squats → throw corner.
+- **Flood concept**: Read flat defender. Flat expands → throw dig. Flat sits → throw flat.
+
+**Deliverables:**
+
+| Artifact | Location | Description |
+|----------|----------|-------------|
+| Research Note | `agentmail/researcher_agent/notes/key_defender_reads.md` | NFL key defender read reference for all 10 concepts |
+| Spec to behavior_tree | `agentmail/behavior_tree_agent/to/065_...` | Implementation spec with data contracts |
+| Spec to live_sim | `agentmail/live_sim_agent/to/076_...` | Orchestrator integration needed |
+
+**Key Read Reference for All 10 Concepts:**
+- Four Verts, Mesh, Smash, Flood, Stick
+- Slant-Flat, Curl-Flat, Post-Wheel, Drive, Spacing
+
+**Data Contracts Proposed:**
+- `KeyDefenderRead`: defender_role, read_trigger, primary_route, secondary_route
+- `DefenderRole` enum: FLAT_DEFENDER, DEEP_SAFETY, MIKE, CORNER, HOOK_DEFENDER
+- `ReadTrigger` enum: EXPANDS, SINKS, SQUATS, CARRIES, VACATES, BLITZES
+
+**Attribute Integration:**
+- Awareness (60+) gates key defender identification accuracy (65%-98%)
+- Decision Making (60+) gates read trigger evaluation accuracy (55%-95%)
+- Poise gates key reads under pressure (MODERATE requires 65+, HEAVY requires 85+)
+- Below 60 awareness: key reads disabled, falls back to separation-only logic
+
+**Edge Cases Covered:**
+- Wrong coverage (fallback reads per concept × coverage)
+- Disguised coverage (high awareness detects faster)
+- Combination coverages (Cover 6, Quarters Match)
+- Pressure interaction (key reads disabled under CRITICAL)
+
+---
+
+## PREVIOUS WORK (2026-01-10)
+
+### Position Value Research - COMPLETE
+
+Responded to research request for Position Win Contribution and Replacement Value data.
+
+**Deliverables:**
+
+| Analysis | Script | Export | Key Finding |
+|----------|--------|--------|-------------|
+| Position Value | `position_value_analysis.py` | `position_value_model.json` | LB/WR/OL overpaid, Guards undervalued |
+
+**Model Contents:**
+- Win Contribution: Correlation between cap investment and team wins by position
+- Replacement Value: Elite vs replacement salary spread (WAR proxy)
+- Salary Distribution: Actual NFL cap percentages 2019-2024
+- PFF WAR Estimates: Published research on WAR by position
+- Recommended Multipliers: RB 0.8→0.6, LT 2.0→1.5, LG/RG 1.1→1.3
+
+**Key Insights:**
+- QB only position with meaningful positive win correlation (+0.129)
+- LB has worst correlation (-0.215) - teams overpay significantly
+- RB has lowest market efficiency (R²=0.04) - salary poorly predicts performance
+- Guards are undervalued per Calvetti optimal allocation research
+
+**Infrastructure:**
+- Installed pandas, pyarrow, nfl_data_py to main venv
+- Downloaded 127.8 MB of NFL data to `research/data/cached/`
+- Created reusable position value analysis script
+
+**Message sent:** `agentmail/management_agent/to/055_research_complete_position_win_contribution_and_re.md`
+
+### College Production Analysis - COMPLETE
+
+Researched college/conference production for draft class generation.
+
+**Deliverables:**
+
+| Analysis | Script | Export | Key Finding |
+|----------|--------|--------|-------------|
+| College Production | `college_production_analysis.py` | `college_production_model.json` | Alabama #1, SEC dominates, G5 R1 picks outperform P5 |
+
+**Key Findings:**
+- Alabama is top producer: 129 picks, 48% starters, 29 Pro Bowlers, 12 All-Pros
+- SEC produces 25% of all draft picks (976 of 3,836)
+- Ohio St. and Florida have highest starter rates (47%) among top producers
+- G5 Round 1-2 picks have HIGHER starter rates than P5 (86% vs 76%)
+- After Round 3, P5 depth advantage kicks in
+
+**School Archetypes Identified:**
+- LSU: "DBU" - 27% of picks are DBs
+- Wisconsin: "O-Line U" - 28% OL, 20% RB
+- Iowa: Trench warfare - 32% OL, 21% LB
+- Clemson: Pass rush factory - 22% EDGE
+
+**Messages sent:**
+- `agentmail/management_agent/to/056_research_complete_college_production_model_for_dra.md`
+- `agentmail/management_agent/to/057_college_production_update_variability_gem_rates_bu.md`
+
+**Variability Analysis Added:**
+- Per-draft stats: 256 picks, 102 schools per draft
+- Hit rates by round: R1=76% starter, R7=10% starter
+- Bust rates by round: R1=2%, R7=35%
+- Late-round gem rate: 3.2% of R5-7 become Pro Bowlers
+- 79 one-pick schools in 15 years
+- Top school variability: Alabama 5-12 picks/year (std 1.7)
+
+---
+
+## PREVIOUS WORK (2025-12-31)
 
 ### Game Layer Research Support - COMPLETE
 
@@ -363,28 +484,24 @@ Three-layer mental state (Stable → Weekly → In-Game). Interface contract agr
 
 ## NEXT WORK
 
-**User indicated interest in "More research"** - Options presented:
+**Research Options:**
 
 1. **Combine → Success Analysis** (RECOMMENDED)
    - Which measurables actually predict NFL success?
    - 40 time, vertical, bench press correlation with performance
    - Would inform prospect evaluation and scouting system
 
-2. **College Production Analysis**
-   - Which schools produce NFL starters?
-   - Conference strength adjustments
-   - Would inform draft class generation
-
-3. **Snap Distribution Analysis**
+2. **Snap Distribution Analysis**
    - How playing time evolves by age/position
    - Rotation patterns by position group
 
-4. **Weekly Consistency Analysis**
+3. **Weekly Consistency Analysis**
    - Game-to-game variance by position
    - Which positions are "streaky"?
 
-**Still pending:**
-- **Key Defender Read Spec** - behavior_tree_agent asked for implementation spec for concept-based QB reads
+**Recently Completed:**
+- **Key Defender Read Spec** - Delivered 2026-01-11, sent to behavior_tree_agent + live_sim_agent
+- **College Production Analysis** - Delivered 2026-01-10, integrated by management_agent
 
 **Available when needed:**
 - Inner Weather interface contract (formal doc for live_sim_agent)

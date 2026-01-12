@@ -1,64 +1,64 @@
 # Frontend Agent Status
 
-**Last Updated:** 2025-12-29
+**Last Updated:** 2026-01-11
 **Agent Role:** UI/UX, React/TypeScript frontend, visualization
 
 ---
 
 ## CURRENT FOCUS
 
-**Onboarding & Status Audit** - Verified which features are implemented vs pending.
+**Play Visualization for GameView** - Adding 2D PixiJS play animation (Next Gen Stats style)
 
-## COMPLETED (Dec 29)
+## IN PROGRESS
 
-### Bug Fix
-| Fix | Location | Notes |
-|-----|----------|-------|
-| Auction start 500 error | `management.py:2102` | Added missing `calculate_market_value` import |
+### PlayCanvas Integration (Jan 11)
+Porting sim-analyzer visualization to GameView for spectator mode.
 
-### Status Audit - Features Already Implemented
-Verified these inbox items (042-045) are actually complete:
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `PlayCanvas.tsx` | Created | PixiJS vertical field, player circles, routes, coverage |
+| `PlaybackControls.tsx` | Created | Speed slider, scrub bar, play/pause, frame stepping |
+| `useGameWebSocket.ts` | Updated | Added `play_frames` handler, playback state |
+| `GameView.tsx` | Updated | View toggle: Simulcast (field) vs Full Field (PlayCanvas) |
+| `GameView.css` | Updated | Styles for live play view and playback controls |
+| Backend frames | WIP | `coach_mode.py` streaming frames, fixing attribute errors |
 
-| Feature | Location | Notes |
-|---------|----------|-------|
-| Play Mastery UI | `PlaybookContent.tsx` | Full "By Player" and "By Play" views, progress bars |
-| Per-Attribute Potentials | `PlayerView.tsx:178-234` | Fetches `/development`, shows ceiling in StatBar |
-| Load League Button | `ManagementV2.tsx:1067` | `handleLoadLeague` wired up |
-| Weekly Development | `DevelopmentContent.tsx` | Shows players who improved this week |
-| SimExplorer Seasons | `simExplorerStore.ts` | Per-season standings, real NFL teams |
+**Current bug:** Backend 500 error on `/step` - fixing `RouteWaypoint.offset` and `Ball.height` attribute access.
 
-## COMPLETED (Dec 25-28)
+## PENDING RESPONSE
 
-### Schedule Data Wiring (Dec 28)
-- Real record/opponent display (was hardcoded `3-1 vs DAL`)
-- Schedule state in managementStore
-- Home/away indicator
+### Message 050: GameView Integration (from game_layer_agent)
+Game layer says frontend is ready, just needs UUID wiring. **Response needed:**
+- GameStartFlow DOES have league/team selection with UUIDs
+- Issue: passing abbreviations ("NYG") instead of UUIDs to useCoachAPI
+- Fix: wire team.id through onStartGame callback
 
-### Contracts System UI (Dec 25-26)
-- Full negotiation workflow: start, offer, counter, accept/reject
-- Auction system for elite free agents
-- Contract restructure/cut with dead money calculations
-- Journal logging for all contract actions
+## COMPLETED (Jan 11)
+
+### PlayCanvas Implementation
+- Vertical field orientation (downfield = north)
+- Player circles with jersey numbers
+- Route waypoint rendering
+- Coverage assignment lines
+- Motion trails (position history)
+- Ball rendering with flight arc
+- Playback controls with speed options (0.5x, 1x, 2x, 4x)
+
+## COMPLETED (Dec 25-29)
+
+### Previous Work
+- Schedule data wiring
+- Contracts system UI
+- Load League button
+- Play Mastery UI
+- Per-Attribute Potentials
 
 ## NEXT PRIORITIES
 
-1. **Trade System** - Major feature gap, no TradePane/TradeContent exists yet
-2. **Day-by-Day Advancement** - Event blocking logic (design spec in msg 046)
-3. **Placeholder Tabs** - Strategy, Chemistry, Front Office, Playoffs
-
-## PLACEHOLDER CONTENT (needs implementation)
-
-| Panel | Tab | Status |
-|-------|-----|--------|
-| TeamPanel | Strategy | Placeholder |
-| TeamPanel | Chemistry | Placeholder |
-| TeamPanel | Front Office | Placeholder |
-| SeasonPanel | Playoffs | Placeholder |
-
-## INBOX - CLEARED
-
-Previous pending items (msg 041-045) verified as complete or no longer applicable.
+1. **Fix backend frame streaming** - RouteWaypoint/Ball attribute errors
+2. **Wire team UUIDs** - GameStartFlow -> useCoachAPI connection
+3. **Trade System** - Major feature gap, no TradePane exists yet
 
 ---
 
-**Status: AVAILABLE**
+**Status: ACTIVE - Working on play visualization**

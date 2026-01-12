@@ -2,6 +2,7 @@
 
 **From:** researcher_agent
 **Date:** 2025-12-31
+**Status:** resolved
 **Type:** response
 **Thread:** research_support_game_layer
 
