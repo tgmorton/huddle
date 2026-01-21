@@ -14,6 +14,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
+
+from huddle.api.utils.cache import cached, invalidate_cache
 
 from huddle.core.league import League, Division, Conference, NFL_TEAMS
 from huddle.core.models.stats import GameLog, PlayerSeasonStats
@@ -123,6 +126,8 @@ class PlayerSummary(BaseModel):
     # Contract fields for roster display
     salary: Optional[int] = None
     contract_year_remaining: Optional[int] = None
+    # Player archetype (e.g., "power", "speed", "possession")
+    player_archetype: Optional[str] = None
 
 
 class PlayerDetail(PlayerSummary):
@@ -406,32 +411,29 @@ class TeamCapPlayers(BaseModel):
 # =============================================================================
 
 
-@router.post("/league/generate", response_model=LeagueSummary)
-async def generate_new_league(request: GenerateLeagueRequest) -> LeagueSummary:
-    """Generate a new 32-team NFL league."""
-    global _active_league
-
+def _generate_league_sync(request: GenerateLeagueRequest) -> League:
+    """Synchronous league generation (CPU-bound work)."""
     if request.include_schedule:
-        _active_league = generate_league_with_schedule(
+        league = generate_league_with_schedule(
             season=request.season,
             name=request.name,
             parity_mode=request.parity_mode,
         )
     else:
-        _active_league = generate_league(
+        league = generate_league(
             season=request.season,
             name=request.name,
             parity_mode=request.parity_mode,
         )
 
     # Always auto-fill depth charts for normal generation
-    for team in _active_league.teams.values():
+    for team in league.teams.values():
         team.roster.auto_fill_depth_chart()
 
     # If fantasy draft mode, clear rosters and run fantasy draft
     if request.fantasy_draft:
         # Clear all team rosters
-        for team in _active_league.teams.values():
+        for team in league.teams.values():
             team.roster.players.clear()
             team.roster.depth_chart.slots.clear()
 
@@ -442,26 +444,37 @@ async def generate_new_league(request: GenerateLeagueRequest) -> LeagueSummary:
 
         # Create and run fantasy draft (53 rounds for full rosters)
         draft = create_fantasy_draft(
-            team_abbrs=list(_active_league.teams.keys()),
+            team_abbrs=list(league.teams.keys()),
             all_players=all_players,
             num_rounds=53,
         )
 
         # Simulate the full draft
-        draft.simulate_full_draft(_active_league.teams, add_to_rosters=True)
+        draft.simulate_full_draft(league.teams, add_to_rosters=True)
 
         # Auto-fill depth charts now that rosters are complete
-        for team in _active_league.teams.values():
+        for team in league.teams.values():
             team.roster.auto_fill_depth_chart()
 
         # Clear draft class and free agents since we built fresh rosters
-        _active_league.draft_class = []
-        _active_league.free_agents = []
+        league.draft_class = []
+        league.free_agents = []
 
     # Auto-save the league to disk
-    league_dir = LEAGUES_DATA_DIR / str(_active_league.id)
+    league_dir = LEAGUES_DATA_DIR / str(league.id)
     league_dir.mkdir(parents=True, exist_ok=True)
-    _active_league.save(league_dir / "league.json")
+    league.save(league_dir / "league.json")
+
+    return league
+
+
+@router.post("/league/generate", response_model=LeagueSummary)
+async def generate_new_league(request: GenerateLeagueRequest) -> LeagueSummary:
+    """Generate a new 32-team NFL league."""
+    global _active_league
+
+    # Run CPU-bound league generation in thread pool to avoid blocking event loop
+    _active_league = await run_in_threadpool(_generate_league_sync, request)
 
     return _league_to_summary(_active_league)
 
@@ -544,21 +557,25 @@ async def list_teams(
     if _active_league is None:
         raise HTTPException(status_code=404, detail="No league loaded")
 
-    teams = list(_active_league.teams.values())
-
-    # Filter by conference
-    if conference:
-        conf = Conference.AFC if conference.upper() == "AFC" else Conference.NFC
-        teams = [t for t in teams if _active_league.get_conference_for_team(t.abbreviation) == conf]
-
-    # Filter by division
+    # Pre-compute filter values once
+    conf_filter = Conference.AFC if conference and conference.upper() == "AFC" else (
+        Conference.NFC if conference else None
+    )
+    div_filter = None
     if division:
         div_map = {d.value.upper(): d for d in Division}
-        if division.upper() in div_map:
-            div = div_map[division.upper()]
-            teams = [t for t in teams if _active_league.get_division_for_team(t.abbreviation) == div]
+        div_filter = div_map.get(division.upper())
 
-    return [_team_to_summary(t, _active_league) for t in teams]
+    # Single-pass filtering with all filters applied at once
+    results = []
+    for team in _active_league.teams.values():
+        if conf_filter and _active_league.get_conference_for_team(team.abbreviation) != conf_filter:
+            continue
+        if div_filter and _active_league.get_division_for_team(team.abbreviation) != div_filter:
+            continue
+        results.append(_team_to_summary(team, _active_league))
+
+    return results
 
 
 @router.get("/teams/{abbreviation}", response_model=TeamDetail)
@@ -651,27 +668,48 @@ async def search_players(
     limit: int = Query(50, ge=1, le=200),
 ) -> list[PlayerSummary]:
     """Search players across all teams."""
+    import heapq
+
     if _active_league is None:
         raise HTTPException(status_code=404, detail="No league loaded")
 
-    results = []
+    # Normalize filters once
+    position_filter = position.upper() if position else None
+    team_filter = team.upper() if team else None
 
-    # Collect players from teams
+    # Use a min-heap to efficiently track top-k by overall (negate for max behavior)
+    # This avoids collecting all results when we only need top limit
+    heap = []
+
+    # Single-pass filtering with heap-based top-k selection
     for abbr, t in _active_league.teams.items():
-        if team and abbr.upper() != team.upper():
+        if team_filter and abbr.upper() != team_filter:
             continue
 
         for player in t.roster.players.values():
-            if position and player.position.value.upper() != position.upper():
+            if position_filter and player.position.value.upper() != position_filter:
                 continue
             if not (min_overall <= player.overall <= max_overall):
                 continue
-            results.append(_player_to_summary(player, abbr))
 
-    # Sort by overall descending
-    results.sort(key=lambda p: p.overall, reverse=True)
+            # Use negative overall for max-heap behavior with heapq (min-heap)
+            entry = (-player.overall, player.id, player, abbr)
 
-    return results[:limit]
+            if len(heap) < limit:
+                heapq.heappush(heap, entry)
+            elif entry[0] < heap[0][0]:  # Better overall than worst in heap
+                heapq.heapreplace(heap, entry)
+
+    # Extract results in sorted order (highest overall first)
+    results = []
+    while heap:
+        _, _, player, abbr = heapq.heappop(heap)
+        results.append(_player_to_summary(player, abbr))
+
+    # Reverse since heappop gives smallest (most negative) first
+    results.reverse()
+
+    return results
 
 
 @router.get("/free-agents", response_model=list[PlayerSummary])
@@ -681,18 +719,39 @@ async def get_free_agents(
     limit: int = Query(50, ge=1, le=200),
 ) -> list[PlayerSummary]:
     """Get free agent pool."""
+    import heapq
+
     if _active_league is None:
         raise HTTPException(status_code=404, detail="No league loaded")
 
-    players = _active_league.free_agents
+    # Normalize filter once
+    position_filter = position.upper() if position else None
 
-    if position:
-        players = [p for p in players if p.position.value.upper() == position.upper()]
+    # Use heap for efficient top-k selection
+    heap = []
 
-    players = [p for p in players if p.overall >= min_overall]
-    players.sort(key=lambda p: p.overall, reverse=True)
+    # Single-pass filtering with heap-based selection
+    for player in _active_league.free_agents:
+        if position_filter and player.position.value.upper() != position_filter:
+            continue
+        if player.overall < min_overall:
+            continue
 
-    return [_player_to_summary(p, None) for p in players[:limit]]
+        entry = (-player.overall, player.id, player)
+
+        if len(heap) < limit:
+            heapq.heappush(heap, entry)
+        elif entry[0] < heap[0][0]:
+            heapq.heapreplace(heap, entry)
+
+    # Extract results in sorted order
+    results = []
+    while heap:
+        _, _, player = heapq.heappop(heap)
+        results.append(_player_to_summary(player, None))
+
+    results.reverse()
+    return results
 
 
 @router.get("/draft-class", response_model=list[PlayerSummary])
@@ -712,28 +771,23 @@ async def get_draft_class(
     return [_player_to_summary(p, None) for p in players[:limit]]
 
 
-@router.get("/standings", response_model=list[DivisionStandings])
-async def get_standings(
-    conference: Optional[str] = Query(None, description="Filter by conference (AFC/NFC)"),
-) -> list[DivisionStandings]:
-    """Get league standings by division."""
-    if _active_league is None:
-        raise HTTPException(status_code=404, detail="No league loaded")
-
+@cached(ttl_seconds=30)
+def _compute_standings(league: League, conference_filter: Optional[str]) -> list[DivisionStandings]:
+    """Compute standings (cached for 30 seconds)."""
     result = []
 
     for div in Division:
         # Filter by conference if specified
-        if conference:
-            conf = Conference.AFC if conference.upper() == "AFC" else Conference.NFC
+        if conference_filter:
+            conf = Conference.AFC if conference_filter.upper() == "AFC" else Conference.NFC
             if div.conference != conf:
                 continue
 
-        standings = _active_league.get_division_standings(div)
+        standings = league.get_division_standings(div)
         entries = []
 
         for rank, s in enumerate(standings, 1):
-            team = _active_league.get_team(s.abbreviation)
+            team = league.get_team(s.abbreviation)
             team_name = team.full_name if team else s.abbreviation
 
             entries.append(StandingEntry(
@@ -758,6 +812,17 @@ async def get_standings(
         ))
 
     return result
+
+
+@router.get("/standings", response_model=list[DivisionStandings])
+async def get_standings(
+    conference: Optional[str] = Query(None, description="Filter by conference (AFC/NFC)"),
+) -> list[DivisionStandings]:
+    """Get league standings by division."""
+    if _active_league is None:
+        raise HTTPException(status_code=404, detail="No league loaded")
+
+    return _compute_standings(_active_league, conference)
 
 
 @router.get("/schedule")
@@ -809,6 +874,9 @@ async def simulate_week(request: SimulateWeekRequest) -> WeekResultResponse:
     simulator = SeasonSimulator(_active_league, mode=SimulationMode.FAST)
     week_result = simulator.simulate_week(request.week)
 
+    # Invalidate standings cache since results changed
+    invalidate_cache("_compute_standings")
+
     return WeekResultResponse(
         week=week_result.week,
         games=[
@@ -836,6 +904,9 @@ async def simulate_to_week(request: SimulateToWeekRequest) -> list[WeekResultRes
 
     simulator = SeasonSimulator(_active_league, mode=SimulationMode.FAST)
     week_results = simulator.simulate_to_week(request.target_week)
+
+    # Invalidate standings cache since results changed
+    invalidate_cache("_compute_standings")
 
     return [
         WeekResultResponse(
@@ -867,6 +938,9 @@ async def simulate_full_season() -> list[WeekResultResponse]:
 
     simulator = SeasonSimulator(_active_league, mode=SimulationMode.FAST)
     week_results = simulator.simulate_regular_season()
+
+    # Invalidate standings cache since results changed
+    invalidate_cache("_compute_standings")
 
     return [
         WeekResultResponse(
@@ -1556,6 +1630,7 @@ def _player_to_summary(player, team_abbr: Optional[str]) -> PlayerSummary:
         team_abbr=team_abbr,
         salary=player.salary,
         contract_year_remaining=player.contract_year_remaining,
+        player_archetype=player.player_archetype,
     )
 
 

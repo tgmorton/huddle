@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 # Paths
 # portraits.py is at huddle/huddle/api/routers/portraits.py
@@ -259,6 +260,27 @@ def _process_batch_portraits(league_id: str, players: list[BatchPlayerInput]) ->
     print(f"[PORTRAITS] Batch complete: {_batch_status[league_id]['completed']} success, {_batch_status[league_id]['failed']} failed")
 
 
+def _generate_portrait_with_config(
+    league_id: str,
+    player_id: str,
+    config,
+) -> tuple:
+    """
+    Sync helper to generate a portrait (CPU-bound work).
+    Returns (portrait_image, config) on success, raises on failure.
+    """
+    generator = get_generator()
+    portrait_image = generator.generate(config)
+
+    # Save to league directory
+    portraits_dir = get_league_portraits_dir(league_id)
+    portraits_dir.mkdir(parents=True, exist_ok=True)
+    output_path = get_portrait_path(league_id, player_id)
+    portrait_image.save(output_path, "PNG")
+
+    return portrait_image, config, output_path
+
+
 @router.post("/generate", response_model=PortraitGenerateResponse)
 async def generate_portrait(request: PortraitGenerateRequest) -> PortraitGenerateResponse:
     """
@@ -267,8 +289,6 @@ async def generate_portrait(request: PortraitGenerateRequest) -> PortraitGenerat
     If attributes are not specified, they will be randomly selected
     based on position demographics and age.
     """
-    generator = get_generator()
-
     # Build config
     config = get_portrait_config(
         player_id=request.player_id,
@@ -286,14 +306,13 @@ async def generate_portrait(request: PortraitGenerateRequest) -> PortraitGenerat
     )
 
     try:
-        # Generate portrait
-        portrait_image = generator.generate(config)
-
-        # Save to league directory
-        portraits_dir = get_league_portraits_dir(request.league_id)
-        portraits_dir.mkdir(parents=True, exist_ok=True)
-        output_path = get_portrait_path(request.league_id, request.player_id)
-        portrait_image.save(output_path, "PNG")
+        # Run CPU-bound portrait generation in thread pool
+        _, config, output_path = await run_in_threadpool(
+            _generate_portrait_with_config,
+            request.league_id,
+            request.player_id,
+            config,
+        )
 
         # Store status
         attrs = config.generated_attributes
@@ -480,8 +499,6 @@ async def regenerate_portrait(
 
     If position/age provided, uses those; otherwise uses previously stored attributes.
     """
-    generator = get_generator()
-
     # Get previous attributes if available
     status_key = f"{league_id}/{player_id}"
     prev_status = _portrait_status.get(status_key, {})
@@ -498,14 +515,13 @@ async def regenerate_portrait(
     )
 
     try:
-        # Generate portrait
-        portrait_image = generator.generate(config)
-
-        # Save to league directory
-        portraits_dir = get_league_portraits_dir(league_id)
-        portraits_dir.mkdir(parents=True, exist_ok=True)
-        output_path = get_portrait_path(league_id, player_id)
-        portrait_image.save(output_path, "PNG")
+        # Run CPU-bound portrait generation in thread pool
+        _, config, output_path = await run_in_threadpool(
+            _generate_portrait_with_config,
+            league_id,
+            player_id,
+            config,
+        )
 
         attrs = config.generated_attributes
         _portrait_status[status_key] = {

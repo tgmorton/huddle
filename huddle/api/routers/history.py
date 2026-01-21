@@ -14,6 +14,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
+from uuid import UUID
+
 from huddle.api.schemas.history import (
     SimulationConfig,
     SimulationSummary,
@@ -30,8 +32,13 @@ from huddle.api.schemas.history import (
     GMComparisonData,
     # Roster planning schemas
     RosterPlan,
+    # Franchise creation schemas
+    StartFranchiseResponse,
+    PlayerDevelopmentResponse,
 )
 from huddle.api.services import history_service
+from huddle.api.services.management_service import management_session_manager
+from huddle.management import SeasonPhase
 
 router = APIRouter(prefix="/history", tags=["history"])
 
@@ -142,6 +149,65 @@ async def delete_simulation(sim_id: str):
     success = history_service.delete_simulation(sim_id)
     if not success:
         raise HTTPException(status_code=404, detail="Simulation not found")
+    return {"status": "deleted", "sim_id": sim_id}
+
+
+# =============================================================================
+# Save/Load Endpoints
+# =============================================================================
+
+
+@router.post("/simulations/{sim_id}/save")
+async def save_simulation(sim_id: str):
+    """
+    Save a simulation to disk.
+
+    Persists the simulation data so it can be loaded later, even after
+    server restart.
+    """
+    success = history_service.save_simulation(sim_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Simulation not found in memory")
+    return {"status": "saved", "sim_id": sim_id}
+
+
+@router.post("/simulations/{sim_id}/load")
+async def load_simulation(sim_id: str):
+    """
+    Load a saved simulation from disk into memory.
+
+    After loading, the simulation can be queried via other endpoints.
+    """
+    summary = history_service.load_simulation(sim_id)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Saved simulation not found")
+    return summary
+
+
+@router.get("/saved-simulations")
+async def list_saved_simulations():
+    """
+    List all saved simulations on disk.
+
+    Returns simulations that have been saved but may not be loaded in memory.
+    """
+    return history_service.list_saved_simulations()
+
+
+@router.delete("/saved-simulations/{sim_id}")
+async def delete_saved_simulation(sim_id: str):
+    """
+    Delete a saved simulation from disk.
+
+    Also removes from memory if currently loaded.
+    """
+    # Remove from memory if present
+    history_service.delete_simulation(sim_id)
+
+    # Delete from disk
+    success = history_service.delete_saved_simulation(sim_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Saved simulation not found")
     return {"status": "deleted", "sim_id": sim_id}
 
 
@@ -291,4 +357,116 @@ async def get_roster_plan(
     result = history_service.get_roster_plan(sim_id, team_id, season)
     if result is None:
         raise HTTPException(status_code=404, detail="Simulation or team not found")
+    return result
+
+
+# =============================================================================
+# Franchise Creation from Simulation
+# =============================================================================
+
+
+@router.post("/simulations/{sim_id}/start-franchise", response_model=StartFranchiseResponse)
+async def start_franchise_from_simulation(
+    sim_id: str,
+    team_id: str = Query(..., description="Team abbreviation to play as (e.g., KC, NE, DAL)"),
+):
+    """
+    Start a playable franchise from a historical simulation.
+
+    Converts the simulation result to a playable league and creates a franchise
+    for the specified team. The franchise can then be used with ManagementV2.
+
+    Flow:
+    1. Validates simulation exists and team is valid
+    2. Converts SimulationResult to a League object
+    3. Sets the league as active
+    4. Creates a franchise/management session for the player's team
+    5. Returns franchise_id for use with management API
+
+    The converted league includes:
+    - All 32 teams with rosters and contracts
+    - GM archetype metadata preserved
+    - Standings from the final simulated season
+    - A fresh schedule and draft class for the new season
+    """
+    # Import here to avoid circular imports
+    from huddle.api.routers.admin import _active_league
+    import huddle.api.routers.admin as admin_module
+
+    # Validate simulation exists
+    sim_data = history_service.get_simulation_result(sim_id)
+    if sim_data is None:
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    sim_result, config = sim_data
+
+    # Validate team exists in simulation
+    if team_id not in sim_result.teams:
+        available_teams = sorted(sim_result.teams.keys())
+        raise HTTPException(
+            status_code=400,
+            detail=f"Team '{team_id}' not found in simulation. Available: {', '.join(available_teams)}"
+        )
+
+    # Convert simulation to playable league
+    try:
+        league = history_service.convert_simulation_to_league(sim_result)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to convert simulation to league: {str(e)}"
+        )
+
+    # Set as active league (same pattern as admin.py)
+    admin_module._active_league = league
+
+    # Find the team's UUID
+    team = league.get_team(team_id)
+    if not team:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Team '{team_id}' not found in converted league"
+        )
+
+    # Create franchise/management session
+    try:
+        session = await management_session_manager.create_session(
+            team_id=team.id,
+            season_year=league.season,
+            start_phase=SeasonPhase.TRAINING_CAMP,
+            league=league,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create franchise session: {str(e)}"
+        )
+
+    return StartFranchiseResponse(
+        franchise_id=str(session.franchise_id),
+        team_id=team_id,
+        team_name=team.full_name,
+        league_id=str(league.id),
+        season=league.season,
+        message=f"Franchise created for {team.full_name} ({league.season} season)",
+    )
+
+
+@router.get("/simulations/{sim_id}/players/{player_id}/development", response_model=PlayerDevelopmentResponse)
+async def get_player_development(
+    sim_id: str,
+    player_id: str,
+):
+    """
+    Get player development history across simulated seasons.
+
+    Returns the player's career arc showing overall rating progression
+    over time. Useful for visualizing player development curves.
+    """
+    result = history_service.get_player_development_history(sim_id, player_id)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Player or simulation not found"
+        )
     return result

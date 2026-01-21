@@ -324,3 +324,34 @@ class RosterPlan(BaseModel):
     total_needs: int
     fa_targets: int
     draft_targets: int
+
+
+# =============================================================================
+# Franchise Creation from Simulation
+# =============================================================================
+
+
+class StartFranchiseResponse(BaseModel):
+    """Response after starting a franchise from simulation."""
+    franchise_id: str
+    team_id: str
+    team_name: str
+    league_id: str
+    season: int
+    message: str
+
+
+class PlayerDevelopmentEntry(BaseModel):
+    """Single season development entry."""
+    season: int
+    age: int
+    overall: int
+    change: int
+
+
+class PlayerDevelopmentResponse(BaseModel):
+    """Player development history."""
+    player_id: str
+    player_name: str
+    position: str
+    career_arc: list[PlayerDevelopmentEntry]

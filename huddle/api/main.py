@@ -1,11 +1,13 @@
 """FastAPI application for Huddle football simulator."""
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import ORJSONResponse
 
 from huddle.api.routers import (
     games_router,
@@ -33,14 +35,39 @@ from huddle.api.routers.admin import router as admin_router
 from huddle.api.routers.arms_prototype import router as arms_prototype_router
 
 
+async def _cleanup_expired_sessions_task():
+    """Periodic cleanup of expired game sessions."""
+    while True:
+        await asyncio.sleep(300)  # Every 5 minutes
+        try:
+            from huddle.api.routers.coach_mode import _game_sessions
+            if hasattr(_game_sessions, 'cleanup_expired'):
+                _game_sessions.cleanup_expired()
+        except ImportError:
+            pass  # Module not loaded yet
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler."""
     # Startup
     print("Huddle API starting up...")
+
+    # Start session cleanup task
+    cleanup_task = asyncio.create_task(_cleanup_expired_sessions_task())
+
     yield
+
     # Shutdown
     print("Huddle API shutting down...")
+
+    # Cancel cleanup task
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+
     # Clean up any active game sessions
     from huddle.api.services.session_manager import session_manager
 
@@ -60,20 +87,14 @@ def create_app() -> FastAPI:
         description="American Football Simulator API",
         version="0.1.0",
         lifespan=lifespan,
+        default_response_class=ORJSONResponse,  # 5-10x faster JSON serialization
     )
 
     # Configure CORS for frontend
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:3000",  # Vite dev server
-            "http://localhost:5173",  # Alternative Vite port
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:5173",
-            "tauri://localhost",  # Tauri app
-            "https://tauri.localhost",
-        ],
-        allow_credentials=True,
+        allow_origins=["*"],  # Allow all origins for development
+        allow_credentials=False,  # Must be False when allow_origins=["*"]
         allow_methods=["*"],
         allow_headers=["*"],
     )

@@ -4,15 +4,21 @@ Service layer for Historical Simulation Explorer.
 Handles running simulations and extracting data for the API.
 """
 
+import json
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from huddle.core.simulation.historical_sim import (
     HistoricalSimulator,
     SimulationConfig as CoreSimConfig,
     SimulationResult,
+    TeamState,
 )
+from huddle.core.league.league import League, TeamStanding as CoreTeamStanding
+from huddle.core.league.nfl_data import NFL_TEAMS
+from huddle.core.models.team import Team
 from huddle.generators.player import generate_player
 from huddle.api.schemas.history import (
     SimulationConfig,
@@ -42,11 +48,18 @@ from huddle.api.schemas.history import (
     PositionOption,
     PositionPlan,
     RosterPlan,
+    # Franchise creation schemas
+    StartFranchiseResponse,
+    PlayerDevelopmentEntry,
+    PlayerDevelopmentResponse,
 )
 
 
 # In-memory storage for simulation results
 _simulations: dict[str, tuple[SimulationResult, SimulationConfig]] = {}
+
+# Data directory for saved simulations
+SIMULATIONS_DATA_DIR = Path(__file__).parent.parent.parent.parent / "data" / "simulations"
 
 
 def run_simulation(config: SimulationConfig) -> SimulationSummary:
@@ -148,6 +161,13 @@ def run_simulation_with_progress(
         total_transactions=len(result.transaction_log.transactions),
         created_at=datetime.now(),
     )
+
+
+def get_simulation_result(sim_id: str) -> Optional[tuple[SimulationResult, SimulationConfig]]:
+    """Get raw simulation result and config (for internal use like franchise conversion)."""
+    if sim_id not in _simulations:
+        return None
+    return _simulations[sim_id]
 
 
 def get_simulation(sim_id: str) -> Optional[FullSimulationData]:
@@ -1122,3 +1142,351 @@ def get_roster_plan(
         fa_targets=len([p for p in offense_plans + defense_plans if p.research_recommendation == "Sign in FA" and p.need_level > 0.5]),
         draft_targets=len([p for p in offense_plans + defense_plans if p.research_recommendation == "Draft" and p.need_level > 0.5]),
     )
+
+
+# =============================================================================
+# Simulation to Playable League Conversion
+# =============================================================================
+
+
+def convert_simulation_to_league(
+    sim_result: SimulationResult,
+    target_season: Optional[int] = None,
+) -> League:
+    """
+    Convert a SimulationResult to a playable League.
+
+    Takes the final state of all teams from the simulation and creates
+    a League object that can be used with the management system.
+
+    Args:
+        sim_result: The completed simulation result
+        target_season: Season year for the league (defaults to sim's end year)
+
+    Returns:
+        A League object ready for franchise creation
+    """
+    from huddle.core.models.roster import Roster
+    from huddle.generators.league import generate_nfl_schedule
+    from huddle.generators.player import generate_draft_class
+
+    # Use final season if not specified
+    if target_season is None:
+        target_season = sim_result.end_year
+
+    # Create the league
+    league = League(
+        name=f"Historical League {target_season}",
+        current_season=target_season,
+        current_week=0,
+    )
+
+    # Create teams from simulation state
+    for team_id, team_state in sim_result.teams.items():
+        # Get NFL team data for this abbreviation
+        nfl_data = NFL_TEAMS.get(team_id)
+        if not nfl_data:
+            continue
+
+        # Create roster from simulation roster
+        roster = Roster()
+        for player in team_state.roster:
+            roster.add_player(player)
+
+        # Create team
+        team = Team(
+            abbreviation=team_id,
+            name=nfl_data.nickname,
+            city=nfl_data.city,
+            roster=roster,
+            primary_color=nfl_data.primary_color,
+            secondary_color=nfl_data.secondary_color,
+        )
+
+        # Transfer contracts from simulation to team's players
+        for player_id, contract in team_state.contracts.items():
+            player = roster.get_player(player_id)
+            if player and player.contract is None:
+                player.contract = contract
+
+        # Recalculate team financials
+        team.recalculate_financials()
+
+        # Add team to league
+        league.teams[team_id] = team
+
+        # Initialize standings from simulation
+        standing = CoreTeamStanding(
+            team_id=team.id,
+            abbreviation=team_id,
+            wins=team_state.wins,
+            losses=team_state.losses,
+            ties=0,
+        )
+        league.standings[team_id] = standing
+
+    # Generate schedule for the new season
+    league.schedule = generate_nfl_schedule(target_season, list(league.teams.keys()))
+
+    # Generate draft class
+    league.draft_class = generate_draft_class(target_season + 1)
+
+    # Generate free agents
+    from huddle.generators.league import _generate_free_agent_pool
+    league.free_agents = _generate_free_agent_pool(150)
+
+    # Set initial draft order (reverse of standings - worst teams pick first)
+    sorted_teams = sorted(
+        league.standings.values(),
+        key=lambda s: (s.wins, s.point_diff if hasattr(s, 'point_diff') else 0)
+    )
+    league.draft_order = [s.abbreviation for s in sorted_teams]
+
+    return league
+
+
+def get_player_development_history(
+    sim_id: str,
+    player_id: str,
+) -> Optional[PlayerDevelopmentResponse]:
+    """
+    Get the development history for a player across simulated seasons.
+
+    Args:
+        sim_id: The simulation ID
+        player_id: The player's ID
+
+    Returns:
+        Development history if found, None otherwise
+    """
+    if sim_id not in _simulations:
+        return None
+
+    sim_result, _ = _simulations[sim_id]
+
+    # Search for player in development histories
+    if hasattr(sim_result, "player_histories") and sim_result.player_histories:
+        for history in sim_result.player_histories.values():
+            if str(history.player_id) == player_id:
+                career_arc = []
+                for entry in history.get_career_arc():
+                    career_arc.append(
+                        PlayerDevelopmentEntry(
+                            season=entry["season"],
+                            age=entry["age"],
+                            overall=entry["overall"],
+                            change=entry.get("change", 0),
+                        )
+                    )
+                return PlayerDevelopmentResponse(
+                    player_id=player_id,
+                    player_name=history.player_name,
+                    position=history.position,
+                    career_arc=career_arc,
+                )
+
+    # If no development history tracking, try to find player in teams
+    for team_state in sim_result.teams.values():
+        for player in team_state.roster:
+            if str(player.id) == player_id:
+                # Return single-point "history" based on current state
+                return PlayerDevelopmentResponse(
+                    player_id=player_id,
+                    player_name=player.full_name,
+                    position=player.position.value if player.position else "UNK",
+                    career_arc=[
+                        PlayerDevelopmentEntry(
+                            season=sim_result.end_year,
+                            age=player.age,
+                            overall=player.overall,
+                            change=0,
+                        )
+                    ],
+                )
+
+    return None
+
+
+# =============================================================================
+# Save/Load Functions
+# =============================================================================
+
+
+def save_simulation(sim_id: str) -> bool:
+    """
+    Save a simulation to disk.
+
+    Args:
+        sim_id: The simulation ID to save
+
+    Returns:
+        True if saved successfully, False if simulation not found
+    """
+    if sim_id not in _simulations:
+        return False
+
+    sim_result, config = _simulations[sim_id]
+
+    # Ensure directory exists
+    SIMULATIONS_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Create simulation directory
+    sim_dir = SIMULATIONS_DATA_DIR / sim_id
+    sim_dir.mkdir(exist_ok=True)
+
+    # Save simulation result
+    result_file = sim_dir / "simulation.json"
+    with open(result_file, "w") as f:
+        json.dump(sim_result.to_dict(), f, indent=2, default=str)
+
+    # Save config as metadata
+    meta_file = sim_dir / "metadata.json"
+    meta = {
+        "sim_id": sim_id,
+        "config": {
+            "num_teams": config.num_teams,
+            "years_to_simulate": config.years_to_simulate,
+            "start_year": config.start_year,
+            "draft_rounds": config.draft_rounds,
+            "verbose": config.verbose,
+        },
+        "seasons_simulated": sim_result.seasons_simulated,
+        "total_transactions": sim_result.total_transactions,
+        "saved_at": datetime.now().isoformat(),
+    }
+    with open(meta_file, "w") as f:
+        json.dump(meta, f, indent=2)
+
+    return True
+
+
+def load_simulation(sim_id: str) -> Optional[SimulationSummary]:
+    """
+    Load a simulation from disk into memory.
+
+    Args:
+        sim_id: The simulation ID to load
+
+    Returns:
+        SimulationSummary if loaded successfully, None if not found
+    """
+    sim_dir = SIMULATIONS_DATA_DIR / sim_id
+
+    if not sim_dir.exists():
+        return None
+
+    result_file = sim_dir / "simulation.json"
+    meta_file = sim_dir / "metadata.json"
+
+    if not result_file.exists() or not meta_file.exists():
+        return None
+
+    try:
+        # Load metadata
+        with open(meta_file) as f:
+            meta = json.load(f)
+
+        # Load simulation result
+        with open(result_file) as f:
+            result_data = json.load(f)
+
+        sim_result = SimulationResult.from_dict(result_data)
+
+        # Reconstruct config
+        config_data = meta.get("config", {})
+        config = SimulationConfig(
+            num_teams=config_data.get("num_teams", 32),
+            years_to_simulate=config_data.get("years_to_simulate", 3),
+            start_year=config_data.get("start_year", 2021),
+            draft_rounds=config_data.get("draft_rounds", 7),
+            verbose=config_data.get("verbose", False),
+        )
+
+        # Store in memory
+        _simulations[sim_id] = (sim_result, config)
+
+        # Calculate end year
+        end_year = config.start_year + sim_result.seasons_simulated - 1
+
+        return SimulationSummary(
+            sim_id=sim_id,
+            num_teams=config.num_teams,
+            seasons_simulated=sim_result.seasons_simulated,
+            start_year=config.start_year,
+            end_year=end_year,
+            total_transactions=sim_result.total_transactions,
+            created_at=meta.get("saved_at", datetime.now().isoformat()),
+        )
+
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        print(f"Error loading simulation {sim_id}: {e}")
+        return None
+
+
+def list_saved_simulations() -> list[dict]:
+    """
+    List all saved simulations on disk.
+
+    Returns:
+        List of dicts with simulation info (id, start_year, end_year, etc.)
+    """
+    saved = []
+
+    if not SIMULATIONS_DATA_DIR.exists():
+        return saved
+
+    for sim_dir in SIMULATIONS_DATA_DIR.iterdir():
+        if not sim_dir.is_dir():
+            continue
+
+        meta_file = sim_dir / "metadata.json"
+        if not meta_file.exists():
+            continue
+
+        try:
+            with open(meta_file) as f:
+                meta = json.load(f)
+
+            config = meta.get("config", {})
+            start_year = config.get("start_year", 2021)
+            seasons = meta.get("seasons_simulated", 0)
+
+            saved.append({
+                "sim_id": sim_dir.name,
+                "start_year": start_year,
+                "end_year": start_year + seasons - 1,
+                "seasons_simulated": seasons,
+                "num_teams": config.get("num_teams", 32),
+                "total_transactions": meta.get("total_transactions", 0),
+                "saved_at": meta.get("saved_at", ""),
+            })
+        except (json.JSONDecodeError, KeyError):
+            continue
+
+    # Sort by saved time, newest first
+    saved.sort(key=lambda x: x.get("saved_at", ""), reverse=True)
+    return saved
+
+
+def delete_saved_simulation(sim_id: str) -> bool:
+    """
+    Delete a saved simulation from disk.
+
+    Args:
+        sim_id: The simulation ID to delete
+
+    Returns:
+        True if deleted successfully, False if not found
+    """
+    import shutil
+
+    sim_dir = SIMULATIONS_DATA_DIR / sim_id
+
+    if not sim_dir.exists():
+        return False
+
+    try:
+        shutil.rmtree(sim_dir)
+        return True
+    except Exception:
+        return False

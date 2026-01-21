@@ -17,17 +17,20 @@ WebSocket Endpoints:
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from uuid import UUID
 import asyncio
-import json
 
+import orjson
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
 from huddle.simulation.v2.core.entities import Player, Team, Position
 from huddle.simulation.v2.core.phases import PlayPhase
+from huddle.simulation.v2.core.huddle_positions import HuddleConfig, DEFAULT_HUDDLE_CONFIG
 from huddle.simulation.v2.orchestrator import Orchestrator
 from huddle.simulation.v2.systems.coverage import CoverageType
+from huddle.core.models.field import FieldPosition
 
 from huddle.api.schemas.coach_mode import (
     StartGameRequest,
@@ -53,22 +56,34 @@ from huddle.api.schemas.coach_mode import (
 # Frame Serialization for Play Visualization
 # =============================================================================
 
-def _player_to_frame_dict(
+def _player_to_frame_dict_fast(
     player: Player,
-    orchestrator: Orchestrator,
-    ball_carrier_id: Optional[str] = None,
+    los_y: float,
+    route_assignment: Optional[Any],
+    coverage_assignment: Optional[Any],
+    engagement: Optional[Any],
+    ball_carrier_id: Optional[str],
+    ball_carrier_pos: Optional[tuple],
+    tackle_engagement: Optional[Any],
+    phase: PlayPhase,
 ) -> Dict[str, Any]:
-    """Convert player state to dict for visualization.
+    """Convert player state to dict for visualization (optimized version).
 
-    Simplified version of v2_sim.player_to_dict focused on essential fields.
+    Takes pre-built lookups for O(1) access instead of repeated O(n) lookups.
+
+    IMPORTANT: Coordinates are converted to LOS-relative format for the frontend:
+    - x: lateral position (0 = center, negative = left, positive = right)
+    - y: depth from LOS (0 = at LOS, negative = backfield, positive = downfield)
     """
+    rel_y = player.pos.y - los_y
+
     data = {
         "id": player.id,
         "name": player.name,
         "team": player.team.value,
         "position": player.position.value if player.position else "unknown",
         "x": player.pos.x,
-        "y": player.pos.y,
+        "y": rel_y,
         "vx": player.velocity.x,
         "vy": player.velocity.y,
         "speed": player.velocity.length(),
@@ -96,8 +111,7 @@ def _player_to_frame_dict(
     else:
         data["player_type"] = "receiver" if player.team == Team.OFFENSE else "defender"
 
-    # Route info (for receivers)
-    route_assignment = orchestrator.route_runner.get_assignment(player.id)
+    # Route info (for receivers) - using pre-built lookup
     if route_assignment:
         data["route_name"] = route_assignment.route.name
         data["route_phase"] = route_assignment.phase.value
@@ -105,10 +119,9 @@ def _player_to_frame_dict(
         data["total_waypoints"] = len(route_assignment.route.waypoints)
         if route_assignment.current_target:
             data["target_x"] = route_assignment.current_target.x
-            data["target_y"] = route_assignment.current_target.y
+            data["target_y"] = route_assignment.current_target.y - los_y
 
-    # Coverage info (for defenders)
-    coverage_assignment = orchestrator.coverage_system.assignments.get(player.id)
+    # Coverage info (for defenders) - using pre-built lookup
     if coverage_assignment:
         data["coverage_type"] = coverage_assignment.coverage_type.value
         data["coverage_phase"] = coverage_assignment.phase.value
@@ -120,8 +133,7 @@ def _player_to_frame_dict(
             data["zone_type"] = coverage_assignment.zone_type.value if coverage_assignment.zone_type else None
             data["has_triggered"] = coverage_assignment.has_triggered
 
-    # Blocking engagement info
-    engagement = orchestrator.block_resolver.get_engagement_for_player(player.id)
+    # Blocking engagement info - using pre-built lookup
     if engagement:
         data["is_engaged"] = True
         if player.team == Team.OFFENSE:
@@ -133,22 +145,50 @@ def _player_to_frame_dict(
     # Ballcarrier info
     if player.id == ball_carrier_id:
         data["is_ball_carrier"] = True
-        tackle_engagement = orchestrator.tackle_resolver.get_engagement(player.id)
         if tackle_engagement:
             data["in_tackle"] = True
             data["tackle_leverage"] = tackle_engagement.leverage
 
     # Pursuit target for defenders
-    if ball_carrier_id and player.team == Team.DEFENSE:
-        if orchestrator.phase in (PlayPhase.AFTER_CATCH, PlayPhase.RUN_ACTIVE):
-            # Find ball carrier position
-            for p in orchestrator.offense:
-                if p.id == ball_carrier_id:
-                    data["pursuit_target_x"] = p.pos.x
-                    data["pursuit_target_y"] = p.pos.y
-                    break
+    if ball_carrier_id and player.team == Team.DEFENSE and ball_carrier_pos:
+        if phase in (PlayPhase.AFTER_CATCH, PlayPhase.RUN_ACTIVE):
+            data["pursuit_target_x"] = ball_carrier_pos[0]
+            data["pursuit_target_y"] = ball_carrier_pos[1] - los_y
 
     return data
+
+
+def _player_to_frame_dict(
+    player: Player,
+    orchestrator: Orchestrator,
+    ball_carrier_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Convert player state to dict for visualization (legacy version).
+
+    Simplified version of v2_sim.player_to_dict focused on essential fields.
+    Use _player_to_frame_dict_fast with pre-built lookups for better performance.
+    """
+    los_y = orchestrator.los_y
+    route_assignment = orchestrator.route_runner.get_assignment(player.id)
+    coverage_assignment = orchestrator.coverage_system.assignments.get(player.id)
+    engagement = orchestrator.block_resolver.get_engagement_for_player(player.id)
+
+    ball_carrier_pos = None
+    if ball_carrier_id:
+        for p in orchestrator.offense:
+            if p.id == ball_carrier_id:
+                ball_carrier_pos = (p.pos.x, p.pos.y)
+                break
+
+    tackle_engagement = None
+    if player.id == ball_carrier_id:
+        tackle_engagement = orchestrator.tackle_resolver.get_engagement(player.id)
+
+    return _player_to_frame_dict_fast(
+        player, los_y, route_assignment, coverage_assignment,
+        engagement, ball_carrier_id, ball_carrier_pos, tackle_engagement,
+        orchestrator.phase
+    )
 
 
 def _collect_frame(
@@ -157,15 +197,61 @@ def _collect_frame(
     defense: List[Player],
     ball_carrier_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Collect a single frame of play state for visualization."""
+    """Collect a single frame of play state for visualization.
+
+    Optimized with pre-built lookups for O(1) access instead of O(n) per player.
+    """
+    los_y = orchestrator.los_y
+    phase = orchestrator.phase
+
+    # Pre-build lookup dictionaries once per frame for O(1) access
+    route_assignments = {
+        player.id: orchestrator.route_runner.get_assignment(player.id)
+        for player in offense
+    }
+    coverage_assignments = dict(orchestrator.coverage_system.assignments)
+
+    # Build engagement lookup - get all engagements once
+    engagements = {}
+    if hasattr(orchestrator.block_resolver, 'get_all_engagements'):
+        engagements = orchestrator.block_resolver.get_all_engagements()
+    else:
+        # Fallback: build from individual lookups
+        for player in offense + defense:
+            eng = orchestrator.block_resolver.get_engagement_for_player(player.id)
+            if eng:
+                engagements[player.id] = eng
+
+    # Find ball carrier position once
+    ball_carrier_pos = None
+    if ball_carrier_id:
+        for p in offense:
+            if p.id == ball_carrier_id:
+                ball_carrier_pos = (p.pos.x, p.pos.y)
+                break
+
+    # Get tackle engagement for ball carrier
+    tackle_engagement = None
+    if ball_carrier_id:
+        tackle_engagement = orchestrator.tackle_resolver.get_engagement(ball_carrier_id)
+
+    # Build player data with O(1) lookups
     players = []
     waypoints = {}
 
     for player in offense + defense:
-        players.append(_player_to_frame_dict(player, orchestrator, ball_carrier_id))
+        route_assignment = route_assignments.get(player.id)
+        coverage_assignment = coverage_assignments.get(player.id)
+        engagement = engagements.get(player.id)
+
+        player_tackle = tackle_engagement if player.id == ball_carrier_id else None
+
+        players.append(_player_to_frame_dict_fast(
+            player, los_y, route_assignment, coverage_assignment,
+            engagement, ball_carrier_id, ball_carrier_pos, player_tackle, phase
+        ))
 
         # Collect waypoints for receivers
-        route_assignment = orchestrator.route_runner.get_assignment(player.id)
         if route_assignment and route_assignment.route.waypoints:
             waypoints[player.id] = [
                 {
@@ -177,30 +263,42 @@ def _collect_frame(
                 for wp in route_assignment.route.waypoints
             ]
 
-    # Ball state
+    # Ball state (LOS-relative coordinates)
     ball = orchestrator.ball
+    current_time = orchestrator.clock.current_time
+
     # Calculate current ball height (approximation for visualization)
     ball_height = 0.0
     if ball.is_in_flight and ball.flight_duration > 0:
-        current_time = orchestrator.clock.current_time
         t = (current_time - ball.flight_start_time) / ball.flight_duration
         t = max(0.0, min(1.0, t))  # Clamp to [0, 1]
         # Parabolic arc: h = release + 4*peak*t*(1-t)
         ball_height = ball.release_height + 4 * ball.peak_height * t * (1 - t)
     elif ball.is_held:
         ball_height = 2.0  # ~6 feet when held
+
     ball_data = {
         "x": ball.pos.x,
-        "y": ball.pos.y,
+        "y": ball.pos.y - los_y,  # LOS-relative
         "height": ball_height,
         "state": ball.state.value,
         "carrier_id": ball.carrier_id,
+        # Spin physics data (only meaningful during flight)
+        "spin_rate": ball.spin_rate if ball.is_in_flight else 0,
+        "is_stable": ball.is_stable_spiral,
     }
+
+    # Add orientation during flight for ball visualization
+    if ball.is_in_flight and ball.flight_duration > 0:
+        progress = (current_time - ball.flight_start_time) / ball.flight_duration
+        progress = max(0.0, min(1.0, progress))
+        ox, oy, oz = ball.orientation_at_progress(progress)
+        ball_data["orientation"] = {"x": ox, "y": oy, "z": oz}
 
     return {
         "tick": orchestrator.clock.tick_count,
-        "time": orchestrator.clock.current_time,
-        "phase": orchestrator.phase.value,
+        "time": current_time,
+        "phase": phase.value,
         "players": players,
         "ball": ball_data,
         "waypoints": waypoints,
@@ -257,6 +355,214 @@ def _run_play_with_frames(
     return result, frames
 
 
+def _run_huddle_with_frames(
+    orchestrator: Orchestrator,
+    offense: List[Player],
+    defense: List[Player],
+    next_los_y: float,
+    ball_x: float = 0.0,
+    config: HuddleConfig = None,
+) -> List[Dict]:
+    """Run huddle transition, collecting frames for visualization.
+
+    Animates players moving from their current positions (post-play) to
+    huddle formation, then breaking to pre-snap positions.
+
+    Args:
+        orchestrator: The orchestrator instance (must be in POST_PLAY phase)
+        offense: List of offensive players
+        defense: List of defensive players
+        next_los_y: Line of scrimmage for the next play
+        ball_x: X coordinate of the ball (hash position)
+        config: Optional huddle configuration
+
+    Returns:
+        List of frame dicts for visualization
+    """
+    frames = []
+
+    # Ensure we're in POST_PLAY phase
+    if orchestrator.phase != PlayPhase.POST_PLAY:
+        # Force transition to POST_PLAY if needed (e.g., between plays)
+        orchestrator._phase_machine.reset(PlayPhase.POST_PLAY)
+
+    # Start huddle phase
+    orchestrator.start_huddle_phase(next_los_y, ball_x, config)
+
+    # Collect initial frame
+    frames.append(_collect_frame(orchestrator, offense, defense, None))
+
+    # Safety limit to prevent infinite loops
+    max_huddle_ticks = 400  # ~20 seconds at 20 ticks/sec
+
+    # Run tick-by-tick until we reach PRE_SNAP
+    tick_count = 0
+    while orchestrator.phase in (PlayPhase.HUDDLE, PlayPhase.FORMATION_MOVE):
+        if tick_count >= max_huddle_ticks:
+            # Force transition to PRE_SNAP if taking too long
+            orchestrator._transition_to(PlayPhase.PRE_SNAP, "huddle timeout", validate=False)
+            break
+
+        dt = orchestrator.clock.tick()
+        orchestrator._update_tick(dt)
+        frames.append(_collect_frame(orchestrator, offense, defense, None))
+        tick_count += 1
+
+    return frames
+
+
+async def _execute_auto_play_with_frames(
+    game_id: str,
+    manager,
+    home_team,
+    away_team,
+    offense_is_home: bool,
+    plays_this_drive: int,
+) -> tuple:
+    """Execute one AI-controlled play with frame collection and huddle animation.
+
+    Args:
+        game_id: The game ID for broadcasting
+        manager: The GameManager instance
+        home_team: Home team object
+        away_team: Away team object
+        offense_is_home: Whether home team is on offense
+        plays_this_drive: Number of plays already run this drive (0 = first play)
+
+    Returns:
+        Tuple of (play_result dict, play_code) or (None, None) for special teams
+    """
+    from huddle.game.coordinator import OffensiveCoordinator, SituationContext
+    from huddle.game.decision_logic import fourth_down_decision, FourthDownDecision
+
+    offense_team = home_team if offense_is_home else away_team
+    situation = manager.get_situation()
+    los_value = situation["los"]
+
+    # Check for 4th down decisions
+    if situation["down"] == 4:
+        context = SituationContext(
+            down=situation["down"],
+            distance=situation["distance"],
+            los=los_value,
+            quarter=situation["quarter"],
+            time_remaining=manager.time_remaining,
+            score_diff=situation["home_score"] - situation["away_score"] if offense_is_home else situation["away_score"] - situation["home_score"],
+            timeouts=situation["home_timeouts"] if offense_is_home else situation["away_timeouts"],
+        )
+
+        decision = fourth_down_decision(
+            yard_line=int(los_value),
+            yards_to_go=int(situation["distance"]),
+            score_diff=context.score_diff,
+            time_remaining=int(manager.time_remaining),
+        )
+
+        if decision == FourthDownDecision.PUNT:
+            st_result = manager.execute_special_teams("punt")
+            await connection_manager.broadcast(game_id, {"type": "special_teams", "result": st_result})
+            return None, None
+
+        elif decision == FourthDownDecision.FIELD_GOAL:
+            st_result = manager.execute_special_teams("field_goal")
+            await connection_manager.broadcast(game_id, {"type": "special_teams", "result": st_result})
+            if st_result["points_scored"] > 0:
+                await broadcast_score_update(game_id, manager.home_score, manager.away_score)
+            return None, None
+
+    # AI calls the play
+    context = SituationContext(
+        down=situation["down"],
+        distance=situation["distance"],
+        los=los_value,
+        quarter=situation["quarter"],
+        time_remaining=manager.time_remaining,
+        score_diff=situation["home_score"] - situation["away_score"] if offense_is_home else situation["away_score"] - situation["home_score"],
+        timeouts=situation["home_timeouts"] if offense_is_home else situation["away_timeouts"],
+    )
+    oc = OffensiveCoordinator(team=offense_team)
+    play_code = oc.call_play(context)
+
+    # Set up play with GameManager (for frame collection)
+    orchestrator, offense, defense = manager.execute_play_by_code_with_frames(play_code, shotgun=True)
+
+    # Run huddle transition if not first play of drive
+    if plays_this_drive > 0:
+        ball_x = situation.get("ball_x", 0.0)
+        huddle_frames = _run_huddle_with_frames(
+            orchestrator, offense, defense, los_value, ball_x
+        )
+
+        # Broadcast huddle frames
+        await connection_manager.broadcast(game_id, {
+            "type": "huddle_frames",
+            "frames": huddle_frames,
+            "total_frames": len(huddle_frames),
+        })
+
+        # Small delay to let frontend render huddle (real-time at ~20fps)
+        await asyncio.sleep(len(huddle_frames) * 0.05)
+
+    # Run play with frame collection
+    result, play_frames = _run_play_with_frames(orchestrator, offense, defense)
+
+    # Broadcast play frames
+    await connection_manager.broadcast(game_id, {
+        "type": "play_frames",
+        "frames": play_frames,
+        "total_frames": len(play_frames),
+    })
+
+    # Small delay to let frontend render play
+    await asyncio.sleep(len(play_frames) * 0.05)
+
+    # Finalize result
+    play_result = manager.finalize_play_result(result)
+
+    # Build and broadcast text result
+    description = _format_play_description_from_dict(play_result, offense, defense)
+    await connection_manager.broadcast(game_id, {
+        "type": "play_result",
+        "result": {
+            "outcome": play_result["outcome"],
+            "yards_gained": play_result["yards_gained"],
+            "description": description,
+            "new_down": play_result["new_down"],
+            "new_distance": play_result["new_distance"],
+            "new_los": play_result["new_los"],
+            "first_down": play_result["is_first_down"],
+            "touchdown": play_result["is_touchdown"],
+            "turnover": play_result["is_turnover"],
+            "is_drive_over": play_result["is_drive_over"],
+            "drive_end_reason": play_result["drive_end_reason"],
+            "play_call": play_code,
+            "offense_is_home": offense_is_home,
+        },
+    })
+
+    # Broadcast situation update
+    situation = _build_situation_response(game_id, manager, False)
+    await connection_manager.broadcast(game_id, {
+        "type": "situation_update",
+        "situation": situation.__dict__,
+    })
+
+    # Handle touchdown scoring sequence
+    if play_result["is_touchdown"]:
+        await broadcast_score_update(game_id, manager.home_score, manager.away_score)
+
+        # Handle PAT via GameManager
+        pat_result = manager.execute_special_teams("pat", go_for_two=False)
+        await connection_manager.broadcast(game_id, {
+            "type": "special_teams",
+            "result": pat_result,
+        })
+        if pat_result["points_scored"] > 0:
+            await broadcast_score_update(game_id, manager.home_score, manager.away_score)
+
+    return play_result, play_code
+
+
 # =============================================================================
 # Auto-Play State Management
 # =============================================================================
@@ -268,10 +574,17 @@ class AutoPlayState:
     is_paused: bool = False
     pacing: PacingEnum = PacingEnum.NORMAL
     task: Optional[asyncio.Task] = None
+    stream_frames: bool = True  # If True, stream visualization frames (with huddle)
 
     @property
     def delay_seconds(self) -> float:
-        """Get delay between plays based on pacing."""
+        """Get delay between plays based on pacing.
+
+        When streaming frames, delay is minimal since frame rendering provides pacing.
+        """
+        if self.stream_frames:
+            # Frames provide natural pacing, just a brief delay for network
+            return 0.1
         delays = {
             PacingEnum.SLOW: 2.0,
             PacingEnum.NORMAL: 1.0,
@@ -314,18 +627,27 @@ class GameConnectionManager:
                 del self.active_connections[game_id]
 
     async def broadcast(self, game_id: str, message: dict):
-        """Send a message to all clients connected to a game."""
-        if game_id in self.active_connections:
-            disconnected = []
-            for connection in self.active_connections[game_id]:
-                try:
-                    await connection.send_json(message)
-                except Exception:
-                    disconnected.append(connection)
+        """Send a message to all clients connected to a game.
 
-            # Clean up disconnected clients
-            for conn in disconnected:
-                self.disconnect(conn, game_id)
+        Pre-serializes the message once with orjson for better performance
+        when broadcasting to multiple clients.
+        """
+        if game_id not in self.active_connections:
+            return
+
+        # Pre-serialize once with orjson (5-10x faster than stdlib json)
+        serialized = orjson.dumps(message)
+
+        disconnected = []
+        for connection in self.active_connections[game_id]:
+            try:
+                await connection.send_bytes(serialized)
+            except Exception:
+                disconnected.append(connection)
+
+        # Clean up disconnected clients
+        for conn in disconnected:
+            self.disconnect(conn, game_id)
 
     async def send_personal(self, websocket: WebSocket, message: dict):
         """Send a message to a specific client."""
@@ -344,22 +666,89 @@ connection_manager = GameConnectionManager()
 
 
 # =============================================================================
-# In-Memory Game Session Store
+# In-Memory Game Session Store with TTL
 # =============================================================================
 
-# Store active coach mode games
-# In production, this would be Redis or database
-_active_games: Dict[str, dict] = {}
+@dataclass
+class GameSession:
+    """A game session with metadata for TTL tracking."""
+    data: dict
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    last_activity: datetime = field(default_factory=datetime.utcnow)
+
+
+class GameSessionManager:
+    """Manages game sessions with TTL-based expiration.
+
+    Prevents memory leaks from abandoned game sessions by automatically
+    cleaning up sessions that haven't been accessed within the TTL.
+    """
+
+    def __init__(self, ttl_minutes: int = 60):
+        self._sessions: Dict[str, GameSession] = {}
+        self._ttl = timedelta(minutes=ttl_minutes)
+
+    def get(self, game_id: str) -> Optional[dict]:
+        """Get a session, updating last_activity timestamp."""
+        session = self._sessions.get(game_id)
+        if session:
+            session.last_activity = datetime.utcnow()
+            return session.data
+        return None
+
+    def set(self, game_id: str, data: dict):
+        """Create or update a session."""
+        self._sessions[game_id] = GameSession(data=data)
+
+    def delete(self, game_id: str):
+        """Remove a session."""
+        self._sessions.pop(game_id, None)
+
+    def contains(self, game_id: str) -> bool:
+        """Check if a session exists."""
+        return game_id in self._sessions
+
+    def cleanup_expired(self):
+        """Remove sessions older than TTL."""
+        now = datetime.utcnow()
+        expired = [
+            gid for gid, session in self._sessions.items()
+            if now - session.last_activity > self._ttl
+        ]
+        for gid in expired:
+            # Clean up auto-play tasks if running
+            session = self._sessions.get(gid)
+            if session and session.data.get("auto_play_state"):
+                auto_state = session.data["auto_play_state"]
+                if auto_state.task and not auto_state.task.done():
+                    auto_state.is_running = False
+                    auto_state.task.cancel()
+            del self._sessions[gid]
+        if expired:
+            print(f"[GameSessionManager] Cleaned up {len(expired)} expired sessions")
+
+    def __iter__(self):
+        """Iterate over session IDs."""
+        return iter(self._sessions)
+
+    def __len__(self):
+        """Return number of active sessions."""
+        return len(self._sessions)
+
+
+# Global session manager with 60-minute TTL
+_game_sessions = GameSessionManager(ttl_minutes=60)
 
 
 def _get_game(game_id: str) -> dict:
     """Get a game session or raise 404."""
-    if game_id not in _active_games:
+    game = _game_sessions.get(game_id)
+    if game is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Game {game_id} not found",
         )
-    return _active_games[game_id]
+    return game
 
 
 # =============================================================================
@@ -423,20 +812,20 @@ async def start_game(request: StartGameRequest) -> GameStartedResponse:
     # Generate game ID
     game_id = f"game_{uuid.uuid4().hex[:8]}"
 
-    # Store session
-    _active_games[game_id] = {
+    # Store session with TTL tracking
+    _game_sessions.set(game_id, {
         "manager": game_manager,
         "home_team": home_team,
         "away_team": away_team,
         "user_controls_home": request.user_controls_home,
         "auto_play_state": AutoPlayState(),
-    }
+    })
 
     # Build situation response
     situation = _build_situation_response(game_id, game_manager, request.user_controls_home)
 
     # Determine coin toss message
-    if game_manager._possession_home:
+    if game_manager.possession_home:
         toss_msg = f"{away_team.full_name} won the toss and deferred."
     else:
         toss_msg = f"{home_team.full_name} won the toss and deferred."
@@ -489,7 +878,7 @@ async def get_available_plays(game_id: str) -> AvailablePlaysResponse:
 
     # Check if user is on offense
     user_controls_home = game["user_controls_home"]
-    user_on_offense = manager._possession_home == user_controls_home
+    user_on_offense = manager.possession_home == user_controls_home
 
     if not user_on_offense:
         raise HTTPException(
@@ -497,16 +886,16 @@ async def get_available_plays(game_id: str) -> AvailablePlaysResponse:
             detail="Cannot get plays - user is on defense",
         )
 
-    # Build situation context
-    down_state = manager._game_state.down_state
+    # Get situation from GameManager
+    situation = manager.get_situation()
     context = SituationContext(
-        down=down_state.down,
-        distance=down_state.yards_to_go,
-        los=down_state.line_of_scrimmage,
-        quarter=manager.quarter,
+        down=situation["down"],
+        distance=situation["distance"],
+        los=situation["los"],  # Already numeric
+        quarter=situation["quarter"],
         time_remaining=manager.time_remaining,
-        score_diff=manager.home_score - manager.away_score if user_controls_home else manager.away_score - manager.home_score,
-        timeouts=3,  # TODO: Track timeouts
+        score_diff=situation["home_score"] - situation["away_score"] if user_controls_home else situation["away_score"] - situation["home_score"],
+        timeouts=situation["home_timeouts"] if user_controls_home else situation["away_timeouts"],
     )
 
     # Get available plays from playbook
@@ -534,11 +923,8 @@ async def execute_play(game_id: str, request: CallPlayRequest) -> PlayResultResp
     """Execute an offensive play.
 
     Runs the V2 simulation with the called play and returns the result.
+    Broadcasts play frames via WebSocket for visualization.
     """
-    from huddle.game.play_adapter import PlayAdapter
-    from huddle.game.coordinator import DefensiveCoordinator, SituationContext
-    from huddle.simulation.v2.orchestrator import PlayConfig
-
     game = _get_game(game_id)
     manager = game["manager"]
     user_controls_home = game["user_controls_home"]
@@ -551,102 +937,54 @@ async def execute_play(game_id: str, request: CallPlayRequest) -> PlayResultResp
         )
 
     # Check user is on offense
-    if manager._possession_home != user_controls_home:
+    if manager.possession_home != user_controls_home:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot call plays - user is on defense",
         )
 
-    # Get players
-    offense, defense = manager._get_players_for_drive()
-
-    # Build play config
-    adapter = PlayAdapter(offense, defense)
-    config = adapter.build_offensive_config(request.play_code, request.shotgun)
-
-    # Get AI defensive call
-    down_state = manager._game_state.down_state
-    context = SituationContext(
-        down=down_state.down,
-        distance=down_state.yards_to_go,
-        los=down_state.line_of_scrimmage,
-        quarter=manager.quarter,
-        time_remaining=manager.time_remaining,
-        score_diff=manager.home_score - manager.away_score,
-        timeouts=3,
+    # Set up play with frames collection
+    orchestrator, offense, defense = manager.execute_play_by_code_with_frames(
+        request.play_code, request.shotgun
     )
-    dc = DefensiveCoordinator()
-    def_play = dc.call_coverage(context)
-    man_assign, zone_assign = adapter.build_defensive_config(def_play)
-    config.man_assignments = man_assign
-    config.zone_assignments = zone_assign
 
-    # Execute play
-    los_y = down_state.line_of_scrimmage
-    manager._orchestrator.setup_play(offense, defense, config, los_y)
-    result = manager._orchestrator.run()
+    # Run play and collect frames for visualization
+    sim_result, frames = _run_play_with_frames(orchestrator, offense, defense)
 
-    # Check for TD
-    is_touchdown = down_state.line_of_scrimmage + result.yards_gained >= 100
+    # Broadcast frames for play visualization
+    await connection_manager.broadcast(game_id, {
+        "type": "play_frames",
+        "frames": frames,
+        "total_frames": len(frames),
+    })
 
-    # Update game state
-    old_down = down_state.down
-    old_distance = down_state.yards_to_go
+    # Finalize result (updates state, scoring, clock)
+    result = manager.finalize_play_result(sim_result)
 
-    # Process result
-    if result.outcome in ("interception", "fumble"):
-        is_turnover = True
-        drive_over = True
-        drive_reason = "turnover"
-    elif is_touchdown:
-        is_turnover = False
-        drive_over = True
-        drive_reason = "touchdown"
-        manager._add_score(6)
-    else:
-        is_turnover = False
-        # Update down/distance
-        if result.yards_gained >= old_distance:
-            # First down
-            down_state.down = 1
-            down_state.yards_to_go = min(10, int(100 - down_state.line_of_scrimmage - result.yards_gained))
-            first_down = True
-        else:
-            down_state.down += 1
-            down_state.yards_to_go = max(1, old_distance - int(result.yards_gained))
-            first_down = False
-
-        down_state.line_of_scrimmage += result.yards_gained
-
-        # Check for turnover on downs
-        if down_state.down > 4:
-            drive_over = True
-            drive_reason = "turnover_on_downs"
-        else:
-            drive_over = False
-            drive_reason = None
-
-    # Build description
-    description = _format_play_description(result, offense, defense)
+    # Get player names for description
+    description = _format_play_description_from_dict(result, offense, defense)
 
     play_response = PlayResultResponse(
-        outcome=result.outcome,
-        yards_gained=result.yards_gained,
+        outcome=result["outcome"],
+        yards_gained=result["yards_gained"],
         description=description,
-        new_down=down_state.down,
-        new_distance=down_state.yards_to_go,
-        new_los=down_state.line_of_scrimmage,
-        first_down=result.yards_gained >= old_distance,
-        touchdown=is_touchdown,
-        turnover=is_turnover,
-        is_drive_over=drive_over,
-        drive_end_reason=drive_reason,
-        passer_name=_get_player_name(result.passer_id, offense),
-        receiver_name=_get_player_name(result.receiver_id, offense),
-        tackler_name=_get_player_name(result.tackler_id, defense),
+        new_down=result["new_down"],
+        new_distance=result["new_distance"],
+        new_los=result["new_los"],
+        first_down=result["is_first_down"],
+        touchdown=result["is_touchdown"],
+        turnover=result["is_turnover"],
+        is_drive_over=result["is_drive_over"],
+        drive_end_reason=result["drive_end_reason"],
+        passer_name=_get_player_name(result["passer_id"], offense),
+        receiver_name=_get_player_name(result["receiver_id"], offense),
+        tackler_name=_get_player_name(result["tackler_id"], defense),
+        # Include frames for play visualization (coach mode)
+        frames=frames,
+        total_frames=len(frames),
     )
 
-    # Broadcast to WebSocket clients
+    # Broadcast play result to WebSocket clients
     await broadcast_play_result(game_id, play_response)
 
     # Broadcast situation update
@@ -654,7 +992,7 @@ async def execute_play(game_id: str, request: CallPlayRequest) -> PlayResultResp
     await broadcast_situation_update(game_id, situation)
 
     # Broadcast score if touchdown
-    if is_touchdown:
+    if result["is_touchdown"]:
         await broadcast_score_update(game_id, manager.home_score, manager.away_score)
 
     return play_response
@@ -666,90 +1004,35 @@ async def execute_special_teams(game_id: str, request: SpecialTeamsRequest) -> S
     game = _get_game(game_id)
     manager = game["manager"]
     user_controls_home = game["user_controls_home"]
-    response: SpecialTeamsResultResponse
 
-    if request.play_type == PlayTypeEnum.FIELD_GOAL:
-        # Calculate distance
-        los = manager._game_state.down_state.line_of_scrimmage
-        distance = (100 - los) + 17  # Add 17 for snap + end zone
+    # Map request play type to manager method parameters
+    play_type_map = {
+        PlayTypeEnum.FIELD_GOAL: "field_goal",
+        PlayTypeEnum.PUNT: "punt",
+        PlayTypeEnum.PAT: "pat",
+        PlayTypeEnum.KICKOFF: "kickoff",
+    }
 
-        result = manager._handle_field_goal(distance)
-
-        if result.points > 0:
-            manager._add_score(3)
-            desc = f"{distance:.0f}-yard field goal is GOOD"
-        else:
-            desc = f"{distance:.0f}-yard field goal is NO GOOD"
-
-        response = SpecialTeamsResultResponse(
-            play_type="field_goal",
-            result=result.result,
-            new_los=result.new_los,
-            points_scored=result.points,
-            description=desc,
-        )
-
-    elif request.play_type == PlayTypeEnum.PUNT:
-        result = manager._handle_punt()
-
-        desc = f"Punt from the {manager._game_state.down_state.line_of_scrimmage:.0f}"
-        if result.result == "touchback":
-            desc += " - Touchback"
-        elif result.result == "fair_catch":
-            desc += f" - Fair catch at the {result.new_los:.0f}"
-        else:
-            desc += f" - Returned to the {result.new_los:.0f}"
-
-        response = SpecialTeamsResultResponse(
-            play_type="punt",
-            result=result.result,
-            new_los=result.new_los,
-            points_scored=0,
-            description=desc,
-        )
-
-    elif request.play_type == PlayTypeEnum.PAT:
-        result = manager._handle_pat(go_for_two=request.go_for_two)
-
-        if request.go_for_two:
-            desc = "Two-point conversion " + ("GOOD" if result.points > 0 else "FAILED")
-        else:
-            desc = "Extra point is " + ("GOOD" if result.points > 0 else "NO GOOD")
-
-        if result.points > 0:
-            manager._add_score(result.points)
-
-        response = SpecialTeamsResultResponse(
-            play_type="pat" if not request.go_for_two else "two_point",
-            result=result.result,
-            new_los=25.0,  # Next drive starts at 25
-            points_scored=result.points,
-            description=desc,
-        )
-
-    elif request.play_type == PlayTypeEnum.KICKOFF:
-        result = manager._handle_kickoff(onside=request.onside)
-
-        if request.onside:
-            desc = "Onside kick " + ("RECOVERED" if result.kicking_team_ball else "FAILED")
-        elif result.result == "touchback":
-            desc = "Kickoff - Touchback"
-        else:
-            desc = f"Kickoff returned to the {result.new_los:.0f}"
-
-        response = SpecialTeamsResultResponse(
-            play_type="kickoff",
-            result=result.result,
-            new_los=result.new_los,
-            points_scored=0,
-            description=desc,
-        )
-
-    else:
+    if request.play_type not in play_type_map:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unknown special teams play type: {request.play_type}",
         )
+
+    # Let GameManager handle all logic
+    result = manager.execute_special_teams(
+        play_type=play_type_map[request.play_type],
+        go_for_two=request.go_for_two if request.play_type == PlayTypeEnum.PAT else False,
+        onside=request.onside if request.play_type == PlayTypeEnum.KICKOFF else False,
+    )
+
+    response = SpecialTeamsResultResponse(
+        play_type=result["play_type"],
+        result=result["result"],
+        new_los=result["new_los"],
+        points_scored=result["points_scored"],
+        description=result["description"],
+    )
 
     # Broadcast to WebSocket clients
     await broadcast_special_teams(game_id, response)
@@ -777,7 +1060,7 @@ async def simulate_defensive_possession(game_id: str) -> Dict:
     user_controls_home = game["user_controls_home"]
 
     # Check user is on defense
-    if manager._possession_home == user_controls_home:
+    if manager.possession_home == user_controls_home:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot simulate - user is on offense",
@@ -950,14 +1233,19 @@ async def stop_auto_play(game_id: str) -> Dict:
 
 
 @router.post("/{game_id}/step")
-async def step_play(game_id: str) -> Dict:
+async def step_play(game_id: str, include_huddle: bool = False) -> Dict:
     """Execute a single play (step mode).
 
     Runs one play with AI controlling both teams and returns the result.
-    Does not require auto-play to be running.
+    Does not require auto-play to be running. Includes frame collection for visualization.
+
+    Args:
+        game_id: The game ID
+        include_huddle: If True, include huddle animation frames before the play.
+            Set to False for first play of a drive (players already in formation).
     """
-    from huddle.game.coordinator import OffensiveCoordinator, DefensiveCoordinator, SituationContext
-    from huddle.game.play_adapter import PlayAdapter
+    from huddle.game.coordinator import OffensiveCoordinator, SituationContext
+    from huddle.game.decision_logic import fourth_down_decision, FourthDownDecision
 
     game = _get_game(game_id)
     manager = game["manager"]
@@ -967,155 +1255,123 @@ async def step_play(game_id: str) -> Dict:
     if manager.is_game_over:
         return {"message": "Game is over", "game_over": True}
 
-    # Get current state
-    down_state = manager._game_state.down_state
-    offense_is_home = manager._possession_home
+    offense_is_home = manager.possession_home
     offense_team = home_team if offense_is_home else away_team
-    defense_team = away_team if offense_is_home else home_team
 
-    # Create coordinators
-    oc = OffensiveCoordinator(team=offense_team)
-    dc = DefensiveCoordinator()
-
-    # Build situation context
-    context = SituationContext(
-        down=down_state.down,
-        distance=down_state.yards_to_go,
-        los=down_state.line_of_scrimmage,
-        quarter=manager.quarter,
-        time_remaining=manager.time_remaining,
-        score_diff=manager.home_score - manager.away_score if offense_is_home else manager.away_score - manager.home_score,
-        timeouts=3,
-    )
+    # Get situation from GameManager
+    situation = manager.get_situation()
+    los_value = situation["los"]
 
     drive_over = False
     drive_reason = None
     result_data = None
 
     # Check for 4th down decisions
-    if down_state.down == 4:
-        from huddle.game.decision_logic import fourth_down_decision, FourthDownDecision
+    if situation["down"] == 4:
+        context = SituationContext(
+            down=situation["down"],
+            distance=situation["distance"],
+            los=los_value,
+            quarter=situation["quarter"],
+            time_remaining=manager.time_remaining,
+            score_diff=situation["home_score"] - situation["away_score"] if offense_is_home else situation["away_score"] - situation["home_score"],
+            timeouts=situation["home_timeouts"] if offense_is_home else situation["away_timeouts"],
+        )
 
         decision = fourth_down_decision(
-            yard_line=int(down_state.line_of_scrimmage),
-            yards_to_go=int(down_state.yards_to_go),
+            yard_line=int(los_value),
+            yards_to_go=int(situation["distance"]),
             score_diff=context.score_diff,
             time_remaining=int(manager.time_remaining),
         )
 
         if decision == FourthDownDecision.PUNT:
-            result = manager._handle_punt()
-            result_data = {
-                "type": "special_teams",
-                "play_type": "punt",
-                "result": result.result,
-                "new_los": result.new_los,
-                "points_scored": 0,
-                "description": f"Punt from the {down_state.line_of_scrimmage:.0f}",
-            }
-            await connection_manager.broadcast(game_id, {"type": "special_teams", "result": result_data})
+            st_result = manager.execute_special_teams("punt")
+            result_data = {"type": "special_teams", **st_result}
+            await connection_manager.broadcast(game_id, {"type": "special_teams", "result": st_result})
             drive_over = True
             drive_reason = "punt"
 
         elif decision == FourthDownDecision.FIELD_GOAL:
-            distance = (100 - down_state.line_of_scrimmage) + 17
-            result = manager._handle_field_goal(distance)
-            points = 3 if result.points > 0 else 0
-            if points > 0:
-                manager._add_score(3)
-
-            result_data = {
-                "type": "special_teams",
-                "play_type": "field_goal",
-                "result": result.result,
-                "new_los": result.new_los,
-                "points_scored": points,
-                "description": f"{distance:.0f}-yard field goal {'GOOD' if points else 'NO GOOD'}",
-            }
-            await connection_manager.broadcast(game_id, {"type": "special_teams", "result": result_data})
-            if points > 0:
+            st_result = manager.execute_special_teams("field_goal")
+            result_data = {"type": "special_teams", **st_result}
+            await connection_manager.broadcast(game_id, {"type": "special_teams", "result": st_result})
+            if st_result["points_scored"] > 0:
                 await broadcast_score_update(game_id, manager.home_score, manager.away_score)
             drive_over = True
-            drive_reason = "field_goal"
+            drive_reason = "field_goal_made" if st_result["points_scored"] > 0 else "field_goal_missed"
 
     # Regular play (not 4th down special teams)
     if not drive_over:
         # AI calls the play
+        context = SituationContext(
+            down=situation["down"],
+            distance=situation["distance"],
+            los=los_value,
+            quarter=situation["quarter"],
+            time_remaining=manager.time_remaining,
+            score_diff=situation["home_score"] - situation["away_score"] if offense_is_home else situation["away_score"] - situation["home_score"],
+            timeouts=situation["home_timeouts"] if offense_is_home else situation["away_timeouts"],
+        )
+        oc = OffensiveCoordinator(team=offense_team)
         play_code = oc.call_play(context)
 
-        # Get players
-        offense, defense = manager._get_players_for_drive()
+        # Set up play with GameManager (for frame collection)
+        orchestrator, offense, defense = manager.execute_play_by_code_with_frames(play_code, shotgun=True)
 
-        # Build play config
-        adapter = PlayAdapter(offense, defense)
-        config = adapter.build_offensive_config(play_code, shotgun=True)
+        all_frames = []
+        huddle_frame_count = 0
 
-        # Get AI defensive call
-        def_play = dc.call_coverage(context)
-        man_assign, zone_assign = adapter.build_defensive_config(def_play)
-        config.man_assignments = man_assign
-        config.zone_assignments = zone_assign
+        # Run huddle transition if requested
+        if include_huddle:
+            # Get ball position for huddle
+            ball_x = situation.get("ball_x", 0.0)
+            huddle_frames = _run_huddle_with_frames(
+                orchestrator, offense, defense, los_value, ball_x
+            )
+            all_frames.extend(huddle_frames)
+            huddle_frame_count = len(huddle_frames)
 
-        # Execute play with frame collection for visualization
-        los_y = down_state.line_of_scrimmage
-        manager._orchestrator.setup_play(offense, defense, config, los_y)
-        result, frames = _run_play_with_frames(manager._orchestrator, offense, defense)
+            # Broadcast huddle frames separately for immediate playback
+            await connection_manager.broadcast(game_id, {
+                "type": "huddle_frames",
+                "frames": huddle_frames,
+                "total_frames": huddle_frame_count,
+            })
 
-        # Broadcast frames for visualization (before result so client can buffer)
+            # Re-setup play after huddle (orchestrator is now in PRE_SNAP)
+            # The setup was already done, players are in position
+
+        # Run with frame collection for visualization
+        result, play_frames = _run_play_with_frames(orchestrator, offense, defense)
+        all_frames.extend(play_frames)
+
+        # Broadcast play frames for visualization
         await connection_manager.broadcast(game_id, {
             "type": "play_frames",
-            "frames": frames,
-            "total_frames": len(frames),
+            "frames": play_frames,
+            "total_frames": len(play_frames),
+            "huddle_frame_count": huddle_frame_count,
         })
 
-        # Check for TD
-        is_touchdown = down_state.line_of_scrimmage + result.yards_gained >= 100
-
-        # Process result
-        old_down = down_state.down
-        old_distance = down_state.yards_to_go
-
-        if result.outcome in ("interception", "fumble"):
-            is_turnover = True
-            drive_over = True
-            drive_reason = "turnover"
-        elif is_touchdown:
-            is_turnover = False
-            drive_over = True
-            drive_reason = "touchdown"
-            manager._add_score(6)
-        else:
-            is_turnover = False
-            # Update down/distance
-            if result.yards_gained >= old_distance:
-                down_state.down = 1
-                down_state.yards_to_go = min(10, int(100 - down_state.line_of_scrimmage - result.yards_gained))
-                first_down = True
-            else:
-                down_state.down += 1
-                down_state.yards_to_go = max(1, old_distance - int(result.yards_gained))
-                first_down = False
-
-            down_state.line_of_scrimmage += result.yards_gained
-
-            # Check for turnover on downs
-            if down_state.down > 4:
-                drive_over = True
-                drive_reason = "turnover_on_downs"
+        # Finalize result (updates state, scoring, clock)
+        play_result = manager.finalize_play_result(result)
+        drive_over = play_result["is_drive_over"]
+        drive_reason = play_result["drive_end_reason"]
 
         # Build description
-        description = _format_play_description(result, offense, defense)
+        description = _format_play_description_from_dict(play_result, offense, defense)
 
         result_data = {
-            "outcome": result.outcome,
-            "yards_gained": result.yards_gained,
+            "outcome": play_result["outcome"],
+            "yards_gained": play_result["yards_gained"],
             "description": description,
-            "new_down": down_state.down,
-            "new_distance": down_state.yards_to_go,
-            "new_los": down_state.line_of_scrimmage,
-            "first_down": result.yards_gained >= old_distance,
-            "touchdown": is_touchdown,
-            "turnover": is_turnover,
+            "new_down": play_result["new_down"],
+            "new_distance": play_result["new_distance"],
+            "new_los": play_result["new_los"],
+            "first_down": play_result["is_first_down"],
+            "touchdown": play_result["is_touchdown"],
+            "turnover": play_result["is_turnover"],
             "is_drive_over": drive_over,
             "drive_end_reason": drive_reason,
             "play_call": play_code,
@@ -1129,26 +1385,18 @@ async def step_play(game_id: str) -> Dict:
         situation = _build_situation_response(game_id, manager, False)
         await connection_manager.broadcast(game_id, {"type": "situation_update", "situation": situation.__dict__})
 
-        # Handle touchdown scoring
-        if is_touchdown:
+        # Handle touchdown scoring sequence
+        if play_result["is_touchdown"]:
             await broadcast_score_update(game_id, manager.home_score, manager.away_score)
 
-            # Handle PAT
-            pat_result = manager._handle_pat(go_for_two=False)
-            if pat_result.points > 0:
-                manager._add_score(1)
-                await broadcast_score_update(game_id, manager.home_score, manager.away_score)
-
+            # Handle PAT via GameManager
+            pat_result = manager.execute_special_teams("pat", go_for_two=False)
             await connection_manager.broadcast(game_id, {
                 "type": "special_teams",
-                "result": {
-                    "play_type": "pat",
-                    "result": pat_result.result,
-                    "new_los": 25.0,
-                    "points_scored": pat_result.points,
-                    "description": f"Extra point {'GOOD' if pat_result.points > 0 else 'NO GOOD'}",
-                },
+                "result": pat_result,
             })
+            if pat_result["points_scored"] > 0:
+                await broadcast_score_update(game_id, manager.home_score, manager.away_score)
 
     # Handle drive end and possession change
     if drive_over:
@@ -1159,36 +1407,23 @@ async def step_play(game_id: str) -> Dict:
         })
 
         if not manager.is_game_over:
-            # Possession change
-            if drive_reason == "touchdown":
-                kickoff_result = manager._handle_kickoff(onside=False)
-                manager._possession_home = not manager._possession_home
-                down_state.line_of_scrimmage = kickoff_result.new_los
-                down_state.down = 1
-                down_state.yards_to_go = 10
+            # Let GameManager handle possession change
+            possession_info = manager.handle_drive_end(drive_reason)
 
+            # Broadcast kickoff if there was one
+            if possession_info.get("kickoff_result"):
                 await connection_manager.broadcast(game_id, {
                     "type": "special_teams",
-                    "result": {
-                        "play_type": "kickoff",
-                        "result": kickoff_result.result,
-                        "new_los": kickoff_result.new_los,
-                        "points_scored": 0,
-                        "description": f"Kickoff returned to the {kickoff_result.new_los:.0f}",
-                    },
+                    "result": possession_info["kickoff_result"],
                 })
-            elif drive_reason in ("punt", "field_goal", "turnover", "turnover_on_downs"):
-                manager._possession_home = not manager._possession_home
-                down_state.down = 1
-                down_state.yards_to_go = 10
 
             # Broadcast new drive start
-            new_offense = home_team if manager._possession_home else away_team
+            new_offense = home_team if manager.possession_home else away_team
             await connection_manager.broadcast(game_id, {
                 "type": "drive_start",
                 "offense": new_offense.abbreviation,
-                "offense_is_home": manager._possession_home,
-                "starting_los": down_state.line_of_scrimmage,
+                "offense_is_home": manager.possession_home,
+                "starting_los": possession_info["new_los"],
                 "quarter": manager.quarter,
                 "time_remaining": f"{int(manager.time_remaining // 60)}:{int(manager.time_remaining % 60):02d}",
             })
@@ -1213,12 +1448,9 @@ async def _run_auto_play_loop(game_id: str):
     """Background task that runs the game automatically.
 
     Executes plays for both teams using AI coordinators,
-    broadcasting results to WebSocket clients.
+    broadcasting results to WebSocket clients. Delegates game logic to GameManager.
     """
-    from huddle.game.coordinator import OffensiveCoordinator, DefensiveCoordinator, SituationContext
-    from huddle.game.play_adapter import PlayAdapter
-
-    game = _active_games.get(game_id)
+    game = _game_sessions.get(game_id)
     if not game:
         return
 
@@ -1226,11 +1458,6 @@ async def _run_auto_play_loop(game_id: str):
     home_team = game["home_team"]
     away_team = game["away_team"]
     auto_state: AutoPlayState = game["auto_play_state"]
-
-    # Create coordinators for both teams
-    home_oc = OffensiveCoordinator(team=home_team)
-    away_oc = OffensiveCoordinator(team=away_team)
-    dc = DefensiveCoordinator()
 
     try:
         while auto_state.is_running and not manager.is_game_over:
@@ -1241,25 +1468,25 @@ async def _run_auto_play_loop(game_id: str):
             if not auto_state.is_running:
                 break
 
-            # Get current situation
-            down_state = manager._game_state.down_state
-            offense_is_home = manager._possession_home
+            # Get current possession info from GameManager
+            situation = manager.get_situation()
+            offense_is_home = situation["possession_home"]
             offense_team = home_team if offense_is_home else away_team
-            defense_team = away_team if offense_is_home else home_team
-            oc = home_oc if offense_is_home else away_oc
+            los_value = situation["los"]
 
             # Broadcast drive start
             await connection_manager.broadcast(game_id, {
                 "type": "drive_start",
                 "offense": offense_team.abbreviation,
                 "offense_is_home": offense_is_home,
-                "starting_los": down_state.line_of_scrimmage,
+                "starting_los": los_value,
                 "quarter": manager.quarter,
                 "time_remaining": f"{int(manager.time_remaining // 60)}:{int(manager.time_remaining % 60):02d}",
             })
 
             # Run plays until drive ends
             drive_over = False
+            drive_reason = None
             plays_this_drive = 0
 
             while not drive_over and auto_state.is_running and not manager.is_game_over:
@@ -1270,179 +1497,86 @@ async def _run_auto_play_loop(game_id: str):
                 if not auto_state.is_running:
                     break
 
-                # Build situation context
-                context = SituationContext(
-                    down=down_state.down,
-                    distance=down_state.yards_to_go,
-                    los=down_state.line_of_scrimmage,
-                    quarter=manager.quarter,
-                    time_remaining=manager.time_remaining,
-                    score_diff=manager.home_score - manager.away_score if offense_is_home else manager.away_score - manager.home_score,
-                    timeouts=3,
-                )
-
-                # Check for 4th down decisions
-                if down_state.down == 4:
-                    # Use decision logic
-                    from huddle.game.decision_logic import fourth_down_decision, FourthDownDecision
-
-                    decision = fourth_down_decision(
-                        yard_line=down_state.line_of_scrimmage,
-                        distance=down_state.yards_to_go,
-                        score_diff=context.score_diff,
-                        time_remaining=manager.time_remaining,
+                # Frame-based execution with huddle animation
+                if auto_state.stream_frames:
+                    play_result, play_code = await _execute_auto_play_with_frames(
+                        game_id, manager, home_team, away_team, offense_is_home,
+                        plays_this_drive
                     )
+                    plays_this_drive += 1
 
-                    if decision == FourthDownDecision.PUNT:
-                        result = manager._handle_punt()
-                        await connection_manager.broadcast(game_id, {
-                            "type": "special_teams",
-                            "result": {
-                                "play_type": "punt",
-                                "result": result.result,
-                                "new_los": result.new_los,
-                                "points_scored": 0,
-                                "description": f"Punt from the {down_state.line_of_scrimmage:.0f}",
-                            },
-                        })
-                        drive_over = True
+                    if play_result is None:
+                        # Special teams play was executed, continue
+                        drive_over = manager.get_situation().get("is_drive_over", False)
+                        drive_reason = "special_teams"
+                        await asyncio.sleep(auto_state.delay_seconds)
                         continue
 
-                    elif decision == FourthDownDecision.FIELD_GOAL:
-                        distance = (100 - down_state.line_of_scrimmage) + 17
-                        result = manager._handle_field_goal(distance)
-                        points = 3 if result.points > 0 else 0
-                        if points > 0:
-                            manager._add_score(3)
+                    drive_over = play_result["is_drive_over"]
+                    drive_reason = play_result["drive_end_reason"]
 
+                else:
+                    # Legacy text-only execution (no frames)
+                    step_result = manager.step_auto_play()
+                    plays_this_drive += 1
+
+                    # Broadcast based on play type
+                    if step_result["type"] == "special_teams":
+                        # Special teams play (punt or FG)
                         await connection_manager.broadcast(game_id, {
                             "type": "special_teams",
+                            "result": step_result["result"],
+                        })
+                        if step_result["result"].get("points_scored", 0) > 0:
+                            await broadcast_score_update(game_id, manager.home_score, manager.away_score)
+                    else:
+                        # Regular play
+                        play_result = step_result["result"]
+                        offense, defense = manager.get_players_for_drive()
+                        description = _format_play_description_from_dict(play_result, offense, defense)
+
+                        await connection_manager.broadcast(game_id, {
+                            "type": "play_result",
                             "result": {
-                                "play_type": "field_goal",
-                                "result": result.result,
-                                "new_los": result.new_los,
-                                "points_scored": points,
-                                "description": f"{distance:.0f}-yard field goal {'GOOD' if points else 'NO GOOD'}",
+                                "outcome": play_result["outcome"],
+                                "yards_gained": play_result["yards_gained"],
+                                "description": description,
+                                "new_down": play_result["new_down"],
+                                "new_distance": play_result["new_distance"],
+                                "new_los": play_result["new_los"],
+                                "first_down": play_result["is_first_down"],
+                                "touchdown": play_result["is_touchdown"],
+                                "turnover": play_result["is_turnover"],
+                                "is_drive_over": play_result["is_drive_over"],
+                                "drive_end_reason": play_result["drive_end_reason"],
+                                "play_call": step_result.get("play_code"),
+                                "offense_is_home": offense_is_home,
                             },
                         })
 
-                        if points > 0:
+                        # Broadcast situation update
+                        situation = _build_situation_response(game_id, manager, False)
+                        await connection_manager.broadcast(game_id, {
+                            "type": "situation_update",
+                            "situation": situation.__dict__,
+                        })
+
+                        # Handle touchdown scoring sequence
+                        if play_result["is_touchdown"]:
                             await broadcast_score_update(game_id, manager.home_score, manager.away_score)
 
-                        drive_over = True
-                        continue
+                            # Handle PAT via GameManager
+                            pat_result = manager.execute_special_teams("pat", go_for_two=False)
+                            await connection_manager.broadcast(game_id, {
+                                "type": "special_teams",
+                                "result": pat_result,
+                            })
+                            if pat_result["points_scored"] > 0:
+                                await broadcast_score_update(game_id, manager.home_score, manager.away_score)
 
-                # AI calls the play
-                play_code = oc.call_play(context)
-
-                # Get players
-                offense, defense = manager._get_players_for_drive()
-
-                # Build play config
-                adapter = PlayAdapter(offense, defense)
-                config = adapter.build_offensive_config(play_code, shotgun=True)
-
-                # Get AI defensive call
-                def_play = dc.call_coverage(context)
-                man_assign, zone_assign = adapter.build_defensive_config(def_play)
-                config.man_assignments = man_assign
-                config.zone_assignments = zone_assign
-
-                # Execute play
-                los_y = down_state.line_of_scrimmage
-                manager._orchestrator.setup_play(offense, defense, config, los_y)
-                result = manager._orchestrator.run()
-
-                plays_this_drive += 1
-
-                # Check for TD
-                is_touchdown = down_state.line_of_scrimmage + result.yards_gained >= 100
-
-                # Process result
-                old_down = down_state.down
-                old_distance = down_state.yards_to_go
-
-                if result.outcome in ("interception", "fumble"):
-                    is_turnover = True
-                    drive_over = True
-                    drive_reason = "turnover"
-                elif is_touchdown:
-                    is_turnover = False
-                    drive_over = True
-                    drive_reason = "touchdown"
-                    manager._add_score(6)
-                else:
-                    is_turnover = False
-                    # Update down/distance
-                    if result.yards_gained >= old_distance:
-                        down_state.down = 1
-                        down_state.yards_to_go = min(10, int(100 - down_state.line_of_scrimmage - result.yards_gained))
-                        first_down = True
-                    else:
-                        down_state.down += 1
-                        down_state.yards_to_go = max(1, old_distance - int(result.yards_gained))
-                        first_down = False
-
-                    down_state.line_of_scrimmage += result.yards_gained
-
-                    # Check for turnover on downs
-                    if down_state.down > 4:
-                        drive_over = True
-                        drive_reason = "turnover_on_downs"
-                    else:
-                        drive_over = False
-                        drive_reason = None
-
-                # Build description
-                description = _format_play_description(result, offense, defense)
-
-                # Broadcast play result
-                await connection_manager.broadcast(game_id, {
-                    "type": "play_result",
-                    "result": {
-                        "outcome": result.outcome,
-                        "yards_gained": result.yards_gained,
-                        "description": description,
-                        "new_down": down_state.down,
-                        "new_distance": down_state.yards_to_go,
-                        "new_los": down_state.line_of_scrimmage,
-                        "first_down": result.yards_gained >= old_distance,
-                        "touchdown": is_touchdown,
-                        "turnover": is_turnover,
-                        "is_drive_over": drive_over,
-                        "drive_end_reason": drive_reason if drive_over else None,
-                        "play_call": play_code,
-                        "offense_is_home": offense_is_home,
-                    },
-                })
-
-                # Broadcast situation update
-                situation = _build_situation_response(game_id, manager, False)
-                await connection_manager.broadcast(game_id, {
-                    "type": "situation_update",
-                    "situation": situation.__dict__,
-                })
-
-                # Broadcast score if touchdown
-                if is_touchdown:
-                    await broadcast_score_update(game_id, manager.home_score, manager.away_score)
-
-                    # Handle PAT (auto-kick for now)
-                    pat_result = manager._handle_pat(go_for_two=False)
-                    if pat_result.points > 0:
-                        manager._add_score(1)
-                        await broadcast_score_update(game_id, manager.home_score, manager.away_score)
-
-                    await connection_manager.broadcast(game_id, {
-                        "type": "special_teams",
-                        "result": {
-                            "play_type": "pat",
-                            "result": pat_result.result,
-                            "new_los": 25.0,
-                            "points_scored": pat_result.points,
-                            "description": f"Extra point {'GOOD' if pat_result.points > 0 else 'NO GOOD'}",
-                        },
-                    })
+                    # Check if drive ended
+                    drive_over = step_result["is_drive_over"]
+                    drive_reason = step_result["drive_end_reason"]
 
                 # Delay based on pacing
                 await asyncio.sleep(auto_state.delay_seconds)
@@ -1455,34 +1589,16 @@ async def _run_auto_play_loop(game_id: str):
                 "result": drive_reason if drive_over else "in_progress",
             })
 
-            # Handle possession change
-            if not manager.is_game_over:
-                # Handle kickoff after scoring
-                if drive_reason == "touchdown":
-                    kickoff_result = manager._handle_kickoff(onside=False)
-                    manager._possession_home = not manager._possession_home
-                    down_state.line_of_scrimmage = kickoff_result.new_los
-                    down_state.down = 1
-                    down_state.yards_to_go = 10
+            # Handle possession change via GameManager
+            if drive_over and not manager.is_game_over:
+                possession_info = manager.handle_drive_end(drive_reason)
 
+                # Broadcast kickoff if there was one
+                if possession_info.get("kickoff_result"):
                     await connection_manager.broadcast(game_id, {
                         "type": "special_teams",
-                        "result": {
-                            "play_type": "kickoff",
-                            "result": kickoff_result.result,
-                            "new_los": kickoff_result.new_los,
-                            "points_scored": 0,
-                            "description": "Kickoff - " + ("Touchback" if kickoff_result.result == "touchback" else f"Returned to the {kickoff_result.new_los:.0f}"),
-                        },
+                        "result": possession_info["kickoff_result"],
                     })
-
-                elif drive_reason in ("turnover", "turnover_on_downs", "punt"):
-                    # Flip possession
-                    manager._possession_home = not manager._possession_home
-                    # Flip field position
-                    down_state.line_of_scrimmage = 100 - down_state.line_of_scrimmage
-                    down_state.down = 1
-                    down_state.yards_to_go = 10
 
                 await asyncio.sleep(auto_state.delay_seconds)
 
@@ -1508,13 +1624,13 @@ async def _run_auto_play_loop(game_id: str):
 @router.delete("/{game_id}")
 async def end_game(game_id: str) -> Dict:
     """End a game session."""
-    if game_id in _active_games:
+    if _game_sessions.contains(game_id):
         # Notify connected clients
         await connection_manager.broadcast(game_id, {
             "type": "game_ended",
             "message": "Game session ended",
         })
-        del _active_games[game_id]
+        _game_sessions.delete(game_id)
         return {"message": f"Game {game_id} ended"}
 
     raise HTTPException(
@@ -1548,14 +1664,17 @@ async def game_stream(websocket: WebSocket, game_id: str):
     - get_situation: Request current situation
     """
     # Verify game exists
-    if game_id not in _active_games:
+    if not _game_sessions.contains(game_id):
         await websocket.close(code=4004, reason="Game not found")
         return
 
     await connection_manager.connect(websocket, game_id)
 
     try:
-        game = _active_games[game_id]
+        game = _game_sessions.get(game_id)
+        if not game:
+            await websocket.close(code=4004, reason="Game not found")
+            return
         manager = game["manager"]
         user_controls_home = game["user_controls_home"]
 
@@ -1722,8 +1841,13 @@ def _build_situation_response(
     manager,
     user_controls_home: bool,
 ) -> GameSituationResponse:
-    """Build a GameSituationResponse from manager state."""
-    down_state = manager._game_state.down_state
+    """Build a GameSituationResponse from manager state.
+
+    Uses manager.get_situation() for core game state data.
+    """
+    # Get core situation from GameManager
+    situation = manager.get_situation()
+    los = situation["los"]  # Already numeric from get_situation()
 
     # Determine phase enum
     phase_map = {
@@ -1733,38 +1857,26 @@ def _build_situation_response(
         4: GamePhaseEnum.FOURTH_QUARTER,
         5: GamePhaseEnum.OVERTIME,
     }
-    phase = phase_map.get(manager.quarter, GamePhaseEnum.FIRST_QUARTER)
+    phase = phase_map.get(situation["quarter"], GamePhaseEnum.FIRST_QUARTER)
     if manager.is_game_over:
         phase = GamePhaseEnum.FINAL
 
-    # Format time
-    mins = int(manager.time_remaining // 60)
-    secs = int(manager.time_remaining % 60)
-    time_str = f"{mins}:{secs:02d}"
-
-    # Yard line display
-    los = down_state.line_of_scrimmage
-    if los >= 50:
-        yard_line = f"OPP {100 - los:.0f}"
-    else:
-        yard_line = f"OWN {los:.0f}"
-
     return GameSituationResponse(
         game_id=game_id,
-        quarter=manager.quarter,
-        time_remaining=time_str,
-        home_score=manager.home_score,
-        away_score=manager.away_score,
-        possession_home=manager._possession_home,
-        down=down_state.down,
-        distance=down_state.yards_to_go,
+        quarter=situation["quarter"],
+        time_remaining=situation["time"],
+        home_score=situation["home_score"],
+        away_score=situation["away_score"],
+        possession_home=situation["possession_home"],
+        down=situation["down"],
+        distance=situation["distance"],
         los=los,
-        yard_line_display=yard_line,
+        yard_line_display=situation["yard_line"],
         is_red_zone=los >= 80,
-        is_goal_to_go=down_state.yards_to_go >= (100 - los),
+        is_goal_to_go=situation["distance"] >= (100 - los),
         phase=phase,
-        user_on_offense=manager._possession_home == user_controls_home,
-        user_on_defense=manager._possession_home != user_controls_home,
+        user_on_offense=situation["possession_home"] == user_controls_home,
+        user_on_defense=situation["possession_home"] != user_controls_home,
     )
 
 
@@ -1816,7 +1928,7 @@ def _generate_situation_tips(context) -> list:
 
 
 def _format_play_description(result, offense, defense) -> str:
-    """Format a human-readable play description."""
+    """Format a human-readable play description from PlayResult object."""
     passer = _get_player_name(result.passer_id, offense) or "QB"
     receiver = _get_player_name(result.receiver_id, offense) or "receiver"
     tackler = _get_player_name(result.tackler_id, defense) or "defender"
@@ -1835,6 +1947,30 @@ def _format_play_description(result, offense, defense) -> str:
         return f"{receiver} FUMBLES, recovered by defense"
     else:
         return f"Play result: {result.outcome}, {result.yards_gained:.0f} yards"
+
+
+def _format_play_description_from_dict(result: dict, offense, defense) -> str:
+    """Format a human-readable play description from result dict."""
+    passer = _get_player_name(result.get("passer_id"), offense) or "QB"
+    receiver = _get_player_name(result.get("receiver_id"), offense) or "receiver"
+    tackler = _get_player_name(result.get("tackler_id"), defense) or "defender"
+    yards = result.get("yards_gained", 0)
+    outcome = result.get("outcome", "unknown")
+
+    if outcome == "complete":
+        return f"{passer} pass complete to {receiver} for {yards:.0f} yards"
+    elif outcome == "incomplete":
+        return f"{passer} pass incomplete intended for {receiver}"
+    elif outcome == "interception":
+        return f"{passer} INTERCEPTED by {tackler}"
+    elif outcome == "sack":
+        return f"{passer} sacked by {tackler} for {abs(yards):.0f} yard loss"
+    elif outcome == "run":
+        return f"{receiver} runs for {yards:.0f} yards"
+    elif outcome == "fumble":
+        return f"{receiver} FUMBLES, recovered by defense"
+    else:
+        return f"Play result: {outcome}, {yards:.0f} yards"
 
 
 def _get_player_name(player_id: Optional[str], players: list) -> Optional[str]:

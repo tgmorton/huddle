@@ -191,6 +191,10 @@ class PlayResultResponse(BaseModel):
     receiver_name: Optional[str] = None
     tackler_name: Optional[str] = None
 
+    # Play visualization frames (optional, for coach mode)
+    frames: Optional[List[Dict]] = Field(default=None, description="Frame data for play visualization")
+    total_frames: Optional[int] = Field(default=None, description="Total number of frames")
+
     class Config:
         json_schema_extra = {
             "example": {

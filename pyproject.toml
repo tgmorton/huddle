@@ -21,6 +21,7 @@ dependencies = [
     "Pillow>=10.0.0",
     "pulp>=2.7.0",
     "neo4j>=5.15.0",  # Graph database driver for AI exploration
+    "orjson>=3.9.0",  # Fast JSON serialization
 ]
 
 [project.optional-dependencies]
