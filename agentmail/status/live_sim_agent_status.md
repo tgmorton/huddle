@@ -1,11 +1,71 @@
 # Live Simulation Agent - Status
 
-**Last Updated:** 2026-01-12
+**Last Updated:** 2026-01-19
 **Agent Role:** Core simulation systems, orchestrator, physics, resolution systems
 
 ---
 
-## Current Session (2026-01-11)
+## Current Session (2026-01-19)
+
+### Critical Bug Fixes: GameView Broken Games
+
+Fixed two critical bugs causing the frontend GameView to show constant sacks/safeties and players not appearing in visualization.
+
+#### Bug 1: Player Positioning in API Path - FIXED
+
+**Symptom:** Games run via coach mode API (frontend) showed constant sacks and safeties, while CLI tests worked fine.
+
+**Root Cause:** `GameManager.execute_play_by_code()` was not repositioning players to the actual LOS before running plays. Players were positioned at `los_y=0` (the endzone) instead of the actual field position.
+
+The DriveManager (used for auto-play/CLI) had a `_reposition_players()` method that correctly adjusted player positions, but the API path bypassed this.
+
+**Fix:** Added `_reposition_players()` method to `huddle/game/manager.py` and call it in both:
+- `execute_play_by_code()`
+- `execute_play_by_code_with_frames()`
+
+#### Bug 2: Frontend Coordinate System Mismatch - FIXED
+
+**Symptom:** Route trees visible but players not appearing in PlayCanvas visualization.
+
+**Root Cause:** Backend sent absolute field coordinates (y=20 for player at 20-yard line), but `PlayCanvas.tsx` expects LOS-relative coordinates (y=0 at LOS, negative=backfield, positive=downfield).
+
+**Fix:** Modified `huddle/api/routers/coach_mode.py` to convert all coordinates to LOS-relative:
+- Player positions in `_player_to_frame_dict()`
+- Route target coordinates
+- Pursuit target coordinates
+- Ball position in `_collect_frame()`
+
+#### Files Changed
+- `huddle/game/manager.py` - Added `_reposition_players()`, updated API play execution methods
+- `huddle/api/routers/coach_mode.py` - Coordinate conversion to LOS-relative format
+
+#### Testing
+All 33 backend tests pass (14 game integration + 19 run game brains).
+
+**Notified:** frontend_agent (message 053)
+
+---
+
+### Bug 3: Infinite QB Retreat (50-yard sacks) - FIXED
+
+**From:** game_layer_agent (message 077)
+**Symptom:** QB retreating 50+ yards behind LOS before being sacked.
+
+**Root Cause:** `_find_escape_lane()` in qb_brain.py had no depth limit and preferred backward escapes based solely on clearance.
+
+**Fixes Applied:**
+
+1. **Depth Cap in `_find_escape_lane()`** - Skip escape options beyond 12 yards behind LOS
+2. **Forward Preference Bonus** - Score escape options higher if they step UP in pocket (+0.5 per yard forward)
+3. **Forced Throw-Away Check** - Early check in `qb_brain()` that forces throw-away (or accepts sack) if QB is already 12+ yards deep
+
+**File Changed:** `huddle/simulation/v2/ai/qb_brain.py`
+
+**Notified:** game_layer_agent (message 078)
+
+---
+
+## Previous Session (2026-01-11)
 
 ### Bug Fixes from game_layer_agent - COMPLETE
 
