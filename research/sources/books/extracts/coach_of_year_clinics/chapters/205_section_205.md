@@ -1,0 +1,22 @@
+# Section 205
+
+---
+
+
+
+Page 205
+
+get everyone in your program moving in the same direction. It will get everyone in your program on the same page. Coach Tom Osborne has our staff sit down at the beginning of the year, and we hammer out a mission statement. This past year, we came up with this statement. It is very short and very concise. We wanted "excellence through teamwork." That is how we wanted to get things done. We wanted to be an excellent team, but we wanted to do it by having everyone working together and by being unified. What we did was to list items under our mission statement that would be the way the coaching staff would operate. We decided that we were going to be hardworking, thorough, professional, and loyal. The coaching profession demands that you be hardworking. If you are not, you are not going to be around very long. The other items are issues that come up during the season. Being loyal is very important. There will be times when you will be tested on this issue. If the defense plays great and turns the ball over to the offense in good position, but the offense cannot take advantage, it can cause some tension between the offensive and defensive coaches. You must be in the game as a team.
+
+Next, under the mission statement, we have a list of governing values. It tells us how we will operate as a staff. We want to promote behavior that reflects well on the university, the football team, and each individual player. We want to promote the character of each player. That is something high school coaches do a great job with. I think we need to do a good job in this area. We all need to visit with our players about things other than X's and O's.
+
+We want to promote unity, pride, unselfishness, and confidence in our team. I think this is very important. I do not care how your team looks on paper in terms of their height, weight, or speed; it makes no difference. If you do not have them unified, if they are not unselfish, and if they are not a confident team, you will not get the job done the way you want it done. You are not going to win as many games as you want to win. I feel that building these aspects on the team are very important.
+
+It is great having the staff all working together and on the same page. But more important is to have everyone who comes in contact with the players going in the same direction as well. What Coach Osborne does, after we have completed our mission statement, is have a meeting with everyone who has any contact with our team, in any shape or form. He gets the equipment managers, trainers, team doctors, strength coaches, ticket office staff, and anyone who comes into contact with our team together in a meeting. He goes over our mission statement with them. He tells them, "This is what the coaches have decided we are going to be all about. This is how the coaches are going to operate this season. We want you to operate in this fashion." Nothing will destroy you more than to have someone in your own organization who is bitching and complaining all of the time. If you have that, you will have a brush fire that will turn into a forest fire immediately. An example would be your trainer taping ankles before practice. He is all upset because the star running back hurt his back doing squats in the weight room. The trainer complains to the other trainers about lifting weights. He has six or seven other players who are waiting in line to be taped. Now, you have a problem, and you may not even know about it. You need to address those issues with everyone involved with your program. Let them know how you want to operate and handle the players. If you can get everyone working on the same page and you have a good offense, defense, and kicking game, you have a good chance of getting the job done.
+
+There are two ways a player can operate. He can say, "What is in it for me? How many touchdowns can I score, how many yards can I gain, or how many tackles can I make?" Or he can say, "How can I contribute to the success of this football team?" The more players who have the second attitude, the better your chances for success.
+
+It doesn't just happen that your team is unified. It does not just happen that everyone is moving in the same direction. You have to work just as hard at this as you do coaching the X's and O's. You have to talk to your players about unity and unselfishness, or else you will
+
+ 
+

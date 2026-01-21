@@ -96,6 +96,12 @@ class EventType(str, Enum):
     DECISION_MADE = "decision_made"
     BEHAVIOR_TREE_EVAL = "behavior_tree_eval"
 
+    # =========================================================================
+    # Phase / System
+    # =========================================================================
+    PHASE_CHANGE = "phase_change"  # Play phase transition
+    ERROR = "error"  # System error or exception
+
 
 @dataclass
 class Event:

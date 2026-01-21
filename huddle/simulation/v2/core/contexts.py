@@ -171,6 +171,10 @@ class QBContext(BallcarrierContextBase):
     # Pressure tracking (from PressureSystem)
     pressure_state: Any = None  # PressureState - current pocket pressure
 
+    # Read System context
+    play_concept: str = ""  # Current play concept (e.g., "smash", "flood")
+    detected_coverage: str = ""  # Detected defensive coverage (e.g., "cover_2", "cover_3")
+
 
 @dataclass
 class WRContext(BallcarrierContextBase):

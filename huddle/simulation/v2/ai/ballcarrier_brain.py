@@ -542,14 +542,24 @@ def _find_holes(world: WorldState, threats: List[Threat]) -> List[Hole]:
                 quality *= (1.0 + design_bonus)
 
             # Sideline penalty - penalize holes near boundaries
+            # "Sideline Vacuum" fix: Less harsh penalty, especially for open lanes
             distance_to_sideline = min(
                 check_pos.x + field_half_width,   # Distance to left sideline
                 field_half_width - check_pos.x    # Distance to right sideline
             )
-            if distance_to_sideline < 8:
-                # Heavy penalty near sideline - risk of running out of bounds
-                # More aggressive: 0.0 at sideline, ramps up to 1.0 at 8 yards
-                sideline_penalty = (distance_to_sideline / 8.0) ** 2  # Quadratic for stronger penalty
+            if distance_to_sideline < 5:
+                # Mild penalty very close to sideline - use linear instead of quadratic
+                # At 1 yard: 0.4 multiplier (60% penalty)
+                # At 3 yards: 0.7 multiplier (30% penalty)
+                # At 5 yards: 1.0 multiplier (no penalty)
+                # This allows open sideline lanes to still be viable
+                sideline_penalty = 0.2 + (distance_to_sideline / 5.0) * 0.8
+
+                # If this hole has high clearance (truly open), reduce the penalty
+                # An open path to the endzone along the sideline is valuable
+                if min_dist > 4.0:  # Very open lane
+                    sideline_penalty = min(1.0, sideline_penalty + 0.3)  # Boost by 30%
+
                 quality *= sideline_penalty
 
             # Skip holes that would take us out of bounds
@@ -655,6 +665,87 @@ def _find_blocker_to_follow(world: WorldState) -> Optional[PlayerView]:
     return None
 
 
+def _find_mesh_point(world: WorldState, designed_x: float) -> Vec2:
+    """Find where the actual hole opened based on blocker positions.
+
+    "Blocking Geometry" fix: Instead of blindly following the designed path,
+    read where the blocks actually created a hole. If the designed gap is
+    clogged, find where the blocking actually opened space.
+
+    Args:
+        world: Current world state
+        designed_x: The X coordinate of the designed gap
+
+    Returns:
+        Adjusted mesh point position that accounts for actual blocking
+    """
+    my_pos = world.me.pos
+    los_y = world.los_y
+
+    # Find blockers engaged at the line
+    engaged_blockers = []
+    for tm in world.teammates:
+        if tm.pos.y > my_pos.y and tm.pos.y < los_y + 3:
+            engaged_blockers.append(tm)
+
+    # Find defenders at the line
+    defenders_at_line = []
+    for opp in world.opponents:
+        if abs(opp.pos.y - los_y) < 3:
+            defenders_at_line.append(opp)
+
+    if not engaged_blockers:
+        # No blockers to read - use designed target
+        return Vec2(designed_x, los_y + 2)
+
+    # Sample gaps to find the most open one near the designed gap
+    best_gap_x = designed_x
+    best_clearance = 0.0
+
+    # Check gaps from -6 to +6 yards from center (A, B, C gaps on each side)
+    for gap_x in [-5, -3, -1, 1, 3, 5]:
+        gap_pos = Vec2(gap_x, los_y + 1)
+
+        # Calculate clearance at this gap
+        min_defender_dist = 10.0
+        for defender in defenders_at_line:
+            dist = defender.pos.distance_to(gap_pos)
+            if dist < min_defender_dist:
+                min_defender_dist = dist
+
+        # Bonus for gaps near blockers (they're creating the hole)
+        blocker_support = 0.0
+        for blocker in engaged_blockers:
+            dist_to_blocker = blocker.pos.distance_to(gap_pos)
+            if dist_to_blocker < 2.5:
+                blocker_support += 0.5  # Blocker nearby = more support
+
+        clearance = min_defender_dist + blocker_support
+
+        # Prefer gaps close to the designed gap (don't cut back too far)
+        distance_from_designed = abs(gap_x - designed_x)
+        # Penalty for straying from designed hole (0.3 per yard)
+        adjusted_clearance = clearance - distance_from_designed * 0.3
+
+        if adjusted_clearance > best_clearance:
+            best_clearance = adjusted_clearance
+            best_gap_x = gap_x
+
+    # If the best gap is significantly better than designed, use it
+    # Otherwise stick with the designed hole
+    designed_clearance = 0.0
+    for defender in defenders_at_line:
+        dist = defender.pos.distance_to(Vec2(designed_x, los_y + 1))
+        if dist < designed_clearance or designed_clearance == 0:
+            designed_clearance = dist
+
+    # Only adjust if there's a significantly better option (>2 yards more clearance)
+    if best_clearance > designed_clearance + 2:
+        return Vec2(best_gap_x, los_y + 2)
+    else:
+        return Vec2(designed_x, los_y + 2)
+
+
 def _get_situation(threats: List[Threat], holes: List[Hole]) -> Situation:
     """Determine current running situation."""
     if not threats or threats[0].distance > 7:
@@ -685,6 +776,10 @@ def ballcarrier_brain(world: BallcarrierContextBase) -> BrainDecision:
     Returns:
         BrainDecision with action and reasoning
     """
+    # Reset state at start of new play (matches pattern in other brains)
+    if world.tick == 0 or world.time_since_snap < 0.1:
+        _reset_state(world.me.id)
+
     state = _get_state(world.me.id)
 
     # Verify we have the ball
@@ -703,6 +798,7 @@ def ballcarrier_brain(world: BallcarrierContextBase) -> BrainDecision:
 
     # =========================================================================
     # PATIENCE PHASE - Trust the blocking to create yards opportunities
+    # "Patience Phase Trap" prevention: Check for immediate threats first
     # =========================================================================
     vision = world.me.attributes.vision
     patience_time = 0.5 - (vision - 70) * 0.005
@@ -711,24 +807,43 @@ def ballcarrier_brain(world: BallcarrierContextBase) -> BrainDecision:
     time_since_handoff = world.time_since_snap
     in_backfield = world.me.pos.y < world.los_y
 
-    if in_backfield and time_since_handoff < patience_time:
-        # Trust blocking scheme - follow designed path toward yards
-        designed_target = None
+    # EMERGENCY THREAT CHECK - abort patience if defender has blown through
+    # A defender within 2.5 yards and closing fast is an emergency
+    emergency_threat = None
+    for opp in world.opponents:
+        dist = opp.pos.distance_to(world.me.pos)
+        if dist < 2.5:
+            # Check if they're closing on us (velocity toward us)
+            to_me = (world.me.pos - opp.pos).normalized()
+            closing_speed = opp.velocity.dot(to_me) if opp.velocity.length() > 0.1 else 0
+            if closing_speed > 2.0 or dist < 1.5:
+                # Defender is closing fast or already on top of us - emergency!
+                emergency_threat = opp
+                break
+
+    # If emergency threat exists, skip patience and handle immediately
+    patience_aborted = emergency_threat is not None
+
+    if in_backfield and time_since_handoff < patience_time and not patience_aborted:
+        # Trust blocking scheme - but read where the hole ACTUALLY opened
+        # "Blocking Geometry" fix: Use mesh point adaptivity instead of blind path following
+        designed_x = 0.0
         if hasattr(world, 'run_aiming_point') and world.run_aiming_point:
             aiming = world.run_aiming_point
-            gap_x = 0.0
             if "a" in aiming:
-                gap_x = 1.0
+                designed_x = 1.0
             elif "b" in aiming:
-                gap_x = 3.0
+                designed_x = 3.0
             elif "c" in aiming:
-                gap_x = 5.0
+                designed_x = 5.0
             if "left" in aiming:
-                gap_x = -gap_x
-            designed_target = Vec2(gap_x, world.los_y + 2)
+                designed_x = -designed_x
         elif hasattr(world, 'run_play_side') and world.run_play_side:
-            gap_x = 3.0 if world.run_play_side == "right" else -3.0
-            designed_target = Vec2(gap_x, world.los_y + 2)
+            designed_x = 3.0 if world.run_play_side == "right" else -3.0
+
+        # Find the actual mesh point - where the blocking created a hole
+        # This may differ from designed_x if the defense shifted or blocks missed
+        designed_target = _find_mesh_point(world, designed_x)
 
         if designed_target:
             blocker = _find_blocker_to_follow(world)
@@ -738,13 +853,13 @@ def ballcarrier_brain(world: BallcarrierContextBase) -> BrainDecision:
                     move_target=follow_pos,
                     move_type="run",
                     intent="patience",
-                    reasoning=f"Following blocker toward designed lane",
+                    reasoning=f"Following blocker toward actual hole",
                 )
             return BrainDecision(
                 move_target=designed_target,
                 move_type="run",
                 intent="patience",
-                reasoning=f"Pressing toward designed lane",
+                reasoning=f"Pressing toward mesh point (designed: {designed_x:.0f}, actual: {designed_target.x:.0f})",
             )
 
     # =========================================================================

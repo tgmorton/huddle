@@ -319,6 +319,42 @@ class TackleEngagement:
 
 
 # =============================================================================
+# Dive Tackle Flight Time ("Tackle Teleportation" prevention)
+# =============================================================================
+
+# Dive tackles take time to execute - defender must close the distance
+DIVE_TACKLE_FLIGHT_TIME = 0.25  # ~0.25 seconds to complete a dive from 2.5 yards
+
+
+@dataclass
+class DiveTackleInProgress:
+    """Tracks a dive tackle that has been initiated but not yet landed.
+
+    "Tackle Teleportation" prevention: Defenders don't instantly suction to
+    the ballcarrier from 2.5 yards away. They must commit to a dive trajectory
+    and the ballcarrier can potentially move out of the way.
+    """
+    defender_id: str
+    ballcarrier_id: str
+    start_time: float
+    start_pos: Vec2           # Where the dive started
+    target_pos: Vec2          # Where the defender was aiming
+    dive_direction: Vec2      # Normalized direction of dive
+    tackle_type: TackleType   # DIVE or SHOESTRING
+    flight_time: float        # How long until dive "lands"
+
+    def has_landed(self, current_time: float) -> bool:
+        """Check if the dive has completed its flight."""
+        return current_time >= self.start_time + self.flight_time
+
+    def get_landing_position(self) -> Vec2:
+        """Get where the defender will land (end of dive trajectory)."""
+        # Dive distance is typically 2-3 yards
+        dive_distance = 2.5
+        return self.start_pos + self.dive_direction * dive_distance
+
+
+# =============================================================================
 # Tackle Resolver
 # =============================================================================
 
@@ -336,11 +372,17 @@ class TackleResolver:
             if result.outcome in (TackleOutcome.TACKLED, TackleOutcome.GANG_TACKLED):
                 # Play is over
                 pass
+
+    "Tackle Teleportation" prevention:
+        Dive tackles from 1.5-2.5 yards now have flight time. The defender
+        commits to a trajectory and must wait for the dive to land before
+        the tackle can be resolved. Ballcarriers can move during this time.
     """
 
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
         self._engagements: dict[str, TackleEngagement] = {}  # Key: ballcarrier_id
+        self._pending_dives: dict[str, DiveTackleInProgress] = {}  # Key: defender_id
 
     def get_engagement(self, ballcarrier_id: str) -> Optional[TackleEngagement]:
         """Get active tackle engagement for a ballcarrier."""
@@ -349,6 +391,119 @@ class TackleResolver:
     def clear_engagements(self) -> None:
         """Clear all engagements (start of new play)."""
         self._engagements.clear()
+        self._pending_dives.clear()
+
+    def start_dive_tackle(
+        self,
+        defender: Player,
+        ballcarrier: Player,
+        tackle_type: TackleType,
+        current_time: float,
+    ) -> DiveTackleInProgress:
+        """Initiate a dive tackle with flight time.
+
+        "Tackle Teleportation" prevention: Instead of instantly resolving
+        dive tackles, we track them as in-progress and resolve when they land.
+
+        Args:
+            defender: The diving defender
+            ballcarrier: Target ballcarrier
+            tackle_type: DIVE or SHOESTRING
+            current_time: Current game time
+
+        Returns:
+            The DiveTackleInProgress tracking object
+        """
+        # Calculate dive direction and target
+        dive_direction = (ballcarrier.pos - defender.pos).normalized()
+
+        # Flight time scales slightly with distance
+        distance = defender.pos.distance_to(ballcarrier.pos)
+        # 0.2s at 1.5 yards, 0.3s at 2.5 yards
+        flight_time = 0.15 + (distance - 1.5) * 0.1
+
+        dive = DiveTackleInProgress(
+            defender_id=defender.id,
+            ballcarrier_id=ballcarrier.id,
+            start_time=current_time,
+            start_pos=defender.pos,
+            target_pos=ballcarrier.pos,
+            dive_direction=dive_direction,
+            tackle_type=tackle_type,
+            flight_time=flight_time,
+        )
+
+        self._pending_dives[defender.id] = dive
+        return dive
+
+    def get_pending_dive(self, defender_id: str) -> Optional[DiveTackleInProgress]:
+        """Get a pending dive tackle for a defender."""
+        return self._pending_dives.get(defender_id)
+
+    def check_landed_dives(
+        self,
+        current_time: float,
+        ballcarrier: Player,
+    ) -> List[TackleAttempt]:
+        """Check for dive tackles that have landed and convert to attempts.
+
+        "Tackle Teleportation" prevention: Only creates tackle attempts for
+        dives that have completed their flight time. Checks if ballcarrier
+        moved out of the way during the flight.
+
+        Args:
+            current_time: Current game time
+            ballcarrier: Current ballcarrier (may have moved)
+
+        Returns:
+            List of TackleAttempts for landed dives that are still in range
+        """
+        landed_attempts = []
+        completed_dives = []
+
+        for defender_id, dive in self._pending_dives.items():
+            if dive.ballcarrier_id != ballcarrier.id:
+                # Different ballcarrier (e.g., turnover) - clear this dive
+                completed_dives.append(defender_id)
+                continue
+
+            if not dive.has_landed(current_time):
+                continue  # Still in flight
+
+            completed_dives.append(defender_id)
+
+            # Calculate where the defender landed
+            landing_pos = dive.get_landing_position()
+
+            # Check if ballcarrier is still in range of the landing spot
+            distance_at_landing = landing_pos.distance_to(ballcarrier.pos)
+
+            # Dive tackle can still connect if within 1.0 yards of landing spot
+            # (defender can adjust slightly mid-air, or grab an ankle)
+            if distance_at_landing <= 1.0:
+                # Create a tackle attempt with REDUCED probability due to dive
+                attempt = TackleAttempt(
+                    defender=None,  # Will need to look up defender
+                    ballcarrier=ballcarrier,
+                    tackle_type=dive.tackle_type,
+                    distance=distance_at_landing,
+                    approach_angle=90,  # Diving = angle doesn't matter much
+                    closing_speed=0,  # Already committed to trajectory
+                )
+                # Store defender_id for lookup
+                attempt._defender_id = defender_id
+                attempt._landing_pos = landing_pos
+                landed_attempts.append(attempt)
+
+        # Clear completed dives
+        for defender_id in completed_dives:
+            del self._pending_dives[defender_id]
+
+        return landed_attempts
+
+    def is_defender_diving(self, defender_id: str) -> bool:
+        """Check if a defender is currently in a dive tackle."""
+        return defender_id in self._pending_dives
 
     def start_engagement(
         self,
@@ -596,23 +751,34 @@ class TackleResolver:
         defenders: List[Player],
         include_diving: bool = True,
         blockers: Optional[Sequence[Player]] = None,
+        current_time: float = 0.0,
     ) -> List[TackleAttempt]:
         """Find all defenders in position to attempt a tackle.
+
+        "Tackle Teleportation" prevention: Dive tackles (1.5-2.5 yards) now
+        initiate a dive with flight time instead of resolving instantly.
+        Use check_landed_dives() to get attempts from completed dives.
 
         Args:
             ballcarrier: Player with the ball
             defenders: List of defensive players
             include_diving: Whether to include diving tackle attempts
             blockers: List of potential blockers (OL) that can block tackle path
+            current_time: Current game time (for dive tracking)
 
         Returns:
-            List of TackleAttempt objects for defenders in range
+            List of TackleAttempt objects for defenders in range (close tackles only)
+            Dive tackles are tracked separately and returned via check_landed_dives()
         """
         attempts = []
         blockers = blockers or []
 
         for defender in defenders:
             if defender.is_down or defender.is_engaged:
+                continue
+
+            # Skip defenders already in a dive
+            if self.is_defender_diving(defender.id):
                 continue
 
             # Check if defender is facing the ballcarrier
@@ -654,6 +820,13 @@ class TackleResolver:
             # Skip if diving tackle and not included
             if tackle_type == TackleType.DIVE and not include_diving:
                 continue
+
+            # "Tackle Teleportation" prevention: Dive tackles have flight time
+            # Instead of instant resolution, initiate a dive and resolve when it lands
+            if tackle_type in (TackleType.DIVE, TackleType.SHOESTRING) and distance > TACKLE_ATTEMPT_RANGE:
+                # Initiate dive tackle with flight time
+                self.start_dive_tackle(defender, ballcarrier, tackle_type, current_time)
+                continue  # Don't add to immediate attempts
 
             attempt = TackleAttempt(
                 defender=defender,

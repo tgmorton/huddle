@@ -202,13 +202,95 @@ class Field:
 
         return f"{lateral}, {depth}"
 
+    # =========================================================================
+    # Boundary Awareness (Route Compression)
+    # =========================================================================
+
+    def get_boundary_compression(self, player_x: float) -> float:
+        """Get compression factor for routes near the sideline.
+
+        Routes running toward a nearby sideline need to be compressed
+        to prevent receivers from running out of bounds.
+
+        Compression values (from sandbox FieldContext):
+        - >= 20 yards from sideline: 1.0 (no compression)
+        - 12 yards from sideline: 0.73
+        - <= 8 yards from sideline: 0.6 (max compression)
+
+        Args:
+            player_x: X coordinate of the receiver
+
+        Returns:
+            Compression factor (0.6 to 1.0)
+        """
+        dist = self.distance_to_sideline(Vec2(player_x, 0))
+        if dist >= 20:
+            return 1.0
+        elif dist <= 8:
+            return 0.6
+        else:
+            # Linear interpolation: 8yd->0.6, 20yd->1.0
+            return 0.6 + (dist - 8) * (0.4 / 12)
+
+    def get_red_zone_depth_factor(self) -> float:
+        """Get depth compression factor for red zone plays.
+
+        Routes near the goal line need depth compression to prevent
+        endpoints from going into/through the end zone.
+
+        Compression values:
+        - Line of scrimmage < 80: 1.0 (normal)
+        - Line of scrimmage 85: 0.81
+        - Line of scrimmage 90: 0.61
+        - Line of scrimmage 95: 0.42
+        - Line of scrimmage >= 98: 0.3 (fade routes only)
+
+        Returns:
+            Depth factor (0.3 to 1.0)
+        """
+        if self.line_of_scrimmage < 80:
+            return 1.0
+        elif self.line_of_scrimmage >= 98:
+            return 0.3
+        else:
+            # Linear interpolation: 80->1.0, 98->0.3
+            progress = (self.line_of_scrimmage - 80) / 18
+            return 1.0 - (progress * 0.7)
+
+    def get_available_depth(self) -> float:
+        """Get available vertical space before the end zone.
+
+        Returns the yards to goal minus a 2-yard buffer to keep
+        route endpoints on the playing field.
+
+        Returns:
+            Available depth in yards (minimum 0)
+        """
+        return max(0, self.yards_to_goal - 2)
+
+    def get_leverage_advantage(self, receiver_x: float) -> str:
+        """Determine if DB has leverage advantage from sideline.
+
+        When a receiver is within 12 yards of the sideline, the DB
+        can use the sideline as an "extra defender" by playing
+        inside leverage - the sideline takes away outside routes.
+
+        Args:
+            receiver_x: X coordinate of the receiver
+
+        Returns:
+            "inside" if sideline provides leverage, "none" otherwise
+        """
+        dist = self.distance_to_sideline(Vec2(receiver_x, 0))
+        return "inside" if dist <= 12 else "none"
+
 
 # =============================================================================
 # Position Landmarks
 # =============================================================================
 
 # Offensive line positions (relative to ball at x=0)
-OL_SPACING = 1.0  # Approximate gap between OL (center to center ~2 yards)
+OL_SPACING = 1.2  # Center-to-center spacing between OL (yards) - realistic NFL spacing
 
 # Pre-snap depths
 QB_UNDER_CENTER_DEPTH = -1.0

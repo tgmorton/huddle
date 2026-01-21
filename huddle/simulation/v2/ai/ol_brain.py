@@ -499,13 +499,13 @@ def _find_threat_in_zone(world: WorldState) -> Optional[PlayerView]:
     my_position = world.me.position
     protect_pos = _get_protect_target(world)
 
-    # Define our zone of responsibility
+    # Define our zone of responsibility (based on 1.2yd OL spacing)
     zone_ranges = {
-        Position.LT: (-6.0, -3.0),
-        Position.LG: (-3.0, -0.75),
-        Position.C: (-1.5, 1.5),
-        Position.RG: (0.75, 3.0),
-        Position.RT: (3.0, 6.0),
+        Position.LT: (-3.0, -1.8),   # Outside LT to B gap
+        Position.LG: (-1.8, -0.6),   # B gap to A gap
+        Position.C: (-0.6, 0.6),     # A gap (both sides)
+        Position.RG: (0.6, 1.8),     # A gap to B gap
+        Position.RT: (1.8, 3.0),     # B gap to outside RT
     }
 
     zone_min, zone_max = zone_ranges.get(my_position, (-2, 2))
@@ -557,13 +557,13 @@ def _find_rusher_in_gap(world: WorldState) -> Optional[PlayerView]:
     my_position = world.me.position
 
     # Define gap responsibility (x-range we're responsible for)
-    # Based on 1.5 yard OL spacing
+    # Based on 1.2 yard OL spacing
     gap_ranges = {
-        Position.LT: (-4.5, -2.25),  # Outside LT to B gap
-        Position.LG: (-2.25, -0.75), # B gap to A gap
-        Position.C: (-0.75, 0.75),   # A gap (both sides)
-        Position.RG: (0.75, 2.25),   # A gap to B gap
-        Position.RT: (2.25, 4.5),    # B gap to outside RT
+        Position.LT: (-3.0, -1.8),   # Outside LT to B gap
+        Position.LG: (-1.8, -0.6),   # B gap to A gap
+        Position.C: (-0.6, 0.6),     # A gap (both sides)
+        Position.RG: (0.6, 1.8),     # A gap to B gap
+        Position.RT: (1.8, 3.0),     # B gap to outside RT
     }
 
     gap_min, gap_max = gap_ranges.get(my_position, (-2, 2))
@@ -1007,13 +1007,13 @@ def ol_brain(world: OLContext) -> BrainDecision:
     # Determine playside direction
     playside_dir = 1 if play_side == "right" else -1
 
-    # Get our gap responsibility
+    # Get our gap responsibility (based on 1.2yd OL spacing)
     gap_ranges = {
-        Position.LT: (-4.5, -2.25),
-        Position.LG: (-2.25, -0.75),
-        Position.C: (-0.75, 0.75),
-        Position.RG: (0.75, 2.25),
-        Position.RT: (2.25, 4.5),
+        Position.LT: (-3.0, -1.8),   # Outside LT to B gap
+        Position.LG: (-1.8, -0.6),   # B gap to A gap
+        Position.C: (-0.6, 0.6),     # A gap (both sides)
+        Position.RG: (0.6, 1.8),     # A gap to B gap
+        Position.RT: (1.8, 3.0),     # B gap to outside RT
     }
     my_gap_min, my_gap_max = gap_ranges.get(world.me.position, (-2, 2))
     my_gap_center = (my_gap_min + my_gap_max) / 2
@@ -1098,11 +1098,11 @@ def ol_brain(world: OLContext) -> BrainDecision:
             partner_position = partner.position
 
             partner_gap_ranges = {
-                Position.LT: (-4.5, -2.25),
-                Position.LG: (-2.25, -0.75),
-                Position.C: (-0.75, 0.75),
-                Position.RG: (0.75, 2.25),
-                Position.RT: (2.25, 4.5),
+                Position.LT: (-3.0, -1.8),   # Outside LT to B gap
+                Position.LG: (-1.8, -0.6),   # B gap to A gap
+                Position.C: (-0.6, 0.6),     # A gap (both sides)
+                Position.RG: (0.6, 1.8),     # A gap to B gap
+                Position.RT: (1.8, 3.0),     # B gap to outside RT
             }
             partner_gap = partner_gap_ranges.get(partner_position, (-2, 2))
 

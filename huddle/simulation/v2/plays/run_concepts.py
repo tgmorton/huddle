@@ -145,8 +145,8 @@ def create_inside_zone_right() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # RB starts at (-0.5, -4.5), path goes toward A gap (x ≈ 0.75)
-                path=[Vec2(0, -3), Vec2(0.5, -1), Vec2(1, 2)],
+                # RB path toward A gap right (x ≈ 0.3 with 1.2yd OL spacing)
+                path=[Vec2(0, -3), Vec2(0.2, -1), Vec2(0.4, 2)],
                 aiming_point=Gap.A_RIGHT,
             ),
         ],
@@ -175,8 +175,8 @@ def create_inside_zone_left() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # RB starts at (-0.5, -4.5), path goes toward A gap left (x ≈ -0.75)
-                path=[Vec2(-0.5, -3), Vec2(-1, -1), Vec2(-1.5, 2)],
+                # RB path toward A gap left (x ≈ -0.3 with 1.2yd OL spacing)
+                path=[Vec2(-0.2, -3), Vec2(-0.3, -1), Vec2(-0.4, 2)],
                 aiming_point=Gap.A_LEFT,
             ),
         ],
@@ -210,8 +210,8 @@ def create_outside_zone_right() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # Stretch to C gap right (x ≈ 3.5), tight spacing
-                path=[Vec2(1, -3), Vec2(2.5, -1), Vec2(4, 1), Vec2(5, 3)],
+                # Stretch to C gap right (x ≈ 1.5 with 1.2yd OL spacing)
+                path=[Vec2(0.5, -3), Vec2(1.0, -1), Vec2(1.5, 1), Vec2(2.0, 3)],
                 aiming_point=Gap.C_RIGHT,
             ),
         ],
@@ -240,8 +240,8 @@ def create_outside_zone_left() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # Stretch to C gap left (x ≈ -3.5), tight spacing
-                path=[Vec2(-1, -3), Vec2(-2.5, -1), Vec2(-4, 1), Vec2(-5, 3)],
+                # Stretch to C gap left (x ≈ -1.5 with 1.2yd OL spacing)
+                path=[Vec2(-0.5, -3), Vec2(-1.0, -1), Vec2(-1.5, 1), Vec2(-2.0, 3)],
                 aiming_point=Gap.C_LEFT,
             ),
         ],
@@ -275,15 +275,15 @@ def create_power_right() -> RunConcept:
             BackfieldAssignment(
                 "FB",
                 role="lead_blocker",
-                # FB at (0.5, -3), leads to B gap right (x ≈ 2.25)
-                path=[Vec2(1.5, -1.5), Vec2(2, 0), Vec2(2.5, 2)],
+                # FB leads to B gap right (x ≈ 0.9 with 1.2yd OL spacing)
+                path=[Vec2(0.6, -1.5), Vec2(0.8, 0), Vec2(1.0, 2)],
                 aiming_point=Gap.B_RIGHT,
             ),
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # RB at (-0.5, -4.5), follows FB through B gap
-                path=[Vec2(0, -3), Vec2(1.5, -1), Vec2(2.5, 1)],
+                # RB follows FB through B gap
+                path=[Vec2(0, -3), Vec2(0.6, -1), Vec2(1.0, 1)],
                 aiming_point=Gap.B_RIGHT,
             ),
         ],
@@ -311,15 +311,15 @@ def create_power_left() -> RunConcept:
             BackfieldAssignment(
                 "FB",
                 role="lead_blocker",
-                # FB leads to B gap left (x ≈ -2.25)
-                path=[Vec2(-1.5, -1.5), Vec2(-2, 0), Vec2(-2.5, 2)],
+                # FB leads to B gap left (x ≈ -0.9 with 1.2yd OL spacing)
+                path=[Vec2(-0.6, -1.5), Vec2(-0.8, 0), Vec2(-1.0, 2)],
                 aiming_point=Gap.B_LEFT,
             ),
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
                 # RB follows FB through B gap left
-                path=[Vec2(-0.5, -3), Vec2(-1.5, -1), Vec2(-2.5, 1)],
+                path=[Vec2(-0.2, -3), Vec2(-0.6, -1), Vec2(-1.0, 1)],
                 aiming_point=Gap.B_LEFT,
             ),
         ],
@@ -353,8 +353,8 @@ def create_counter_right() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # Counter step left, then cut back right to B gap (x ≈ 2.25)
-                path=[Vec2(-1, -3.5), Vec2(-1, -3), Vec2(1.5, -1), Vec2(2.5, 1)],
+                # Counter step left, then cut back right to B gap (x ≈ 1.0 with 1.2yd OL spacing)
+                path=[Vec2(-0.4, -3.5), Vec2(-0.4, -3), Vec2(0.6, -1), Vec2(1.0, 1)],
                 aiming_point=Gap.B_RIGHT,
             ),
         ],
@@ -387,8 +387,8 @@ def create_dive_right() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # Quick dive to A gap right (x ≈ 0.75)
-                path=[Vec2(0.5, -2), Vec2(0.75, 0), Vec2(1, 3)],
+                # Quick dive to A gap right (x ≈ 0.3 with 1.2yd OL spacing)
+                path=[Vec2(0.2, -2), Vec2(0.3, 0), Vec2(0.4, 3)],
                 aiming_point=Gap.A_RIGHT,
             ),
         ],
@@ -422,8 +422,8 @@ def create_draw() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # RB at (-0.5, -4.5), shows pass pro then takes delayed handoff
-                path=[Vec2(-0.5, -4), Vec2(0, -3), Vec2(0.5, -1), Vec2(0.75, 2)],
+                # RB shows pass pro then takes delayed handoff to A gap (x ≈ 0.3 with 1.2yd OL spacing)
+                path=[Vec2(-0.2, -4), Vec2(0, -3), Vec2(0.2, -1), Vec2(0.3, 2)],
                 aiming_point=Gap.A_RIGHT,
             ),
         ],
@@ -457,8 +457,8 @@ def create_toss_right() -> RunConcept:
             BackfieldAssignment(
                 "RB",
                 role="ball_carrier",
-                # RB at (-0.5, -4.5), catches pitch heading to edge (past RT at x=3)
-                path=[Vec2(2, -3), Vec2(4, -1), Vec2(5.5, 1), Vec2(7, 4)],
+                # RB catches pitch heading to edge (past RT at x=2.4 with 1.2yd OL spacing)
+                path=[Vec2(1.0, -3), Vec2(2.0, -1), Vec2(2.5, 1), Vec2(3.0, 4)],
                 aiming_point=Gap.C_RIGHT,
             ),
         ],

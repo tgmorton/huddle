@@ -20,6 +20,12 @@ from ..core.entities import Player, Ball, BallState, Team, ThrowType
 from ..core.clock import Clock
 from ..core.events import EventBus, EventType
 from ..core.ratings import get_matchup_modifier
+from ..physics.ball_flight import (
+    calculate_spin_rate,
+    calculate_drag_factor,
+    calculate_lateral_drift,
+    is_spiral_stable,
+)
 
 
 # =============================================================================
@@ -211,6 +217,60 @@ class PassingSystem:
         else:
             return ThrowType.LOB
 
+    def _has_defender_in_lane(
+        self,
+        thrower_pos: Vec2,
+        target_pos: Vec2,
+        defenders: List[Player],
+        lane_width: float = 2.0,
+    ) -> bool:
+        """Check if any defender is in the passing lane.
+
+        Uses perpendicular distance from defender to the throw vector to detect
+        linebackers or other defenders who could intercept a low-trajectory pass.
+
+        "Linebacker Magnet" prevention: Detects defenders near the flight path
+        so we can force a Touch/Lob pass to clear them.
+
+        Args:
+            thrower_pos: QB position
+            target_pos: Target position for the throw
+            defenders: List of defensive players
+            lane_width: Width of the lane to check (yards from center line)
+
+        Returns:
+            True if a defender is in the passing lane
+        """
+        throw_vec = target_pos - thrower_pos
+        throw_length = throw_vec.length()
+
+        if throw_length < 0.1:
+            return False
+
+        throw_dir = throw_vec.normalized()
+
+        for defender in defenders:
+            # Vector from thrower to defender
+            to_defender = defender.pos - thrower_pos
+
+            # Project defender position onto throw vector
+            proj_length = to_defender.dot(throw_dir)
+
+            # Only consider defenders BETWEEN thrower and target (not behind or past)
+            if proj_length < 1.0 or proj_length > throw_length - 1.0:
+                continue
+
+            # Calculate perpendicular distance from throw line
+            proj_point = thrower_pos + throw_dir * proj_length
+            perp_distance = defender.pos.distance_to(proj_point)
+
+            # Check if defender is within the lane
+            if perp_distance < lane_width:
+                # Defender is in the passing lane!
+                return True
+
+        return False
+
     def _calculate_intercept_point(
         self,
         thrower_pos: Vec2,
@@ -301,6 +361,7 @@ class PassingSystem:
         anticipated_target_pos: Optional[Vec2] = None,
         expected_receiver_velocity: Optional[Vec2] = None,
         throw_type_override: Optional[ThrowType] = None,
+        defenders: Optional[List[Player]] = None,
     ) -> ThrowResult:
         """Execute a throw to a receiver.
 
@@ -319,6 +380,7 @@ class PassingSystem:
             expected_receiver_velocity: Override receiver velocity for lead calculation.
                 Use when receiver's route is complete but they should continue running.
             throw_type_override: Force a specific throw type
+            defenders: List of defensive players (for passing lane detection)
 
         Returns:
             ThrowResult with throw details
@@ -336,8 +398,15 @@ class PassingSystem:
         initial_target = anticipated_target_pos if anticipated_target_pos else target_receiver.pos
         initial_distance = thrower.pos.distance_to(initial_target)
 
-        # Select throw type based on distance
-        throw_type = throw_type_override or self._select_throw_type(initial_distance)
+        # Check for defenders in the passing lane ("Linebacker Magnet" prevention)
+        has_defender_underneath = False
+        if defenders and not throw_type_override:
+            has_defender_underneath = self._has_defender_in_lane(
+                thrower.pos, initial_target, defenders
+            )
+
+        # Select throw type based on distance and defender position
+        throw_type = throw_type_override or self._select_throw_type(initial_distance, has_defender_underneath)
 
         # Get velocity range for this throw type and QB arm strength
         arm_strength = thrower.attributes.throw_power
@@ -372,6 +441,42 @@ class PassingSystem:
         distance_factor = min(distance / 40.0, 1.0)  # Max at 40 yards
         peak_height = height_min + distance_factor * (height_max - height_min)
 
+        # =================================================================
+        # Ball flight physics (Dzielski & Blackburn 2022)
+        # =================================================================
+
+        # Calculate spin rate based on throw type and QB arm strength
+        spin_rate = calculate_spin_rate(throw_type.value, arm_strength)
+
+        # Check spiral stability
+        is_stable = is_spiral_stable(spin_rate, ball_speed)
+
+        # Apply drag to effective velocity (affects flight time)
+        drag_factor = calculate_drag_factor(distance, throw_type.value)
+        effective_speed = ball_speed * drag_factor
+
+        # Calculate lateral drift from yaw of repose
+        # For now, assume right-handed QBs (can be extended with player attribute)
+        handedness = "right"
+        drift = calculate_lateral_drift(distance, handedness)
+
+        # Adjust target position for drift
+        if abs(drift) > 0.1:
+            # Drift is perpendicular to throw direction
+            throw_dir = (target_pos - thrower.pos).normalized()
+            drift_vec = Vec2(-throw_dir.y, throw_dir.x) * drift  # Perpendicular
+            target_pos = target_pos + drift_vec
+
+        # Recalculate flight time with drag-adjusted speed
+        final_distance = thrower.pos.distance_to(target_pos)
+        flight_time = final_distance / effective_speed
+
+        # Calculate ball orientation (points along throw direction with slight upward tilt)
+        throw_direction = (target_pos - thrower.pos).normalized()
+        orientation_x = throw_direction.x
+        orientation_y = throw_direction.y
+        orientation_z = 0.3  # Initial upward tilt
+
         # Apply accuracy variance
         accuracy = thrower.attributes.throw_accuracy
         accuracy_factor = (accuracy - 50) / 49
@@ -399,6 +504,15 @@ class PassingSystem:
         ball.throw_type = throw_type
         ball.peak_height = peak_height
 
+        # Ball flight physics data
+        ball.spin_rate = spin_rate
+        ball.is_stable_spiral = is_stable
+        ball.orientation_x = orientation_x
+        ball.orientation_y = orientation_y
+        ball.orientation_z = orientation_z
+        ball.thrower_handedness = handedness
+        ball.drag_velocity_factor = drag_factor
+
         self.state = PassState.IN_FLIGHT
         self.ball_in_air_ticks = 0
         self.defenders_tracking_ball.clear()
@@ -419,10 +533,12 @@ class PassingSystem:
             ThrowType.TOUCH: "touch pass",
             ThrowType.LOB: "lob",
         }[throw_type]
+        # Note wobbly passes
+        spiral_desc = "" if is_stable else " (wobbly)"
         self._emit_event(
             EventType.THROW,
             thrower.id,
-            f"{thrower.name} {throw_desc} to {target_receiver.name} ({distance:.1f} yds, {flight_time:.2f}s)",
+            f"{thrower.name} {throw_desc}{spiral_desc} to {target_receiver.name} ({distance:.1f} yds, {flight_time:.2f}s)",
             clock,
         )
 

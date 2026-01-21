@@ -1,0 +1,1268 @@
+University of Northern Iowa
+UNI ScholarWorks
+
+Honors Program Theses                                                                             Student Work
+
+
+2016
+
+The determinants of NFL player salaries
+Trevor Draisey
+University of Northern Iowa
+
+
+
+
+  Let us know how access to this document benefits you
+
+Copyright ©2016 Trevor Draisey
+Follow this and additional works at: https://scholarworks.uni.edu/hpt
+
+   Part of the Sports Studies Commons
+
+
+Recommended Citation
+Draisey, Trevor, "The determinants of NFL player salaries" (2016). Honors Program Theses. 213.
+https://scholarworks.uni.edu/hpt/213
+
+
+This Open Access Honors Program Thesis is brought to you for free and open access by the Student Work at UNI
+ScholarWorks. It has been accepted for inclusion in Honors Program Theses by an authorized administrator of UNI
+ScholarWorks. For more information, please contact scholarworks@uni.edu.
+
+Offensive Materials Statement: Materials located in UNI ScholarWorks come from a broad range of sources and
+time periods. Some of these materials may contain offensive stereotypes, ideas, visuals, or language.
+Running Head: THE DETERMINANTS OF NFL PLAYER SALARIES
+
+
+
+
+    THE DETERMINANTS OF NFL PLAYER SALARIES
+
+
+
+
+                    A Thesis Submitted
+
+                   In Partial Fulfillment
+
+          Of the Requirements for the Designation
+
+                    University Honors
+
+
+
+
+                      Trevor Draisey
+
+               University of Northern Iowa
+
+                        May 2016
+This Study by: Trevor Draisey
+
+Entitled: The Determinants of NFL Player Salaries
+
+
+
+
+Has been approved as meeting the thesis or project requirement for the Designation
+
+University Honors
+
+
+
+
+______________               ____________________________________________________
+Date                         Dr. Lisa Jepsen, Honors Thesis Advisor, Economics Department
+
+
+
+_______________              ____________________________________________________
+Date                         Dr. Jessica Moon, Director, University Honors Program
+THE DETERMINANTS OF NFL PLAYER SALARIES
+
+
+
+                                               Abstract
+
+Using performance data from 2013 and salary data from 2014 for 426 offensive skill position
+
+players in the National Football League (NFL), this study analyzes the determinants of player
+
+salaries in rookie and veteran NFL contracts. It is the first study to use fantasy football statistics
+
+as a measure of performance across positions. The results indicate that performance, as measured
+
+by fantasy football statistics, is the primary determinant of veteran players’ salaries. Under the
+
+2011 NFL Players Association Collective Bargaining Agreement (CBA), draft position is the
+
+primary determinant of rookie players’ salaries.
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                             1
+
+
+
+                                            Introduction
+
+        The National Football League (NFL) is the largest professional sports league in the
+
+world, earning revenues in excess of 12 billion dollars (Isidore, 2015) and employing almost
+
+1,700 players during the regular season (Davis, 2014). This research studies the factors that
+
+determine the effective salaries of NFL players. A major obstacle to objective compensation
+
+comparisons in past research has been the inability to account for player performance across
+
+positions. This research bridges that gap using fantasy football statistics, which have become an
+
+extremely popular measure of a player’s skill in the eyes of the average fan. This paper provides
+
+a unique contribution to the existing literature because it is the first to incorporate fantasy
+
+football statistics.
+
+        Using salary data from a set of 426 offensive skill position players in the 2014 season and
+
+performance data from 2013, I study the correlations of fantasy football statistics and off-field
+
+factors with player salaries and hope to answer the following research question: Is performance
+
+the primary determinant of NFL player salaries? In addition, this paper analyzes the structural
+
+changes to the NFL’s collective bargaining agreement (CBA) with its players union to explain
+
+observed changes in the personnel and contract decisions by NFL franchises. Through this
+
+analysis, this research attempts to answer the secondary research question: How do the
+
+determinants of player salaries differ between veteran and rookie NFL contracts?
+
+        By dividing the data set into veteran and rookie contracts, I analyze the differences in
+
+determinants of salaries among players with negotiation powers under the CBA. The results
+
+indicate that performance and draft position are the primary determinants of player compensation
+
+among veteran and rookie contracts, respectively. Fantasy statistics alone explain nearly half of
+
+all variation in cap values among veteran players. Given the explanatory power of this variable,
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                             2
+
+excluding it (or a similar measure of performance) from an analysis would yield weak results.
+
+Non-performance related factors, such as race and arrest history, exhibit significant negative
+
+correlations with compensation among veterans, but the relationships are insignificant among
+
+players on rookie contract.
+
+                                        Literature Review
+
+       In the National Football League (NFL), the cost of talent makes up the largest portion of
+
+a team’s annual costs, and a team’s success is measured by its ability to win games (Fort, 2011).
+
+All teams in the NFL are subject to the “salary cap”—a maximum amount they can pay for labor.
+
+The salary cap contributes to a competitive balance among the 32 NFL teams by providing all
+
+teams with equal opportunities to acquire top talent (Larsen et al., 2006). Each year, the salary
+
+cap is calculated using a formula established in the collective bargaining agreement (CBA)
+
+between the NFL and the NFL Players Association (NFLPA).
+
+       Under the 2006 CBA, the salary cap was computed as all football-related revenues,
+
+minus one billion dollars allocated to the team owners, divided evenly among the 32 teams.
+
+Under this system, players collected about 60 percent of league revenues in the form of salaries
+
+in 2006 (Quinn, 2012). Restructuring the salary cap was a point of emphasis in negotiating a new
+
+CBA after the 2010 season (Quinn, 2012). In the 2011 CBA, the salary cap was restructured as
+
+the sum of 55 percent of revenue from national media contracts, 45 percent of league licensing
+
+revenues, and 40 percent of local team revenues.
+
+       A specific portion of each player’s contract counts against the team’s total salary cap. A
+
+player’s cap value at the start of a year includes all guaranteed elements in the contract, any
+
+incentives deemed “likely to be earned,” as well as a fraction of the player’s signing bonus
+
+(NFLPA, 2011). Although signing bonuses are paid up-front, for cap purposes they are
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                             3
+
+amortized on a straight-line basis over the life of the contract or five seasons, whichever comes
+
+first (NFLPA, 2011). In the case that incentives actually paid in a year exceed those that were
+
+likely to be earned, the excess will be credited against the team’s salary cap in the subsequent
+
+year. Within the constraints of the collective bargaining agreement, the determination of a
+
+player’s salary may depend on a number of factors. For example, the structure of rookie
+
+contracts changed significantly under the 2011 CBA and is quite different than veteran contracts.
+
+       Prior to 2011, rookies drafted into the NFL had the potential to sign extremely lucrative
+
+contracts before setting foot on the playing field. During negotiations for the 2011 CBA, both
+
+owners and veteran players wanted to limit the size of rookie contracts (Brandt et al., 2013).
+
+Owners were motivated by major draft busts, like Ryan Leaf and JaMarcus Russell, and veteran
+
+players were unhappy about being out earned by rookies (Brandt et al., 2013). As a result, the
+
+pool of money allocated to rookie contracts shrunk, and rookies were forced into heavily
+
+structured, four-year contracts with fifth-year team options for first round picks (Quinn, 2012).
+
+Players do not have the option to restructure rookie contracts until after the third year of the
+
+contract. Consequently, many young players receive compensation well below their value, and
+
+the value of rookie contracts has dropped significantly since the implementation of the 2011
+
+CBA (Brandt et al., 2013).
+
+       Veteran players may not receive the intended benefits from the rookie contract
+
+restructuring. Teams can draft and sign rookie players for relatively lower salaries than veteran
+
+players without the necessity to restructure contracts to reward performance above expectations
+
+(Brandt et al., 2013). There is little incentive for teams to sign more expensive veterans with a
+
+shorter shelf life. To players nearing the end of their careers, this may have very serious personal
+
+financial implications. The rate of bankruptcy among players 12 years out of the league is about
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                               4
+
+16 percent, largely independent of the career earnings of the player (Carlson et al., 2015). In
+
+other words, the length and value of a player’s contracts over the duration of his career have little
+
+to no effect on the possibility of bankruptcy post-retirement. Therefore, veteran players have an
+
+incentive to remain in the league to prolong their financial wellbeing, regardless of how much
+
+they earned over their prior contracts. The league and the players union have taken action to
+
+assist veteran players in finding employment with efforts like the veteran combine, where players
+
+go through similar physical testing as rookies entering the draft. However, these efforts have
+
+been largely ineffective, thus far.
+
+       A team’s coaches and front office personnel determine the value of each player on a
+
+position-by-position basis. Fort (2011) defined the value of an athlete as the player’s addition to
+
+the team’s winning percentage multiplied by the marginal revenue generated by that player’s
+
+addition to winning percentage. Essentially, this is the dollar value of the team’s improvement as
+
+a result of adding the player. The most obvious measure of a player’s contribution is his
+
+statistics. Comparing player statistics across positions is difficult, however, because not all
+
+positions contribute equally to the outcome of a game or season. For example, a quarterback may
+
+play a larger role in the outcome of each game than a single wide receiver. Comparisons of
+
+statistical performance across positions require a uniform system to convert raw statistics into a
+
+single measure of value.
+
+        In recent years, the growing popularity of fantasy football has provided one way to
+
+compare performance across many positions. The comparison is limited to offensive skill
+
+positions, as points are awarded on an individual basis for yards gained and points scored.
+
+Defenses are scored as a team, rather than individually, and offensive linemen do not receive
+
+fantasy scores, so they are excluded from this research. In ESPN standard scoring leagues, one
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                             5
+
+point is earned for every ten rushing yards or twenty-five passing yards. In addition, six points
+
+are awarded for a rushing touchdown and four for a passing touchdown. Fumbles and
+
+interceptions count as a loss of two points (ESPN.com/fantasy/football). As part of employers’
+
+valuation processes, they may also consider outside factors that could keep players off the field
+
+entirely and minimize their contributions to team success. Even the best performer on the field is
+
+useless in a situation where he is not allowed to play. One such consideration is arrest history.
+
+       USA Today’s online sports database documented over 800 arrests of NFL players since
+
+2000 (www.usatoday.com/sports/nfl/arrests/). Under the league’s personal conduct policy,
+
+players miss significant playing time for criminal offenses. Consider, for example, the case of
+
+Adrian Peterson, the star running back for the Minnesota Vikings. Due to legal issues near the
+
+beginning of the season, Peterson only played one game during the 2014 season. In this case, off-
+
+the-field actions eliminated the marginal productivity he could provide his team. Although the
+
+overall crime rate among NFL players is lower than the crime rate among the general population,
+
+there is some evidence that NFL players commit violent crimes at a higher rate (Leal et al.,
+
+2015). Even if the statistics do not indicate a strong relationship, almost 70 percent of Americans
+
+believe that the NFL has an epidemic of domestic violence (Leal et al., 2015).
+
+        The NFL commissioner determines league punishment for off-field behavioral issues,
+
+and he is responsible for maintaining the league’s public image. He has the power to suspend a
+
+player from his team and keep him from playing for an extended period of time (NFLPA, 2011),
+
+and he may use that power to indicate to the public that the league does not tolerate violent
+
+crime. A player with a history of behavioral issues may pose the risk of wasting a team’s cap
+
+space or drawing the ire of fans. Complicating the matter, not all behavioral issues may be
+
+indicated by a player’s arrest history.
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                               6
+
+       Weir and Wu (2014) find that an arrest history in college, whether the player is formally
+
+charged or not, correlates to a significant fall in draft position—between 16 and 22 spots. The
+
+fall in draft position does not have a negative impact on NFL performance, however. This is
+
+consistent with the idea that a player’s value falls when he has a history of off-the-field issues,
+
+regardless of performance. Weir and Wu (2014) also find that suspensions enforced for
+
+noncriminal violations, such as team or university violations, lead to a similar drop in draft
+
+position and correlate with worse performance in the NFL. The performance drop-off may be
+
+indicative of attitude issues and difficulty getting along with coaches and teammates. Because
+
+these qualities are purely subjective, teams must make judgments about potential.
+
+       All of the aforementioned factors directly relate to a player’s contributions on the field. It
+
+may be possible, however, that factors completely separate from performance influence the
+
+valuation process. Fan discrimination may affect management’s decision to sign an athlete who
+
+could improve the team’s performance (Fort, 2011). When fans prefer to watch players with
+
+certain characteristics unrelated to performance, the marginal revenue generated by a player may
+
+suffer and influence management’s valuation. Kahn (1992) finds evidence consistent with fan
+
+discrimination based on race by studying the percent of white residents in the metropolitan area
+
+in which an NFL team played. He finds that white players receive higher salaries in areas with a
+
+high percentage of white residents, while non-white players see higher salaries in areas with
+
+higher percentages of non-white residents.
+
+       Discrimination may also occur at the ownership or teammate level. The wealthy owners
+
+of NFL organizations may value their own preferences over potential lost revenue from
+
+discrimination. Teammate discrimination occurs when players do not wish to interact with
+
+another player for reasons outside of performance. For example, the introduction of Jackie
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                               7
+
+Robinson into Major League Baseball exposed significant teammate discrimination. These types
+
+of discrimination are not profit maximizing and are not expected to persist (Fort, 2011). Because
+
+the NFL has little competition in the market for labor, however, owner and teammate
+
+discrimination could persist in the long run (Kahn, 1992).
+
+       One factor that may lead to discrimination is the racial identity of the player. Keefer
+
+(2013) finds that black linebackers in the NFL earn ten percent less than their white counterparts.
+
+However, a similar study by Burnett and Van Scyoc (2013) does not find statistically significant
+
+differences in the salaries of rookie wide receivers with respect to race. The effect of a player’s
+
+race on salary is unclear from the literature. Any effects that race may have on player salary are
+
+most likely to occur in the initial hiring process. When making decisions on player retention,
+
+discrimination may play a smaller role due to the fact that players have had an opportunity to
+
+prove themselves for that specific employer (Conlin and Emerson, 2006).
+
+                                           Methodology
+
+       For this study, salary data for 426 offensive skill position players are collected from
+
+Spotrac.com, a partner of USA Today Sports Media Group. The highest paid player and average
+
+cap value for each position are listed in Table 1.
+
+                                             Table 1
+                                  Highest Paid Player by Position
+
+              Highest-Paid                                                       Average Cap Value
+Position         Player                Team               Cap Value (2014)          by Position
+  QB          Eli Manning        New York Giants            $20,400,000             $5,275,071
+RB, FB       Adrian Peterson     Minnesota Vikings          $14,400,000             $1,734,462
+  WR          Mike Wallace        Miami Dolphins            $17,250,000             $2,530,006
+  TE          Jason Witten        Dallas Cowboys             $8,412,000             $1,792,419
+
+
+       Only players who have an active contract and filled a spot on the 53-man roster of one of
+
+the 32 NFL organizations at the time the data were collected are included. NFL.com provides
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                              8
+
+current rosters for all 32 teams and statistics for individual players. I collect data on years of
+
+experience, games played in the 2013 season, and race (white vs. nonwhite) from this website. I
+
+collect data on the number of Pro Bowls to which a player has been selected and whether a
+
+player was a first-round draft pick from Pro-Football-Reference.com.
+
+          I can identify players who entered free agency following the 2013 season, including both
+
+restricted and unrestricted free agents, from Scout.com, a Fox Sports affiliate. A player enters
+
+restricted free agency when his contract expires after his third year with a team. In this situation,
+
+the current team is allowed to match any qualifying offer the player has received from other
+
+teams; the player must accept the matching offer. In contrast, unrestricted free agents have
+
+completed a contract of at least four years in length and are allowed to sign with any team.
+
+Commonly, players who demonstrate value above their current contract leverage that position to
+
+renegotiate their contract prior to reaching free agency. These players are not classified as free
+
+agents.
+
+          I collect arrest data for all NFL players from the beginning of 2000 to 2013 from the USA
+
+Today online sports database (www.usatoday.com/sports/nfl/arrests). I include only players with
+
+active contracts, so recent cases in which the player was subsequently cut from the team’s roster,
+
+such as Ray Rice, are not included. I collect 2013 fantasy football statistics and team
+
+performance data from ESPN.com. The median household income and percentage of white
+
+residents for the urban areas in which each NFL team play are available from the U.S. Census
+
+website (www.census.gov).
+
+Data and Descriptive Statistics
+
+          Teams are subject to a finite salary cap that varies year to year ($133 million in 2014), so
+
+cap value is an accurate representation of the relative value that a team places on each player. For
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                               9
+
+this reason, Cap Value is the dependent variable. The average cap value of the players in this
+
+data set is $2,593,659. Of the positions included in this study, quarterbacks have the highest
+
+average cap value by a wide margin. This indicates that teams generally value the quarterback
+
+over other offensive skill positions. Eli Manning is the highest paid player in the data set with a
+
+cap value of $20,400,000 in 2014.
+
+       The independent variables are measures of individual characteristics, individual
+
+performance, and team and city characteristics. Arrest is a dummy variable with a value of one if
+
+the player has been arrested at least once from 2000 to 2014 and zero if the player has not been
+
+arrested over that time period. About eight percent of the players in this study have been arrested.
+
+       Non-White is a dummy variable equaling one if the player is non-white and zero if the
+
+player is white. About 66 percent of the players are non-white.
+
+       Experience, Experience Squared, First Round Pick, Undrafted, Games Played, Percent
+
+Games Started, Pro Bowls, and Fantasy PPG are variables designed to indicate an individual
+
+player’s performance. Experience represents the number of years that a given player has
+
+participated in the NFL. With seventeen years, Peyton Manning has the most experience. The
+
+average number of years of NFL experience is 5.13. Experience Squared represents the square of
+
+the number of years a player has been in the NFL. This variable will control for the effects of
+
+diminishing productivity that would be expected at older ages due to the highly physical nature
+
+of professional football.
+
+       First Round Pick is a dummy variable equaling one if the player was selected in the first
+
+round of the NFL draft and zero if drafted in any other round or undrafted. About 18 percent of
+
+the players are first round draft picks. Undrafted is a dummy variable with a value of one for
+
+players who were not selected in the NFL draft. These players were signed as undrafted free
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                           10
+
+agents after the draft process concluded. Over 25 percent of the players in this data set went
+
+undrafted.
+
+       Games Played represents the number of games in which the player participated during
+
+the 2013 season. The average is nearly 12 games. Percent of Games Started indicates the
+
+percentage of the 16 game season that the player started in 2013. The average percent of games
+
+started was about 39 percent.
+
+       Pro Bowls indicates the number of times that a player has been selected to the Pro Bowl
+
+over the course of his career. With thirteen appearances, Peyton Manning has been selected the
+
+most often. The average number of Pro Bowls is 0.57.
+
+       Fantasy PPG represents the average number of fantasy points a player scored in ESPN
+
+standard scoring leagues in each game that they appeared, computed as the total number of
+
+fantasy points earned in the 2013 season divided by the number of games in which the player
+
+appeared. Peyton Manning averaged over 25 points per game, the league high for 2013. In
+
+comparison, the league average was less than 5 points per game.
+
+       Free Agent is a dummy variable that takes a value of one if a player became a free agent
+
+following the 2013 season and zero otherwise. About 24 percent of the players were free agents
+
+who re-signed with their 2013 team or signed with a different team for the 2014 season.
+
+       Team performance data indicates how effectively teams allocate finite cap space to
+
+optimize performance. Playoffs is a dummy variable with a value of one if the player’s team
+
+reached the playoffs in 2013 and zero if it did not. For players who were traded or signed by
+
+another team out of free agency, the team that they played for in 2013 is used instead of their
+
+current team. Each year, 12 out of 32 teams participate in the NFL playoffs. Team Winning
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                              11
+
+Percentage indicates the percent of the games won over the course of the 16 game 2013 season.
+
+Each player’s team is determined in the same manner as the Playoffs variable.
+
+        Kahn (1992) includes variables to correct for variations in demographics among the cities
+
+where NFL teams are located. Median Income and Percent White Residents describe the
+
+demographics in the urban areas where each team plays. Foxborough, Massachusetts, home of
+
+the New England Patriots, has the highest percentage of white residents at 90.3 percent. In
+
+contrast, Detroit has the lowest percent of white residents: 10.6 percent. San Francisco has the
+
+highest median household income ($73,802), while Detroit has the lowest ($26,325).
+
+        Descriptive statistics for the variables are reported in Table 2 for the total data set, as well
+
+as veteran and rookie contract subsets. I define a player on a rookie contract as any player with
+
+two or three years of experience, as contracts cannot be renegotiated until after the third contract
+
+year under the 2011 CBA. I cannot include first-year players because they lack performance
+
+statistics from 2013. A veteran is defined as any player with more than three years of experience.
+
+Model
+
+        I use ordinary least squares regression to estimate the effects of the individual, team, and
+
+city variables on the compensation of NFL offensive skill-position players. Veteran and rookie
+
+contracts are modeled separately due to the effects of the 2011 CBA on rookie contract
+
+structures. The variables included in the final models were selected based on theoretical
+
+significance and inclusion in previous literature. To provide insight into the explanatory value of
+
+each independent variable, the dependent variable was also regressed against each independent
+
+variable individually. The R2 from the individual regressions are presented in appendix Table 1.
+THE DETERMINANTS OF NFL PLAYER SALARIES                                              12
+
+                                   Table 2
+                             Descriptive Statistics
+
+                                      Mean (Standard Deviation)
+      Variable
+                     Total Data Set        Veteran Contracts      Rookie Contracts
+     Cap Value         2,593,659               3,700,403              807,931
+                      (3,660,113)             (4,261,482)            (760,036)
+   ln(Cap Value)         14.128                  14.571                13.412
+                         (1.059)                 (1.063)              (0.531)
+    Fantasy PPG           4.941                   5.789                 3.574
+                         (5.001)                 (5.272)              (4.197)
+       Arrest             0.085                   0.118                 0.031
+                         (0.278)                 (0.323)              (0.173)
+     Nonwhite             0.657                   0.624                 0.718
+                         (5.139)                 (0.485)              (0.451)
+     Experience           5.139                   6.814
+                                                                        N/A
+                         (3.026)                 (2.710)
+    (Experience)2        35.542                  53.741
+                                                                        N/A
+                        (42.691)                (45.646)
+  First Round Pick        0.178                   0.228                 0.098
+                         (0.383)                 (0.420)               (0.298)
+     Undrafted            0.251                   0.186                 0.356
+                         (0.434)                 (0.390)               (0.480)
+     Pro Bowls            0.566                   0.871                 0.074
+                         (1.503)                 (1.834)               (0.305)
+   Games Played          11.883                  12.114                11.509
+                         (5.157)                 (5.059)               (5.305)
+  % Games Started         0.393                   0.475                 0.263
+                         (0.371)                 (0.381)               (0.313)
+     Free Agent           0.237                   0.369                 0.025
+                         (0.426)                 (0.483)               (0.155)
+    Team Win %            0.507                   0.518                 0.491
+                         (0.192)                 (0.191)               (0.193)
+      Playoffs            0.404                   0.430                 0.362
+                         (0.491)                 (0.496)               (0.482)
+ % White Residents        0.544                   0.544                 0.542
+                         (0.177)                 (0.181)               (0.170)
+   Median Income         46,232                  47,000                44,992
+                        (11,198)                (11,500)              (10,610)
+ ln(Median Income)       10.712                  10.728                10.687
+                         (0.244)                 (0.248)               (0.236)
+         N                426                     263                   163
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                                                     13
+
+          The model in equation [1] applies to all players and to veterans.
+
+ [1]             𝑙𝑙𝑙𝑙(𝐶𝐶𝐶𝐶𝐶𝐶 𝑉𝑉𝑉𝑉𝑉𝑉𝑉𝑉𝑉𝑉)
+
+                  = 𝛽𝛽0 + 𝛽𝛽1 ∗ 𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹 + 𝛽𝛽2 ∗ 𝐴𝐴𝐴𝐴𝐴𝐴𝐴𝐴𝐴𝐴𝐴𝐴 + 𝛽𝛽3 ∗ 𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁ℎ𝑖𝑖𝑖𝑖𝑖𝑖 + 𝛽𝛽4 ∗ 𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸
+
+                  + 𝛽𝛽5 ∗ 𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝐸𝑒𝑒 2 + 𝛽𝛽6 ∗ 𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹 + 𝛽𝛽7 ∗ 𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈 + 𝛽𝛽8
+
+                  ∗ 𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃𝑃 + 𝛽𝛽9 ∗ 𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹 + 𝛽𝛽10 ∗ 𝑇𝑇𝑇𝑇𝑇𝑇𝑇𝑇𝑇𝑇𝑇𝑇𝑇𝑇% + 𝛽𝛽11
+
+                  ∗ %𝑊𝑊ℎ𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖 + 𝛽𝛽12 ∗ 𝑙𝑙𝑙𝑙(𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀)
+
+          In this model, the dependent variable is the natural log of the cap value. Cap value does
+
+not represent all of the cash a player may receive in a given year, but it provides an excellent way
+
+to compare salaries because it captures the value of a player relative to the total team salary cap.
+
+Signing bonuses are amortized on a straight-line basis over the term of a player’s contract, even
+
+though the player may receive the entire bonus up front (NFLPA, 2011). Variables to measure
+
+performance are included in model [1] because veteran players have had the opportunity to
+
+negotiate a salary based on performance. Strong correlations among Games Started, Games
+
+Played, and Fantasy PPG motivated the decision to include only the latter variable to minimize
+
+the effects of multicollinearity in the model. Similar concerns about the correlation between
+
+Team Win Percentage and Playoffs motivated the decision to include only the former.
+
+          Model [2] is designed to capture the factors that determine Cap Value in rookie contracts.
+
+
+    [2]              𝑙𝑙𝑙𝑙(𝐶𝐶𝐶𝐶𝐶𝐶 𝑉𝑉𝑉𝑉𝑉𝑉𝑉𝑉𝑉𝑉)
+
+                      = 𝛽𝛽0 + 𝛽𝛽1 ∗ 𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁ℎ𝑖𝑖𝑖𝑖𝑖𝑖 + 𝛽𝛽2 ∗ 𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝑅𝑅𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜𝑜 + 𝛽𝛽3 ∗ 𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈𝑈 + 𝛽𝛽4
+
+                      ∗ 𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹𝐹 + 𝛽𝛽5 ∗ %𝑊𝑊ℎ𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖𝑖 + 𝛽𝛽6 ∗ 𝑙𝑙𝑙𝑙(𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀𝑀)
+
+
+          Like model [1], ln(Cap Value) serves as the dependent variable. The difference between
+
+the two models is the absence of individual and team performance variables in model [2].
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                              14
+
+Because players cannot renegotiate rookie contracts until after the third year, performance cannot
+
+exert positive influence on rookie contract cap value. At the inception of the contract,
+
+performance is an unknown. Therefore, cap value may only vary with performance to the extent
+
+that future performance is explained by known factors at the inception of the contract. Free
+
+Agent is included in this model because teams have the option to release a player at any time, so
+
+a player with two or three years of experience may still be classified as a free agent.
+
+Predicted Signs of Coefficients
+
+       For each variable in the models, I specify the expected sign of the coefficient in the fitted
+
+model. Expected signs are determined by examining the findings of past literature and applying
+
+the theoretical relevance of each variable. A positive sign indicates that I expect an increase in
+
+the value of the variable to correlate with an increase in the natural logarithm of Cap Value. A
+
+negative sign indicates that I expect an increase in the value of the variable to correlate with a
+
+decrease in the natural logarithm of Cap Value.
+
+       Assuming that League punishment following a player’s arrest affects playing time and
+
+productivity, a previous arrest should negatively affect player salary. The most extreme case of a
+
+negative impact on salary—a team releasing a player—is not accounted for in this study, as only
+
+players currently occupying a roster spot are included in the data set. A team may retain a player
+
+after being arrested if it values his contributions to the team enough to compensate for the
+
+negative publicity they may receive. Until contract renegotiations, the cap value of players in this
+
+situation may not be affected.
+
+       A survey conducted to measure the public attitude toward Michael Vick’s criminal
+
+punishment and reinstatement to the League indicates that white respondents tend to support
+
+harsher punishment of players who have been arrested (Piquero et al., 2011). As a result, arrests
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                             15
+
+may have a larger effect on salary among teams located in cities with a high percentage of white
+
+residents. Overall, there is no evidence to suggest that arrest would have a positive effect on
+
+salary. I expect a negative coefficient for the Arrest variable.
+
+       In the market for linebackers from 2001-2009, Keefer (2013) find evidence consistent
+
+with differences in salary based on race. The results suggest that white linebackers receive ten
+
+percent higher salaries on average than their black counterparts. Kahn (1992) shows that the
+
+correlation between race and salary is dependent on the racial demographics of the urban area
+
+where the team plays. He finds that white players tend to earn more than non-white players in
+
+areas with a high percentage of white residents, while non-white players tend to earn more in
+
+areas with a high percentage of non-white residents. In contrast, Gius and Johnson (2000)
+
+conclude that white players earn ten percent less than black players. Another recent study by
+
+Burnett and Van Scyoc (2013) finds no differences in the salaries of rookie wide receivers in the
+
+NFL based on race. As this data set closely resembles my subset of rookie contracts, I expect to
+
+see a similar lack of correlation between race and compensation among players in their rookie
+
+contracts. To the extent that correlation exists, I would expect the sign of Nonwhite to be
+
+negative, as found in the previous literature.
+
+       Following the NFL’s new collective bargaining agreement in 2011, the value of rookie
+
+contracts has dropped significantly (Brandt et. al., 2013). In addition, all new rookie contracts
+
+last for four years and cannot be renegotiated until after the completion of three full seasons.
+
+Consequently, many young players receive compensation well below their values (Brandt et. al.,
+
+2013). As a result, I expect Experience to have a positive coefficient in the total and veteran data
+
+sets, as players with the skill level to continue playing beyond their rookie contracts sign new,
+
+more lucrative contracts following their third or fourth year in the league. Following labor
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                            16
+
+economics theory, I expect the sign of Experience Squared to be negative as players face
+
+diminishing productivity at older ages. Experience and Experience Squared are not included in
+
+the model for rookie contracts because each variable would have only two possible values.
+
+       NFL teams spend first round draft picks on players they believe possess the potential to
+
+have the largest impact on the future of the organization. As such, they should place a larger
+
+value on players selected early in the draft resulting in a positive coefficient. I expect First
+
+Round Pick to be positive in the rookie contract subset, as first round draft picks reflect high
+
+performance expectations. The salary restrictions imposed on rookies in the 2011 collective
+
+bargaining agreement may mitigate this effect in the total data set, as the decrease in average
+
+rookie contract value post-2011 CBA may reduce the average salary of first round picks in the
+
+total data set. I expect this variable to be weaker in predicting veteran contracts, as these players
+
+have performed well enough to warrant new or continued contracts regardless of draft position.
+
+In all cases, I expect the sign of coefficient for First Round Pick to be positive.
+
+       I expect the Undrafted variable to take the opposite sign of the First Round Pick variable,
+
+and I expect the magnitude to be nearly the same. I expect undrafted players among the rookie
+
+contract to have especially small contracts, as they must prove they are capable of performing at
+
+the same level as players deemed to have more potential in the draft. Much like the First Round
+
+Pick variable, I expect the effect of Undrafted to diminish in the total data set and veteran subset,
+
+as compensation decisions move toward measured, rather than expected, NFL performance.
+
+       Standout players at each position are selected to participate in the Pro Bowl each year.
+
+Many Pro Bowl appearances suggest that a player has performed extraordinarily well over an
+
+extended period of time and may warrant a higher salary. I expect a positive correlation between
+
+Pro Bowls and Cap Value.
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                            17
+
+       Players who outperform their contracts have the opportunity to leverage their
+
+performance to negotiate for higher salaries in free agency. Such performance may also enable a
+
+player to negotiate a contract extension that would keep him from entering free agency at all.
+
+The frequency of these contract extensions may reduce the number of highly valuable players
+
+entering free agency and so reduce the positive effects on salary. With the new collective
+
+bargaining agreement limiting the value of rookie contracts, teams may find it a more efficient
+
+allocation of cap space to draft and sign multiple rookies instead of signing one veteran from free
+
+agency (Brandt et al., 2013). As a result, free agency may be negatively correlated with salary.
+
+The sign of the coefficient is difficult to predict in the veteran subset because I cannot measure
+
+the prevalence of contract renegotiation. Because players on rookie contracts do not have this
+
+renegotiation option, I expect the sign of Free Agent to be negative within the rookie subset. A
+
+team has no incentive to release a player on a rookie contract into free agency unless he performs
+
+below the value of the contract and show little future potential. Such expectations would likely
+
+result in a smaller contract with a new team or the player leaving the league entirely.
+
+       Fantasy football provides a unique way to evaluate an offensive player’s contribution on
+
+the field. By awarding points for yards and touchdowns and penalizing players for turnovers,
+
+fantasy football allows cross-positional comparisons of performance. I expect Fantasy PPG to be
+
+positively related to player cap value.
+
+       Exceptional team performance should correlate to higher salaries. Assuming a successful
+
+team is able to identify the players who make the largest contribution, those players should
+
+receive a relatively high salary. Offensive skill position players may receive more credit for a
+
+team’s success, as their contributions are easily observed. I expect Team Winning Percentage to
+
+be positively related to player salary.
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                                       18
+
+               As outlined by Kahn (1992), Percent White Residents may affect salaries for white and
+
+non-white players differently. The sign of the coefficient may depend on the distribution of white
+
+and non-white players in certain urban areas. Median Income should have a minimal effect on
+
+salary because each team is operating under the same salary cap, and it is in each team’s best
+
+interest to efficiently allocate the entirety of the cap space.
+
+                                             Results and Discussion
+
+               Table 3 contains the results from the ordinary least squares regression used to estimate
+
+the empirical models specified in [1] and [2]. Model R2 in Appendix Table 1 represents the R2
+
+value when the natural log of cap value is analyzed against that single regressor.
+
+               Fantasy PPG is statistically significant (p<.01) in both models. The result from the
+
+veteran contract model indicates that a one-point increase in fantasy points per game correlates
+
+with a 10.6 percent increase in cap value. 1 The Fantasy PPG model R2 (.46) indicates that this
+
+variable explains nearly half of the variation in the natural log of cap value for veteran players.
+
+Of the variables considered in the veteran contract model, Fantasy PPG has the greatest
+
+explanatory value by a wide margin. The veteran contracts model provides the clearest image of
+
+the true correlation between fantasy performance and cap value because it excludes rookie
+
+contracts, which cannot be influenced by fantasy performance.
+
+               Arrest is statistically significant (p<.05) in both models. The influence is clearest in the
+
+veteran data set. The model for veteran contracts indicates that a past arrest correlates with a 26.1
+
+percent decrease in cap value.
+
+
+
+
+1
+   Because the dependent variable is the natural log of cap value, coefficients are interpreted as
+    𝑐𝑐𝑐𝑐𝑐𝑐𝑐𝑐
+𝑒𝑒     − 1.
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                19
+
+
+
+
+                                    Table 3
+                               Regression Results
+                        Dependent Variable—ln(Cap Value)
+                                         Coefficient (Standard Error)
+   Variable
+                   Total Data Set               Veteran Contracts       Rookie Contracts
+                     13.228**                       11.917**               15.241**
+   Constant
+                       (1.349)                        (1.963)               (1.349)
+                      0.080**                        0.101**
+ Fantasy PPG                                                                  N/A
+                       (0.007)                        (0.009)
+                      - 0.261*                       - 0.302*
+    Arrest                                                                    NA
+                       (0.103)                        (0.128)
+                     - 0.161**                       - 0.184*                0.034
+  Nonwhite
+                       (0.060)                        (0.087)               (0.058)
+                      0.483**                        0.448**
+  Experience                                                                  N/A
+                       (0.038)                        (0.076)
+                     - 0.026**                      - 0.025**
+ (Experience)2                                                                N/A
+                       (0.003)                        (0.005)
+ First Round          0.512**                        0.379**                1.236**
+     Pick              (0.082)                        (0.110)               (0.090)
+                      - 0.137*                        - 0.058              - 0.247**
+  Undrafted
+                       (0.067)                        (0.107)               (0.480)
+                      0.132**                        0.118**
+  Pro Bowls                                                                   N/A
+                       (0.029)                        (0.034)
+                     - 0.374**                      - 0.383**              - 0.519**
+  Free Agent
+                       (0.073)                        (0.088)               (0.174)
+                        0.017                         - 0.133
+ Team Win %                                                                   N/A
+                       (0.152)                        (0.225)
+   % White              0.156                          0.173                - 0.060
+   Residents           (0.183)                        (0.264)               (0.176)
+  ln(Median            - 0.097                         0.041                - 0.172
+   Income)             (0.131)                        (0.187)               (0.130)
+
+ Adjusted R2          0.7119                          0.6303                0.6191
+
+  F-Statistic    F(11,414)=88.51**             F(11,251)=38.23**        F(6,156)=44.89**
+
+      N                 426                            263                    163
+
+                              **Significant at the one-percent level
+                              *Significant at the five-percent level
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                                20
+
+        The Nonwhite variable provides one of the more interesting results in this research. The
+
+models indicate that race is statistically significant in the total (p<.01) and veteran (p<.05)
+
+contract data sets, but it is not statistically significant in the model for rookie contracts. The
+
+model for veteran contracts indicates that nonwhite players receive, on average, 16.8 percent less
+
+than their white counterparts. I suspect that this result may be partially due to the fact that 13 of
+
+the top 15 cap values in the veteran contract data set belong to white starting quarterbacks. The
+
+density of high-value, white players at the top of the distribution exaggerates the magnitude of
+
+the coefficient.
+
+        Experience and Experience Squared remain very consistent across both models. Each
+
+additional year of NFL experience correlates to a 62.1 percent increase in cap value in the model
+
+for the total data set. The negative coefficient for Experience Squared reflects diminishing
+
+productivity in later years. These results are statistically significant (p<.01).
+
+        As expected, being a first round draft pick has a strong, positive correlation with cap
+
+value. This variable, when considered alone, explains over half of the variation in the natural log
+
+of cap values of rookie contracts. It has, by far, the most explanatory power of the variables in
+
+the model for the rookie data set. Among rookie contracts, first round draft picks receive, on
+
+average, 244 percent larger cap values than players not drafted in the first round. For veterans,
+
+first round picks receive 46.1 percent more than their counterparts on average. The variable is
+
+statistically significant (p<.01) across all models.
+
+        The correlation between being undrafted and compensation manifests in the opposite
+
+direction of first round picks. It is important to note that the result is only statistically significant
+
+in the model for rookie contracts (p<.01), where going undrafted correlates with a 21.9 percent
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                             21
+
+lower cap value. The lack of significance in the veteran model indicates that players who prove
+
+themselves worthy of a contract do not face lower contract values in subsequent contracts.
+
+        As expected, Pro Bowls are positively correlated with cap value, with a 12.5 percent
+
+increase for each additional Pro Bowl invitation among veteran contracts. This result is
+
+statistically significant (p<.01).
+
+        Free agency following the 2013 season correlates with a 31.8 percent decrease in cap
+
+value. This result is statistically significant (p<.01) and indicates that the most valuable free
+
+agents tend to renegotiate contracts prior to expiration, rather than enter free agency. Among
+
+rookie contracts, free agents received, on average, 40.5 percent lower cap values in the following
+
+year. This relationship is consistent with the assertion that teams only release players from rookie
+
+contracts when they significantly underperform. Teams have an incentive to renegotiate contracts
+
+with players who outperform their current contracts before those players enter free agency. Such
+
+a tactic prevents a player from abandoning the team for more money elsewhere. For players who
+
+underperform in their contracts, teams are not as aggressive. Therefore, underperforming players
+
+are heavily represented in the free agent market, and free agents receive, on average, a pay cut
+
+between 30 and 40 percent.
+
+        Team winning percentage is not statistically significant in determining a player’s cap
+
+value. In addition, neither the percentage of white residents nor the median household income in
+
+the area where teams play have statistically significant effects on cap value. The insignificance
+
+of team performance and metropolitan demographics may be a result of the standardized salary
+
+cap by which all teams must abide, regardless of success or location.
+THE DETERMINANTS OF NFL PLAYER SALARIES                                                             22
+
+
+
+
+                                            Conclusions
+
+       Past research into the determinants of NFL player salaries struggles to compare players
+
+across positions because of the differences in statistical performance measures. This research is
+
+the first to use fantasy football statistics as a formal measure of cross-positional performance.
+
+Using salary data from 2014 and the previous year’s individual and team performance
+
+information, this research analyzes the determinants of NFL player salaries in rookie and veteran
+
+contracts.
+
+       The results indicate that race and arrest history are significant factors in determining a
+
+veteran player’s cap value but have little to no significant effects on the cap values of players on
+
+rookie contracts. The results also suggest that, while race and arrests are significant, the greatest
+
+variation in an NFL player’s cap value comes from the player’s individual performance and
+
+career factors. Players receive, on average, 11 percent larger cap values for each additional
+
+fantasy point per game. The statistical significance of these results and the raw explanatory
+
+power of the variable indicate that fantasy football statistics closely mirror the real-life
+
+performance judgments made in the front offices of NFL organizations.
+
+       In rookie contracts, draft position is the primary determinant of salary. First round draft
+
+picks receive significantly higher salaries, while undrafted players receive much less. These
+
+differences persist throughout the length of rookie contracts due to the limits on negotiation in
+
+the 2011 collective bargaining agreement.
+                                         References
+
+Brandt, Andrew, Richard O’Brien, and Mark Bechtel. 2013. “Boxed In, Squeezed Out.” Sports
+
+       Illustrated, May 27. Accessed January 6, 2015.
+
+       http://www.si.com/vault/2013/05/27/106326494/boxed-in-squeezed-out.
+
+Burnett, Nancy, and Lee Van Scyoc. 2013. “Compensation Discrimination for Wide Receivers:
+
+       Applying Quantile Regression to the National Football League.” Journal of Reviews on
+
+       Global Economics 2: 433-441. Accessed January 3, 2015.
+
+       http://dx.doi.org/10.6000/1929-7092.2013.02.30.
+
+Carson, Kyle, Joshua Kim, Annamaria Lusardi, and Colin Camerer. 2015. “Bankruptcy Rates
+
+       Among NFL Players With Short-Lived Income Spikes,” National Bureau of Economic
+
+       Research. Accessed October 13, 2015. http://www.nber.org/papers/w21085.
+
+Conlin, Michael, and Patrick Emerson. 2006. “Discrimination in Hiring Versus Retention and
+
+       Promotion.” Journal of Law, Economics and Organization 22, no. 1: 115-136. Accessed
+
+       September 9, 2015. http://dx.doi.org/10.1093/jleo/ewj005.
+
+Davis, Wade. 2014. “A Numbers Game: Making an NFL Roster.” Huffington Post, October 28.
+
+       Accessed March 26, 2016. http://www.huffingtonpost.com/wade-davis-jr/a-numbers-
+
+       game-making-an-nfl-roster_b_5731630.html.
+
+Ducking, Johnny, Peter Groothuis, and James R. Hill. 2014. “Compensation Discrimination in
+
+       the NFL: An Analysis of Career Earnings.” Applied Economics Letters 21, no. 10: 679-
+
+       682. Accessed January 10, 2015. http://dx.doi.org/10.1080/13504851.2014.884688.
+
+Fort, Rodney. 2011. Sports Economics. 3rd Ed. Upper Saddle River, NJ: Pearson Education, Inc.
+Gius, Mark, and Donn Johnson. 2000. “Race and Compensation in Professional Football.”
+
+       Applied Economic Letters 7, no. 2:73-75. Accessed January 11, 2015.
+
+       http://dx.doi.org/10.1080/135048500351843.
+
+Isidore, Chris. 2015. “NFL Revenue: Here Comes Another Record Season.” CNN Money,
+
+       September 10. Accessed March 26, 2016.
+
+       http://money.cnn.com/2015/09/10/news/companies/nfl-revenue-profits/.
+
+Kahn, Lawrence M..1992. “The Effects of Race on Professional Football Players’
+
+       Compensation.” Industrial and Labor Relations Review 45, no. 2: 295-310. Accessed
+
+       January 6, 2015. http://dx.doi.org/ 10.1177/001979399204500207.
+
+Keefer, Quinn and Andrew Wesley. 2013. “Compensation Discrimination for Defensive Players:
+
+       Applying Quantile Regression to the National Football League Market for Linebackers,”
+
+       Journal of Sports Economics 14, no. 1: 23-44. Accessed January 8, 2015.
+
+       http://dx.doi.org/10.1177/1527002511413288.
+
+Larsen, Andrew, Aju Fenn, and Erin Spenner. 2006. “The Impact of Free Agency and the Salary
+
+       Cap on Competitive Balance in the National Football League.” Journal of Sports
+
+       Economics 7, no.4: 374-390. Accessed January 8, 2015.
+
+       http://dx.doi.org/10.1177/1527002505279345.
+
+Leal, Wanda, Marc Gertz, and Alex R. Piquero. 2015. “National Felon League?: A Comparison
+
+       of NFL Arrests to General Population Arrests.” Journal of Criminal Justice 43, no. 5:
+
+       397-403. Accessed March 30, 2016. http://dx.doi.org/10.1016/j.jcrimjus.2015.08.001.
+Leeds, Michael A., and Sandra Kowalewski. 2001. “Winner Take All in the NFL: The Effect of
+
+       the Salary Cap and Free Agency on the Compensation of Skill Position Players” Journal
+
+       of Sports Economics 2, no. 3: 244-256. Accessed January 5, 2015. http://dx.doi.org/
+
+       10.1177/152700250100200304
+
+Mahoney, Josh. 2009. “Does Race Affect the Salaries of NFL Players?” Honors Thesis.
+
+       University of Northern Iowa.
+
+NFL Players Association, Collective Bargaining Agreement. August 4, 2011. Accessed
+
+       September 9, 2015. https://nfllabor.files.wordpress.com/2010/01/collective-bargaining-
+
+       agreement-2011-2020.pdf.
+
+Piquero, Alex, Nicole Leeper Piquero, Marc Gertz, Thomas Baker, Jason Batton, and J.C.
+
+       Barnes. 2011. “Race, Punishment, and the Michael Vick Experience.” Social Science
+
+       Quarterly 92, no. 2: 535-551. Accessed January 9, 2015. http://dx.doi.org/
+
+       10.1111/j.1540-6237.2011.00781.x.
+
+Quinn, Kevin. 2012. “Getting to the 2011-2020 National Football League Collective Bargaining
+
+       Agreement.” International Journal of Sport Finance 7:141-15. Accessed September 15,
+
+       2015.
+
+Weir, Kendall, and Stephen Wu. 2014. "Criminal records and the labor market for professional
+
+       athletes: The case of the National Football League." Journal of Sports Economics 15:
+
+       617-635. Accessed September 20, 2015. http://dx.doi.org/10.1177/1527002513487739.
+                           Appendix Table 1
+                          Individual Model R2
+                    Dependent Variable—ln(CapValue)
+                                         Model R2
+    Variable
+                    Total Data Set   Veteran Contracts   Rookie Contracts
+  Fantasy PPG          0.4384             0.4592                --
+      Arrest           0.0029             0.0043                --
+    Nonwhite           0.0135             0.0112             0.0061
+   Experience          0.3548             0.1485                --
+  (Experience)2        0.2831             0.1324                --
+ First Round Pick      0.2489             0.1964             0.5505
+    Undrafted          0.0810             0.0300             0.1705
+    Pro Bowls          0.2848             0.2555                --
+   Free Agent          0.0005             0.1025             0.0188
+  Team Win %           0.0025             0.0006                --
+% White Residents      0.0002             0.0004             0.0005
+ln(Median Income)      0.0000             0.0014             0.0068
+        N                426               263                 163
+

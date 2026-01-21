@@ -48,6 +48,10 @@ from .game_state import PlayHistory, GameSituation
 from .core.variance import VarianceConfig, SimulationMode, set_config as set_variance_config
 from .core.trace import get_trace_system, TraceCategory
 from .core.phases import PlayPhase, PhaseStateMachine
+from .core.huddle_positions import (
+    HuddleConfig, DEFAULT_HUDDLE_CONFIG,
+    get_player_huddle_target, calculate_huddle_center,
+)
 from .core.contexts import (
     WorldStateBase, QBContext, WRContext, OLContext, DLContext,
     LBContext, DBContext, RBContext, BallcarrierContext,
@@ -418,6 +422,13 @@ class Orchestrator:
         # Protection call from Center/QB (slide direction for OL coordination)
         self._protection_call: str = ""  # "slide_left", "slide_right", ""
 
+        # Huddle phase state
+        self._huddle_config: HuddleConfig = DEFAULT_HUDDLE_CONFIG
+        self._huddle_started_at: Optional[float] = None  # When huddle phase started
+        self._huddle_targets: Dict[str, Vec2] = {}  # player_id -> huddle position
+        self._formation_targets: Dict[str, Vec2] = {}  # player_id -> formation position
+        self._next_los_y: float = 0.0  # LOS for next play (set during huddle)
+
         # Subscribe to key events
         self._setup_event_handlers()
 
@@ -538,13 +549,27 @@ class Orchestrator:
         # Clear state from previous play
         self._profiles.clear()
         self.block_resolver.clear_engagements()
+        self.route_runner.clear_assignments()
+        self.coverage_system.clear_assignments()
 
-        # Build movement profiles
+        # Reset all player state to prevent leaks between plays
+        for p in offense + defense:
+            p.velocity = Vec2.zero()
+            p.current_speed = 0.0
+            p.has_ball = False
+            p.is_down = False
+            p.is_engaged = False
+            p.assignment = ""
+            p.target_id = None
+            p._explicit_facing = False
+
+        # Build movement profiles with NGS calibration
         for p in offense + defense:
             self._profiles[p.id] = MovementProfile.from_attributes(
                 speed=p.attributes.speed,
                 acceleration=p.attributes.acceleration,
                 agility=p.attributes.agility,
+                position=p.position.value if p.position else None,
             )
 
         # Find QB and give them the ball
@@ -567,7 +592,7 @@ class Orchestrator:
                 player.read_order = read_order
                 # Determine side
                 is_left = player.pos.x < 0
-                self.route_runner.assign_route(player, route, player.pos, is_left)
+                self.route_runner.assign_route(player, route, player.pos, is_left, field=self.field)
 
         # Setup man coverage
         for defender_id, target_id in config.man_assignments.items():
@@ -607,6 +632,19 @@ class Orchestrator:
                     # If zone type still not valid, skip silently
                     pass
 
+        # Wire up player assignment fields from coverage_system for snap state initialization
+        # This enables correct play_state transitions in _do_snap()
+        from .systems.coverage import CoverageType as CovType
+        for player_id, assignment in self.coverage_system.assignments.items():
+            player = self._get_player(player_id)
+            if player and assignment:
+                if assignment.coverage_type == CovType.MAN:
+                    player.assignment = f"man:{assignment.man_target_id}"
+                    player.target_id = assignment.man_target_id
+                else:
+                    zone_val = assignment.zone_type.value if assignment.zone_type else "unknown"
+                    player.assignment = f"zone:{zone_val}"
+
         # Reset state
         self.clock = Clock()
         self.event_bus.clear_history()
@@ -632,6 +670,10 @@ class Orchestrator:
         self._handoff_complete = False
         self._run_concept = None
 
+        # Reset pre-snap adjustment state
+        self._hot_routes.clear()
+        self._protection_call = ""
+
         # Load run concept if this is a run play
         if config.is_run_play and config.run_concept:
             self._run_concept = get_run_concept(config.run_concept)
@@ -639,7 +681,15 @@ class Orchestrator:
         # Calculate dropback target position (QB x-position, depth behind LOS)
         for p in offense:
             if p.position == Position.QB:
-                self._dropback_target = Vec2(p.pos.x, los_y - self._dropback_depth)
+                # For shotgun, QB is already behind LOS - drop relative to current position
+                # For under-center drops, drop relative to LOS
+                if config.dropback_type == DropbackType.SHOTGUN:
+                    # Shotgun: shuffle back from current position
+                    target_y = p.pos.y - self._dropback_depth
+                else:
+                    # Standard drop: calculate from LOS, but ensure it's behind QB
+                    target_y = min(p.pos.y - 1.0, los_y - self._dropback_depth)
+                self._dropback_target = Vec2(p.pos.x, target_y)
                 break
 
         # Clear pre-snap adjustments from previous play
@@ -1214,6 +1264,14 @@ class Orchestrator:
         # Set tick for trace system (so all brain traces have correct timestamp)
         self._trace_system.set_tick(self.clock.tick_count, self.clock.current_time)
 
+        # Handle between-play phases (HUDDLE, FORMATION_MOVE)
+        if self.phase == PlayPhase.HUDDLE:
+            self._update_huddle_tick(dt)
+            return
+        elif self.phase == PlayPhase.FORMATION_MOVE:
+            self._update_formation_move_tick(dt)
+            return
+
         # Update QB dropback state first (so WorldState has fresh data)
         if self.phase == PlayPhase.DEVELOPMENT:
             self._update_qb_dropback_state(dt)
@@ -1604,8 +1662,16 @@ class Orchestrator:
             # TODO: Fumble recovery logic
 
     def _apply_movement_result(self, player: Player, result: MovementResult) -> None:
-        """Apply a movement result to a player."""
-        player.pos = result.new_pos
+        """Apply a movement result to a player.
+
+        Includes safety net clamping to ensure players stay in bounds.
+        """
+        # Apply position with boundary safety net
+        new_pos = result.new_pos
+        if self.field:
+            new_pos = self.field.clamp_to_field(new_pos)
+
+        player.pos = new_pos
         player.velocity = result.new_vel
         player.current_speed = result.speed_after
         # Only update facing from velocity if not explicitly set by brain
@@ -1627,6 +1693,9 @@ class Orchestrator:
         if not receiver:
             return
 
+        # Get defensive players for passing lane detection
+        defenders = list(self.defense) if self.defense else []
+
         # Execute throw using passing system
         throw_result = self.passing_system.throw_ball(
             ball=self.ball,
@@ -1634,6 +1703,7 @@ class Orchestrator:
             target_receiver=receiver,
             clock=self.clock,
             anticipated_target_pos=target_pos,
+            defenders=defenders,
         )
 
         # Update QB state
@@ -1933,8 +2003,15 @@ class Orchestrator:
 
         This prevents players from clipping through each other, even when
         they're not in an official blocking engagement yet.
+
+        Note: For ENGAGED pairs, BlockResolver already enforces the same
+        MIN_SEPARATION (0.8 yards) internally. This function serves as a
+        safety net for non-engaged pairs that are approaching each other.
+        Since engaged players don't receive brain-controlled movement
+        (see _update_player_brain_only), there's no jitter risk.
         """
-        MIN_SEPARATION = 0.8  # Yards - body collision radius
+        # Import from blocking module to ensure consistency
+        from .resolution.blocking import MIN_SEPARATION
 
         OL_POSITIONS = {Position.LT, Position.LG, Position.C, Position.RG, Position.RT}
         DL_POSITIONS = {Position.DE, Position.DT, Position.NT}
@@ -2420,6 +2497,266 @@ class Orchestrator:
             print(f"  {p.format_brief()}")
         for p in self.defense[:2]:  # First 2 defense
             print(f"  {p.format_brief()}")
+
+    # =========================================================================
+    # Huddle Phase Methods
+    # =========================================================================
+
+    def start_huddle_phase(
+        self,
+        next_los_y: float,
+        ball_x: float = 0.0,
+        config: Optional[HuddleConfig] = None,
+    ) -> None:
+        """Start the huddle phase - players jog from current positions to huddle.
+
+        Call this after a play ends (POST_PLAY phase) to animate the transition
+        to the next play. Players will jog to their huddle positions.
+
+        Args:
+            next_los_y: Line of scrimmage for the next play
+            ball_x: X coordinate of the ball (hash position)
+            config: Optional huddle configuration (defaults to DEFAULT_HUDDLE_CONFIG)
+        """
+        if self.phase != PlayPhase.POST_PLAY:
+            raise RuntimeError(f"Can only start huddle from POST_PLAY, currently in {self.phase.value}")
+
+        self._huddle_config = config or DEFAULT_HUDDLE_CONFIG
+        self._next_los_y = next_los_y
+        self._huddle_started_at = self.clock.current_time
+
+        # Skip huddle phase if no-huddle is enabled
+        if self._huddle_config.no_huddle_enabled:
+            self._setup_formation_targets(next_los_y, ball_x)
+            self._transition_to(PlayPhase.FORMATION_MOVE, "no-huddle - skipping to formation")
+            return
+
+        # Calculate huddle centers
+        offense_huddle_center = calculate_huddle_center(
+            next_los_y, ball_x, is_offense=True, config=self._huddle_config
+        )
+        defense_huddle_center = calculate_huddle_center(
+            next_los_y, ball_x, is_offense=False, config=self._huddle_config
+        )
+
+        # Set huddle targets for all players
+        self._huddle_targets.clear()
+        for player in self.offense:
+            target = get_player_huddle_target(
+                player.position_slot, is_offense=True, huddle_center=offense_huddle_center
+            )
+            self._huddle_targets[player.id] = target
+
+        for player in self.defense:
+            target = get_player_huddle_target(
+                player.position_slot, is_offense=False, huddle_center=defense_huddle_center
+            )
+            self._huddle_targets[player.id] = target
+
+        # Store formation targets for later (when breaking huddle)
+        self._setup_formation_targets(next_los_y, ball_x)
+
+        # Transition to huddle phase
+        self._transition_to(PlayPhase.HUDDLE, "players moving to huddle")
+
+        self.event_bus.emit_simple(
+            EventType.PHASE_CHANGE,
+            self.clock.tick_count,
+            self.clock.current_time,
+            description="Huddle phase started",
+            phase="huddle",
+        )
+
+    def _setup_formation_targets(self, los_y: float, ball_x: float) -> None:
+        """Set up formation targets for all players.
+
+        Uses the standard alignments from roster_bridge.
+        """
+        from huddle.game.roster_bridge import OFFENSIVE_ALIGNMENTS, DEFENSIVE_ALIGNMENTS
+
+        self._formation_targets.clear()
+
+        for player in self.offense:
+            if player.position_slot in OFFENSIVE_ALIGNMENTS:
+                alignment = OFFENSIVE_ALIGNMENTS[player.position_slot]
+                self._formation_targets[player.id] = Vec2(alignment.x + ball_x, alignment.y + los_y)
+
+        for player in self.defense:
+            if player.position_slot in DEFENSIVE_ALIGNMENTS:
+                alignment = DEFENSIVE_ALIGNMENTS[player.position_slot]
+                self._formation_targets[player.id] = Vec2(alignment.x + ball_x, alignment.y + los_y)
+
+    def break_huddle(self) -> None:
+        """Break from huddle and move players to their formation positions.
+
+        Call this after minimum huddle duration has passed and all players
+        have arrived at their huddle positions.
+        """
+        if self.phase != PlayPhase.HUDDLE:
+            raise RuntimeError(f"Can only break huddle from HUDDLE phase, currently in {self.phase.value}")
+
+        # Transition to formation move
+        self._transition_to(PlayPhase.FORMATION_MOVE, "breaking huddle to formation")
+
+        self.event_bus.emit_simple(
+            EventType.PHASE_CHANGE,
+            self.clock.tick_count,
+            self.clock.current_time,
+            description="Huddle break - moving to formation",
+            phase="formation_move",
+        )
+
+    def _update_huddle_tick(self, dt: float) -> None:
+        """Update one tick during HUDDLE phase.
+
+        Moves players toward their huddle positions. Once all players have
+        arrived and minimum huddle duration has passed, transitions to
+        FORMATION_MOVE.
+        """
+        all_arrived = True
+        threshold = self._huddle_config.arrival_threshold
+        speed_multiplier = self._huddle_config.jog_to_huddle_speed
+
+        for player in self.offense + self.defense:
+            target = self._huddle_targets.get(player.id)
+            if not target:
+                continue
+
+            distance = player.pos.distance_to(target)
+            if distance <= threshold:
+                # Player has arrived - stop them
+                player.velocity = Vec2.zero()
+                continue
+
+            # Player still moving toward huddle
+            all_arrived = False
+
+            # Get movement profile and apply jog speed
+            profile = self._profiles.get(player.id)
+            if profile:
+                jog_speed = profile.max_speed * speed_multiplier
+                direction = (target - player.pos).normalized()
+
+                # Simple movement - accelerate toward target
+                result = self.movement_solver.solve(
+                    current_pos=player.pos,
+                    current_vel=player.velocity,
+                    target_pos=target,
+                    profile=MovementProfile(
+                        max_speed=jog_speed,
+                        acceleration=profile.acceleration * 0.7,  # Slower acceleration for jog
+                        deceleration=profile.deceleration,
+                        cut_speed_retention=profile.cut_speed_retention,
+                        cut_angle_threshold=profile.cut_angle_threshold,
+                    ),
+                    dt=dt,
+                )
+                self._apply_movement_result(player, result)
+
+        # Check if ready to break huddle
+        if all_arrived:
+            time_in_huddle = self.clock.current_time - (self._huddle_started_at or 0)
+            if time_in_huddle >= self._huddle_config.min_huddle_duration:
+                self.break_huddle()
+
+    def _update_formation_move_tick(self, dt: float) -> None:
+        """Update one tick during FORMATION_MOVE phase.
+
+        Moves players from huddle to their pre-snap formation positions.
+        Once all players have arrived, transitions to PRE_SNAP.
+        """
+        all_arrived = True
+        threshold = self._huddle_config.arrival_threshold
+
+        # Use faster speed for breaking to formation
+        if self._huddle_config.no_huddle_enabled:
+            speed_multiplier = self._huddle_config.hurry_up_speed_multiplier
+        else:
+            speed_multiplier = self._huddle_config.break_to_formation_speed
+
+        for player in self.offense + self.defense:
+            target = self._formation_targets.get(player.id)
+            if not target:
+                continue
+
+            distance = player.pos.distance_to(target)
+            if distance <= threshold:
+                # Player has arrived - snap to exact position and stop
+                player.pos = target
+                player.velocity = Vec2.zero()
+                continue
+
+            # Player still moving to formation
+            all_arrived = False
+
+            profile = self._profiles.get(player.id)
+            if profile:
+                move_speed = profile.max_speed * speed_multiplier
+
+                result = self.movement_solver.solve(
+                    current_pos=player.pos,
+                    current_vel=player.velocity,
+                    target_pos=target,
+                    profile=MovementProfile(
+                        max_speed=move_speed,
+                        acceleration=profile.acceleration * 0.8,
+                        deceleration=profile.deceleration,
+                        cut_speed_retention=profile.cut_speed_retention,
+                        cut_angle_threshold=profile.cut_angle_threshold,
+                    ),
+                    dt=dt,
+                )
+                self._apply_movement_result(player, result)
+
+        if all_arrived:
+            # All players in formation - transition to PRE_SNAP
+            self._transition_to(PlayPhase.PRE_SNAP, "formation set, ready for snap")
+
+            self.event_bus.emit_simple(
+                EventType.PHASE_CHANGE,
+                self.clock.tick_count,
+                self.clock.current_time,
+                description="Formation set - ready for snap",
+                phase="pre_snap",
+            )
+
+    def run_huddle_transition(
+        self,
+        next_los_y: float,
+        ball_x: float = 0.0,
+        config: Optional[HuddleConfig] = None,
+    ) -> None:
+        """Run the complete huddle transition animation.
+
+        This is a convenience method that runs the HUDDLE and FORMATION_MOVE
+        phases to completion, leaving the orchestrator ready for setup_play().
+
+        Args:
+            next_los_y: Line of scrimmage for the next play
+            ball_x: X coordinate of the ball (hash position)
+            config: Optional huddle configuration
+        """
+        # Start huddle
+        self.start_huddle_phase(next_los_y, ball_x, config)
+
+        # Run until PRE_SNAP
+        max_transition_ticks = 200  # Safety limit (10 seconds at 20 ticks/sec)
+        ticks = 0
+
+        while self.phase in (PlayPhase.HUDDLE, PlayPhase.FORMATION_MOVE):
+            if ticks >= max_transition_ticks:
+                # Force transition if taking too long
+                self._transition_to(PlayPhase.PRE_SNAP, "huddle transition timeout", validate=False)
+                break
+
+            dt = self.clock.tick()
+
+            if self.phase == PlayPhase.HUDDLE:
+                self._update_huddle_tick(dt)
+            elif self.phase == PlayPhase.FORMATION_MOVE:
+                self._update_formation_move_tick(dt)
+
+            ticks += 1
 
 
 # =============================================================================

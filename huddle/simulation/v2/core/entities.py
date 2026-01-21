@@ -580,6 +580,17 @@ class Ball:
     peak_height: float = 0.0  # Max height in yards (for arc visualization)
     release_height: float = 2.0  # QB release point ~6 feet
 
+    # Spin and orientation (for realistic ball flight visualization)
+    spin_rate: float = 0.0  # RPM (500+ = tight spiral)
+    orientation_x: float = 0.0  # Ball axis lateral component
+    orientation_y: float = 1.0  # Ball axis downfield component
+    orientation_z: float = 0.0  # Ball axis vertical component (tilt)
+    is_stable_spiral: bool = True  # False = wobbly pass
+    thrower_handedness: str = "right"  # Affects drift direction
+
+    # Drag effects (computed during throw)
+    drag_velocity_factor: float = 1.0  # Effective velocity multiplier after drag
+
     @property
     def is_held(self) -> bool:
         return self.state == BallState.HELD
@@ -606,6 +617,24 @@ class Ball:
         # Interpolate base height from release to catch
         base_height = self.release_height * (1 - progress) + 1.0 * progress
         return base_height + arc_height
+
+    def orientation_at_progress(self, progress: float) -> tuple[float, float, float]:
+        """Get ball orientation (spin axis) at flight progress.
+
+        Ball axis rotates to follow trajectory:
+        - Nose-up at start (release) with z_tilt ~+0.3
+        - Level at apex with z_tilt ~0
+        - Nose-down at end (catch) with z_tilt ~-0.3
+
+        Args:
+            progress: Flight progress (0.0 = release, 1.0 = arrival)
+
+        Returns:
+            (x, y, z) orientation tuple
+        """
+        # Z tilt interpolates: +0.3 at start → -0.3 at end
+        z_tilt = 0.3 * (1 - 2 * progress)
+        return (self.orientation_x, self.orientation_y, z_tilt)
 
     def position_at_time(self, current_time: float) -> Vec2:
         """Get ball position at given time (handles flight interpolation)."""

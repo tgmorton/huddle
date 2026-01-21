@@ -1,0 +1,22 @@
+# Section 247
+
+---
+
+
+
+Page 247
+
+Your defensive call on first down is a run call. We are in an eight-man front, playing run as a linebacker and reacting to our pass coverage. That gives the linebacker a jump on making a big play. I want a play maker, not a robot. If I have to coach that linebacker very much, he is probably not a linebacker. The game is easy. Find the guy with the ball, and go splatter that sucker. Go intercept the ball when it is thrown. If he has instincts, don't screw them up. Don't give him so many things to think about that he can't play. Give him a run key, and let him run to the ball. If the offense gives him a "high hat" (that is pass blocking to us), he reacts and goes to pass coverage. The same thing is true of the pass key. The linebacker gets his pass key and gets into his coverage. If for some reason he were to get a run key, he reacts to the run.
+
+The second thing is pad level. How many of us have said this over and over? "The guy with the lowest pads is going to win." You win with pad level. You have to get your pads underneath his pads. As the player gets down in his stance, he is thinking about whether his pad level is under his opponent's. The next thing he knows, he is on his back. Kids don't make a mistake on purpose. They make a mistake because they don't know what to do. They are trying to do what you tell them to do, but they don't know how. So you turn the film on. If you are not using a film every day in practice, you are stupid. The reason you watch the film is to see the body position. His line of sight is down, and he thinks his pads might be under the opponent's. Give him a horizontal look. Now, you ask him, "Are your eyes at his throat?" If the linebacker's eyes are not at the blocker's throat, he is too high. He can look straight ahead.
+
+I talked about exploding their eyes on contact. Watch their eyes as they tackle. Do they explode the eyes through the contact, or do they cringe on contact and blink? Get to a point where you can see their eyes. If the linebacker can always see the throat, he is going to win at pad level.
+
+We play a lot of eight-man front and get a lot of zone scoop blocking. We never allow both parts of the scoop. We are going to hold the man on the line of scrimmage and allow the linebacker to run downhill into the gap. If the blocker gives an avoid step and tries to play wide on the scoop to get to the linebacker, we use the momentum for the blocker to pull us away from the backside scoop block. We grab the hip of the first blocker and pull through to beat the back scoop block. They may get the down lineman blocked or the linebacker blocked, but they are never going to get both halves of the scoop blocked.
+
+If people do a good job of getting the front seven blocked, the last guy they are going to block is the trail defender on the back side. If they leave him unblocked, we'll chase you down from there. We plug the hell out of the plays on the front side and make you cut back. When you do, that backside defender will knock the hell out of you and might cause a fumble. In our league, they use these pencil-necked wide receivers to block the back side. We never hold force on a wide receiver. When they come across in motion, they bring a corner with them in our scheme. The corner replaces the linebacker in force, so he can wrong-arm the wide receiver, get inside, and come laterally down the line of scrimmage.
+
+Let's talk really quickly about pass rush. Study the great speed rushers. Who do you think told me all this stuff? Nobody told me this. I study films. You better get the film of the best team in your league and find out why they are kicking your butt. They probably know something you don't know. I get films of guys who are great speed rushers off the edge and watch them. He can fight centrifugal force. He is able to dip and rip and shorten the distance to the pocket. They have the ability to fight the pressure inside. They have the ability at the hip joint to plant and get the toe pointed to where they are going. If the toe is pointed outside and I get blocked outside, that is where I am going. It doesn't matter whether I am bigger and stronger. To fight the pressure, I have to get my cleats in the ground, get under his pads, and be able to run the line I want to. He has to fight with pressure to get his toe pointed and his hips turned in. With each step of my front foot, I have to get more cleats in the ground. We buy three eight-foot sections of PVC pipe and connect them in circles. We practice rushing
+
+ 
+

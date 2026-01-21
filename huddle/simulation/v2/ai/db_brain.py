@@ -15,6 +15,7 @@ Coverage Types: PRESS → TRAIL or ZONE_DROP → BALL_REACTION → TACKLE
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
@@ -25,6 +26,12 @@ from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
 from ..core.variance import recognition_delay as apply_recognition_variance
+from ..core.reads import (
+    BrainType,
+    get_awareness_accuracy,
+    get_decision_making_accuracy,
+)
+from ..core.read_registry import get_read_registry
 
 
 # =============================================================================
@@ -103,6 +110,12 @@ class DBState:
     throw_detected_at: Optional[float] = None
     has_reacted_to_throw: bool = False
     throw_reaction_delay: float = 0.0
+    # Zone threat detection (cognitive delay before DB "sees" threat in zone)
+    # "Psychic Zone" prevention - DB needs time to detect and react to threats
+    zone_threat_id: Optional[str] = None
+    zone_threat_detected_at: Optional[float] = None
+    zone_threat_reaction_delay: float = 0.0
+    has_reacted_to_zone_threat: bool = False
 
 
 _db_states: dict[str, DBState] = {}
@@ -122,11 +135,88 @@ def _reset_state(player_id: str) -> None:
 # Helper Functions
 # =============================================================================
 
+def _is_in_field_of_view(
+    my_pos: Vec2,
+    my_facing: Vec2,
+    target_pos: Vec2,
+    fov_degrees: float = 160.0,
+) -> bool:
+    """Check if a target is within the defender's field of view.
+
+    "Psychic Zone" prevention: DBs cannot instantly detect threats behind them.
+    They need to be facing roughly toward the threat to see it.
+
+    Args:
+        my_pos: Defender position
+        my_facing: Defender facing direction (normalized)
+        target_pos: Target to check
+        fov_degrees: Field of view angle (default 160 degrees = 80 degrees each side)
+
+    Returns:
+        True if target is within field of view
+    """
+    to_target = target_pos - my_pos
+    if to_target.length() < 0.1:
+        return True  # Target is on top of us
+
+    to_target_normalized = to_target.normalized()
+
+    # Dot product gives cosine of angle between facing and to_target
+    # 1.0 = directly in front, 0.0 = perpendicular, -1.0 = directly behind
+    dot = my_facing.dot(to_target_normalized) if my_facing.length() > 0.1 else 0.0
+
+    # Convert FOV to cosine threshold
+    # cos(80 degrees) ≈ 0.17 for 160 degree FOV
+    import math
+    half_fov_radians = math.radians(fov_degrees / 2)
+    cos_threshold = math.cos(half_fov_radians)
+
+    return dot >= cos_threshold
+
+
+def _calculate_zone_threat_delay(awareness: int, in_fov: bool) -> float:
+    """Calculate reaction delay for detecting a zone threat.
+
+    "Psychic Zone" prevention: DBs need time to process threats entering their zone.
+    Delay is longer if threat is outside FOV (must turn head/body first).
+
+    Args:
+        awareness: DB's awareness attribute (0-99)
+        in_fov: Is the threat in the defender's field of view?
+
+    Returns:
+        Reaction delay in seconds
+    """
+    # Base delay: 0.15s for elite (99 awareness) to 0.4s for low (50 awareness)
+    # Elite DBs process zone threats faster
+    awareness_factor = (99 - awareness) / 49  # 0.0 for elite, 1.0 for low
+    base_delay = 0.15 + awareness_factor * 0.25
+
+    # Out of FOV penalty: must turn to see the threat
+    # Adds 0.2-0.4s depending on awareness
+    if not in_fov:
+        fov_penalty = 0.2 + awareness_factor * 0.2
+        base_delay += fov_penalty
+
+    return base_delay
+
+
 def _find_assigned_receiver(world: WorldState) -> Optional[PlayerView]:
-    """Find the receiver we're assigned to cover."""
+    """Find assigned receiver, with situational fallback.
+
+    Hybrid coverage system:
+    1. First check PlayConfig assignment (world.me.target_id)
+    2. If no assignment or assigned receiver not found, fall back to nearest
+    """
     my_pos = world.me.pos
 
-    # Find nearest WR/TE
+    # First: Check PlayConfig assignment from coverage_system
+    if world.me.target_id:
+        for opp in world.opponents:
+            if opp.id == world.me.target_id:
+                return opp  # Follow assignment
+
+    # Fallback: Assignment missing or receiver not found - use nearest WR/TE
     closest = None
     closest_dist = float('inf')
 
@@ -345,6 +435,96 @@ def _can_track_ball_yet(world: WorldState, state: 'DBState') -> bool:
         return True
 
     return False
+
+
+# =============================================================================
+# Read System Integration - Route Anticipation
+# =============================================================================
+
+def _get_receiver_release_direction(receiver: PlayerView, los_y: float) -> str:
+    """Determine receiver's release direction from the line."""
+    if receiver.pos.y < los_y + 3:  # Still near LOS
+        if receiver.velocity.x > 1.0:
+            return "outside" if receiver.pos.x > 0 else "inside"
+        elif receiver.velocity.x < -1.0:
+            return "inside" if receiver.pos.x > 0 else "outside"
+        elif receiver.velocity.y > 2.0:
+            return "vertical"
+    return "unknown"
+
+
+def _apply_route_anticipation_read(
+    world: WorldState,
+    state: 'DBState',
+    receiver: PlayerView,
+) -> Optional[tuple[str, str]]:
+    """Apply read system for route anticipation.
+
+    Uses DB's awareness and play_recognition to anticipate routes
+    based on receiver release and formation cues.
+
+    Returns:
+        (adjustment, reasoning) if read applies, None otherwise
+    """
+    # Get DB attributes
+    awareness = getattr(world.me.attributes, 'awareness', 70)
+    play_rec = getattr(world.me.attributes, 'play_recognition', 70)
+
+    # Check if DB meets minimum awareness for read system
+    awareness_acc, awareness_time = get_awareness_accuracy(awareness)
+    if awareness_acc == 0.0:
+        return None  # Read system disabled for low awareness
+
+    # Too early in play for reads to apply
+    if world.time_since_snap < awareness_time:
+        return None
+
+    # Get reads for coverage situation
+    registry = get_read_registry()
+    coverage_type = "man" if state.coverage_type in (
+        CoverageTechnique.PRESS, CoverageTechnique.OFF_MAN
+    ) else "zone"
+
+    # Determine concept based on coverage technique
+    concept = "press" if state.coverage_type == CoverageTechnique.PRESS else "coverage"
+
+    reads = registry.get_reads_for_concept(concept, coverage_type, BrainType.DB)
+    if not reads:
+        return None
+
+    # Check receiver release direction
+    release_dir = _get_receiver_release_direction(receiver, world.los_y)
+
+    # Find matching read based on release
+    for read in reads:
+        if read.min_awareness > awareness:
+            continue
+        if read.min_decision_making > play_rec:
+            continue
+
+        # Match release-based reads
+        for trigger in read.triggers:
+            trigger_val = trigger.trigger_type.value
+
+            if release_dir == "inside" and trigger_val == "inside_release":
+                primary = read.get_primary_outcome()
+                if primary:
+                    _trace(world, f"[READ] {read.name}: {primary.reasoning}")
+                    return (primary.adjustment or "wall_inside", primary.reasoning)
+
+            elif release_dir == "outside" and trigger_val == "outside_release":
+                primary = read.get_primary_outcome()
+                if primary:
+                    _trace(world, f"[READ] {read.name}: {primary.reasoning}")
+                    return (primary.adjustment or "leverage_outside", primary.reasoning)
+
+            elif release_dir == "vertical" and trigger_val == "vertical_stem":
+                primary = read.get_primary_outcome()
+                if primary:
+                    _trace(world, f"[READ] {read.name}: {primary.reasoning}")
+                    return (primary.adjustment or "trail_deep", primary.reasoning)
+
+    return None
 
 
 def _estimate_ball_placement(world: WorldState, ball_target: Vec2) -> str:
@@ -614,9 +794,26 @@ def db_brain(world: DBContext) -> BrainDecision:
             dist = world.me.pos.distance_to(ballcarrier.pos)
 
             # Calculate intercept point to PREVENT MORE YARDS
+            # NGS Physics: Account for turn penalty if DB needs to redirect
             bc_speed = ballcarrier.velocity.length()
             if bc_speed > 0.1:
-                time_to_reach = dist / 8.0
+                # Base time to reach
+                my_speed = 8.0  # Approximate DB sprint speed
+                base_time = dist / my_speed
+
+                # Add turn penalty if DB is moving wrong direction
+                turn_penalty = 0.0
+                my_vel = world.me.velocity
+                if my_vel.length() > 2.0:
+                    to_bc = (ballcarrier.pos - world.me.pos).normalized()
+                    my_dir = my_vel.normalized()
+                    dot = max(-1.0, min(1.0, my_dir.dot(to_bc)))
+                    turn_angle = abs(math.acos(dot))
+                    if turn_angle > 0.3:  # >17 degrees
+                        speed_factor = my_vel.length() / 6.0
+                        turn_penalty = (turn_angle / 3.14) * 0.5 * speed_factor
+
+                time_to_reach = base_time + turn_penalty
                 intercept = ballcarrier.pos + ballcarrier.velocity * time_to_reach * 1.1
             else:
                 intercept = ballcarrier.pos
@@ -694,7 +891,64 @@ def db_brain(world: DBContext) -> BrainDecision:
         state.phase = DBPhase.TRAIL
 
         # =================================================================
-        # Break Recognition System
+        # Read System - Route Anticipation (before break)
+        # =================================================================
+        # Elite DBs use reads to anticipate routes before the break happens
+        # Check for sideline leverage advantage first
+        boundary_leverage = "none"
+        if hasattr(world, 'field') and world.field:
+            boundary_leverage = world.field.get_leverage_advantage(receiver.pos.x)
+
+        read_result = _apply_route_anticipation_read(world, state, receiver)
+        if read_result:
+            adjustment, read_reasoning = read_result
+            # Apply adjustment based on read
+            if adjustment == "wall_inside":
+                # Position inside to take away slant/dig
+                target = receiver.pos + Vec2(-1.5 if receiver.pos.x > 0 else 1.5, 0.5)
+                return BrainDecision(
+                    move_target=target,
+                    move_type="sprint",
+                    intent="anticipate_inside",
+                    target_id=receiver.id,
+                    reasoning=f"[READ] {read_reasoning}",
+                )
+            elif adjustment == "leverage_outside":
+                # If near sideline, sideline provides outside leverage - play inside instead
+                if boundary_leverage == "inside":
+                    # Sideline covers outside - shade inside for potential slant/in
+                    inside_offset = -1.0 if receiver.pos.x > 0 else 1.0
+                    target = receiver.pos + Vec2(inside_offset, 0.5)
+                    return BrainDecision(
+                        move_target=target,
+                        move_type="sprint",
+                        intent="leverage_inside_boundary",
+                        target_id=receiver.id,
+                        reasoning=f"[READ] Boundary leverage - sideline covers outside",
+                    )
+                else:
+                    # Maintain outside leverage for out/corner routes
+                    target = receiver.pos + Vec2(1.5 if receiver.pos.x > 0 else -1.5, 0.5)
+                    return BrainDecision(
+                        move_target=target,
+                        move_type="sprint",
+                        intent="anticipate_outside",
+                        target_id=receiver.id,
+                        reasoning=f"[READ] {read_reasoning}",
+                    )
+            elif adjustment == "trail_deep":
+                # Stay on top for vertical routes
+                target = receiver.pos + Vec2(0, 2.0)
+                return BrainDecision(
+                    move_target=target,
+                    move_type="sprint",
+                    intent="anticipate_deep",
+                    target_id=receiver.id,
+                    reasoning=f"[READ] {read_reasoning}",
+                )
+
+        # =================================================================
+        # Break Recognition System (fallback for non-elite DBs)
         # =================================================================
         receiver_breaking = _detect_receiver_break(world, receiver)
 
@@ -710,20 +964,37 @@ def db_brain(world: DBContext) -> BrainDecision:
                 _trace(world, f"Break recognized after {state.recognition_timer:.2f}s delay")
 
         # Position to PREVENT the completion
+        # Check for sideline leverage advantage
+        leverage = "none"
+        if hasattr(world, 'field') and world.field:
+            leverage = world.field.get_leverage_advantage(receiver.pos.x)
+
         if state.has_recognized_break:
             lookahead = 0.15
             predicted_pos = receiver.pos + receiver.velocity * lookahead
 
             if state.in_phase:
-                target = predicted_pos + Vec2(0, 0.5)
-                reasoning = f"In position to prevent completion ({state.separation:.1f}yd)"
+                if leverage == "inside":
+                    # Use sideline as extra defender - play inside leverage
+                    inside_offset = -1.5 if receiver.pos.x > 0 else 1.5
+                    target = predicted_pos + Vec2(inside_offset, 0.5)
+                    reasoning = f"Inside leverage, sideline covers outside ({state.separation:.1f}yd)"
+                else:
+                    target = predicted_pos + Vec2(0, 0.5)
+                    reasoning = f"In position to prevent completion ({state.separation:.1f}yd)"
             else:
                 target = predicted_pos
                 reasoning = f"Closing to take away throw ({state.separation:.1f}yd)"
         else:
             if state.in_phase:
-                target = receiver.pos + Vec2(0, 1)
-                reasoning = f"Reading to prevent completion ({state.separation:.1f}yd)"
+                if leverage == "inside":
+                    # Play inside leverage early - sideline is our help
+                    inside_offset = -1.5 if receiver.pos.x > 0 else 1.5
+                    target = receiver.pos + Vec2(inside_offset, 1)
+                    reasoning = f"Inside leverage, reading route ({state.separation:.1f}yd)"
+                else:
+                    target = receiver.pos + Vec2(0, 1)
+                    reasoning = f"Reading to prevent completion ({state.separation:.1f}yd)"
             else:
                 target = receiver.pos
                 reasoning = f"Reacting to prevent completion ({state.recognition_timer:.2f}s)"
@@ -738,28 +1009,79 @@ def db_brain(world: DBContext) -> BrainDecision:
 
     # =========================================================================
     # Zone Coverage - TAKE AWAY THE ZONE
+    # "Psychic Zone" prevention: Vision cone + reaction delay for threat detection
     # =========================================================================
     if state.coverage_type == CoverageTechnique.ZONE and state.zone_assignment:
         state.phase = DBPhase.ZONE_DROP
 
         zone_pos = _get_zone_position(world, state.zone_assignment)
+        my_facing = world.me.facing
+        awareness = getattr(world.me.attributes, 'awareness', 70)
+        current_time = world.time_since_snap
 
-        # Check for threat entering zone
+        # Check for threat entering zone WITH vision cone check
         zone_threat = None
+        threat_in_fov = False
         for opp in world.opponents:
             if opp.position in (Position.WR, Position.TE):
                 if opp.pos.distance_to(zone_pos) < 8:
+                    # Check if this threat is in our field of view
+                    in_fov = _is_in_field_of_view(world.me.pos, my_facing, opp.pos)
                     zone_threat = opp
+                    threat_in_fov = in_fov
                     break
 
         if zone_threat:
-            return BrainDecision(
-                move_target=zone_threat.pos,
-                move_type="run",
-                intent="zone_match",
-                target_id=zone_threat.id,
-                reasoning=f"Taking away throw to {state.zone_assignment.value}",
-            )
+            # "Psychic Zone" prevention: Apply reaction delay based on awareness and FOV
+            # DB must "see" and "process" the threat before reacting
+
+            # Check if this is a new threat or the same one we've been tracking
+            if state.zone_threat_id != zone_threat.id:
+                # New threat detected - start reaction timer
+                state.zone_threat_id = zone_threat.id
+                state.zone_threat_detected_at = current_time
+                state.zone_threat_reaction_delay = _calculate_zone_threat_delay(awareness, threat_in_fov)
+                state.has_reacted_to_zone_threat = False
+
+            # Calculate time since threat was detected
+            time_since_detection = current_time - (state.zone_threat_detected_at or current_time)
+
+            # Has reaction delay passed?
+            if time_since_detection >= state.zone_threat_reaction_delay:
+                state.has_reacted_to_zone_threat = True
+
+            if state.has_reacted_to_zone_threat:
+                # Reaction complete - break on the threat
+                return BrainDecision(
+                    move_target=zone_threat.pos,
+                    move_type="run",
+                    intent="zone_match",
+                    target_id=zone_threat.id,
+                    reasoning=f"Breaking on threat in {state.zone_assignment.value} (reacted after {time_since_detection:.2f}s)",
+                )
+            else:
+                # Still processing - continue holding zone position
+                # If threat is outside FOV, turn to face it
+                if not threat_in_fov:
+                    return BrainDecision(
+                        move_target=zone_pos,
+                        move_type="run",
+                        intent="zone_drop",
+                        facing_direction=(zone_threat.pos - world.me.pos).normalized(),
+                        reasoning=f"Turning to see threat in {state.zone_assignment.value} ({time_since_detection:.2f}s/{state.zone_threat_reaction_delay:.2f}s)",
+                    )
+                else:
+                    return BrainDecision(
+                        move_target=zone_pos,
+                        move_type="run",
+                        intent="zone_drop",
+                        reasoning=f"Processing threat in {state.zone_assignment.value} ({time_since_detection:.2f}s/{state.zone_threat_reaction_delay:.2f}s)",
+                    )
+        else:
+            # No threat - clear tracking state
+            state.zone_threat_id = None
+            state.zone_threat_detected_at = None
+            state.has_reacted_to_zone_threat = False
 
         # Position to take away the zone
         return BrainDecision(

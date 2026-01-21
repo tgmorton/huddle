@@ -1,20 +1,43 @@
 """Route running system.
 
 Handles receiver route execution, from alignment to route completion.
+
+NGS Physics Integration:
+Routes now support curved waypoints based on realistic turn radius constraints.
+Sharp breaks in routes are converted to curved paths when the turn angle exceeds
+what physics allows at the expected speed.
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from ..core.vec2 import Vec2
 from ..core.entities import Player
 from ..core.clock import Clock
 from ..core.events import EventBus, EventType
+from ..core.field import Field
 from ..physics.movement import MovementProfile, MovementSolver, MovementResult
+from ..physics.calibration import get_calibration, NGSCalibration
 from ..plays.routes import RouteDefinition, RouteWaypoint, RoutePhase
+
+
+# =============================================================================
+# Constants for Route Curvature
+# =============================================================================
+
+# Minimum turn radius for route curves (yards)
+# Based on NGS data: most receivers can't turn sharper than ~3 yards at moderate speed
+MIN_ROUTE_TURN_RADIUS = 3.0
+
+# Angle threshold for inserting curve points (radians)
+# If consecutive waypoints require a turn sharper than this, add curve points
+CURVE_ANGLE_THRESHOLD = math.radians(35)
+
+# Number of intermediate points to insert for curves
+CURVE_INTERPOLATION_POINTS = 3
 
 
 @dataclass
@@ -23,20 +46,32 @@ class RouteAssignment:
 
     Combines a route definition with alignment and execution state.
 
+    NGS Physics Integration:
+    - Curved waypoints: Sharp route breaks are converted to curved paths
+    - Turn radius constraints: Based on expected speed at each waypoint
+
+    Boundary Awareness:
+    - Field reference enables route compression near sidelines/endzone
+    - Prevents routes from going out of bounds
+
     Attributes:
         player_id: Which player is running this route
         route: The route definition
         alignment: Starting position on the field
         is_left_side: Is receiver on left side of formation
+        field_ref: Field reference for boundary compression (optional)
         has_started: Has the route begun (post-snap)
         current_waypoint_idx: Current target waypoint
         phase: Current phase of route
+        use_curved_waypoints: Whether to compute curved paths for sharp breaks
     """
     player_id: str
     route: RouteDefinition
     alignment: Vec2
     is_left_side: bool = False
+    field_ref: Optional[Field] = None  # For boundary compression
     read_order: int = 1  # QB read progression (1 = first read)
+    use_curved_waypoints: bool = True  # Enable NGS physics curves
 
     # Runtime state
     has_started: bool = False
@@ -45,12 +80,14 @@ class RouteAssignment:
 
     # Computed waypoints in field coordinates
     _field_waypoints: List[Vec2] = field(default_factory=list)
+    # Original waypoints (before curve insertion) for reference
+    _original_waypoints: List[Vec2] = field(default_factory=list)
 
     def __post_init__(self):
         self._compute_field_waypoints()
 
     def _compute_field_waypoints(self):
-        """Convert relative waypoints to field coordinates.
+        """Convert relative waypoints to field coordinates with curve support.
 
         Route waypoints use a convention where +X = "inside" (toward center).
 
@@ -61,9 +98,32 @@ class RouteAssignment:
         For a receiver on the LEFT side (negative X alignment):
             - Inside = toward center = positive X direction
             - So route X stays as-is
+
+        NGS Physics: If use_curved_waypoints is enabled, sharp turns are
+        converted to curved paths with intermediate waypoints.
+
+        Boundary Awareness: If field is provided, applies:
+        - Lateral compression for routes near sidelines
+        - Depth compression for routes near the end zone
+        - Final clamping to ensure waypoints stay in bounds
         """
         self._field_waypoints = []
+        self._original_waypoints = []
 
+        # Determine boundary compression factor (lateral)
+        boundary_compression = 1.0
+        receiver_side = "left" if self.alignment.x < 0 else "right"
+        if self.field_ref:
+            boundary_compression = self.field_ref.get_boundary_compression(self.alignment.x)
+
+        # Determine depth compression factor (red zone)
+        depth_factor = 1.0
+        max_depth = float('inf')
+        if self.field_ref:
+            depth_factor = self.field_ref.get_red_zone_depth_factor()
+            max_depth = self.field_ref.get_available_depth()
+
+        # First pass: convert to field coordinates with compression
         for wp in self.route.waypoints:
             x_offset = wp.offset.x
 
@@ -72,11 +132,163 @@ class RouteAssignment:
             if not self.is_left_side:
                 x_offset = -x_offset
 
+            # Apply boundary compression for outward movement toward sideline
+            if self.field_ref and boundary_compression < 1.0:
+                # Only compress movement TOWARD the sideline (outward)
+                if (receiver_side == "left" and x_offset < 0) or \
+                   (receiver_side == "right" and x_offset > 0):
+                    x_offset = x_offset * boundary_compression
+
+            # Apply depth compression for red zone plays
+            y_offset = wp.offset.y
+            if self.field_ref and (depth_factor < 1.0 or y_offset > max_depth):
+                # Scale vertical offset by depth factor
+                y_offset = y_offset * depth_factor
+                # Clamp to available depth
+                y_offset = min(y_offset, max_depth)
+
             field_pos = Vec2(
                 self.alignment.x + x_offset,
-                self.alignment.y + wp.offset.y,
+                self.alignment.y + y_offset,
             )
-            self._field_waypoints.append(field_pos)
+            self._original_waypoints.append(field_pos)
+
+        # Clamp final waypoints to field bounds
+        if self.field_ref:
+            self._original_waypoints = [
+                self.field_ref.clamp_to_field(wp) for wp in self._original_waypoints
+            ]
+
+        # Second pass: insert curve points for sharp turns
+        if self.use_curved_waypoints and len(self._original_waypoints) >= 2:
+            self._field_waypoints = self._compute_curved_path(self._original_waypoints)
+        else:
+            self._field_waypoints = list(self._original_waypoints)
+
+        # Final clamp after curve insertion (curves might push points out)
+        if self.field_ref:
+            self._field_waypoints = [
+                self.field_ref.clamp_to_field(wp) for wp in self._field_waypoints
+            ]
+
+    def _compute_curved_path(self, waypoints: List[Vec2]) -> List[Vec2]:
+        """Compute curved path for sharp route breaks.
+
+        Analyzes consecutive waypoints and inserts curve interpolation points
+        where the turn angle exceeds CURVE_ANGLE_THRESHOLD.
+
+        Args:
+            waypoints: Original waypoints in field coordinates
+
+        Returns:
+            Waypoints with curve interpolation points inserted
+        """
+        if len(waypoints) < 2:
+            return list(waypoints)
+
+        result = [waypoints[0]]
+
+        for i in range(1, len(waypoints)):
+            current = waypoints[i]
+            prev = waypoints[i - 1]
+
+            # Get directions
+            if i == 1:
+                # First segment: direction from alignment to first waypoint
+                prev_dir = (prev - self.alignment).normalized()
+            else:
+                prev_dir = (prev - waypoints[i - 2]).normalized()
+
+            current_dir = (current - prev).normalized()
+
+            # Calculate turn angle
+            if prev_dir.length() > 0.1 and current_dir.length() > 0.1:
+                turn_angle = prev_dir.angle_to(current_dir)
+
+                if turn_angle > CURVE_ANGLE_THRESHOLD:
+                    # Sharp turn - insert curve points
+                    curve_points = self._calculate_curve_points(
+                        prev, current, prev_dir, turn_angle
+                    )
+                    result.extend(curve_points)
+
+            result.append(current)
+
+        return result
+
+    def _calculate_curve_points(
+        self,
+        start: Vec2,
+        end: Vec2,
+        incoming_dir: Vec2,
+        turn_angle: float,
+    ) -> List[Vec2]:
+        """Calculate intermediate points for a curved path.
+
+        Creates a smooth curve from the incoming direction to the outgoing
+        direction, respecting minimum turn radius constraints.
+
+        Args:
+            start: Start position of the turn
+            end: End position (where turn completes)
+            incoming_dir: Direction of travel before the turn
+            turn_angle: Angle of the turn in radians
+
+        Returns:
+            List of intermediate curve points (not including start/end)
+        """
+        # Calculate outgoing direction
+        to_end = (end - start).normalized()
+
+        # Calculate turn center and radius
+        # For simplicity, use a circular arc approximation
+        distance = start.distance_to(end)
+
+        # Adjust turn radius based on distance
+        turn_radius = max(MIN_ROUTE_TURN_RADIUS, distance * 0.3)
+
+        # Generate intermediate points along the curve
+        curve_points = []
+
+        for i in range(1, CURVE_INTERPOLATION_POINTS + 1):
+            t = i / (CURVE_INTERPOLATION_POINTS + 1)
+
+            # Use quadratic bezier-like interpolation
+            # Control point is offset perpendicular to the midpoint
+            mid = start.lerp(end, 0.5)
+
+            # Perpendicular offset direction (creates the curve)
+            perp_x = -(end.y - start.y)
+            perp_y = end.x - start.x
+            perp_len = math.sqrt(perp_x * perp_x + perp_y * perp_y)
+
+            if perp_len > 0.01:
+                # Normalize perpendicular
+                perp_x /= perp_len
+                perp_y /= perp_len
+
+                # Determine which side to curve (based on turn direction)
+                cross = incoming_dir.x * to_end.y - incoming_dir.y * to_end.x
+                curve_side = 1.0 if cross >= 0 else -1.0
+
+                # Curve amount based on turn sharpness
+                curve_amount = turn_radius * math.sin(turn_angle / 2) * 0.5
+
+                # Control point
+                control = Vec2(
+                    mid.x + perp_x * curve_amount * curve_side,
+                    mid.y + perp_y * curve_amount * curve_side,
+                )
+
+                # Quadratic bezier interpolation
+                t1 = 1.0 - t
+                point = Vec2(
+                    t1 * t1 * start.x + 2 * t1 * t * control.x + t * t * end.x,
+                    t1 * t1 * start.y + 2 * t1 * t * control.y + t * t * end.y,
+                )
+                curve_points.append(point)
+
+        return curve_points
 
     @property
     def current_target(self) -> Optional[Vec2]:
@@ -230,6 +442,7 @@ class RouteRunner:
         route: RouteDefinition,
         alignment: Vec2,
         is_left_side: bool = False,
+        field: Optional[Field] = None,
     ) -> RouteAssignment:
         """Assign a route to a player.
 
@@ -238,6 +451,7 @@ class RouteRunner:
             route: Route definition to run
             alignment: Starting position
             is_left_side: Is receiver on left side of formation
+            field: Field reference for boundary compression (optional)
 
         Returns:
             RouteAssignment tracking this route
@@ -247,6 +461,7 @@ class RouteRunner:
             route=route,
             alignment=alignment,
             is_left_side=is_left_side,
+            field_ref=field,
             read_order=player.read_order,  # From player's play call assignment
         )
 

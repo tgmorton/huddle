@@ -1,0 +1,1042 @@
+Statistica Applicata - Italian Journal of Applied Statistics Vol. 30 (2)               269
+doi.org/10.26398/IJAS.0030-012
+   PREDICTING THE FUTURE OF FREE AGENT RECEIVERS
+             AND TIGHT ENDS IN THE NFL
+
+
+
+Jason Mulholland, Shane T. Jensen1
+Department of Statistics, The Wharton School, University of Pennsylvania,
+Philadelphia, USA
+
+Abstract: While the NFL Draft is an important way to add new talent in the National
+Football League, free agency is the primary method for teams to acquire veteran players.
+Veteran players cost teams more money to sign, making it critical for teams to ensure that
+the free agents they sign are worth their higher salaries. We focus on predicting the future
+salary, performance, and value of free agents at the wide receiver and tight end positions.
+These two positions have recently gathered attention as the NFL has transitioned to more
+passing-oriented offenses. We use player’s physical attributes, college performance, and
+NFL performance to date to create regression and tree models that predict the likelihood
+that a player is signed, how much they will cost, and how productive the player will be in
+the future. We find that there are differences between the predictors of salary and the
+predictors of future performance, which suggests teams are not efficiently evaluating free
+agents at these positions.
+Keywords: National Football League, Prediction, Linear Regression, Recursive
+          Partitioning Trees.
+
+1. INTRODUCTION
+In addition to the NFL Draft, free agency is a primary method for adding talent to
+an NFL team. Mulholland and Jensen (2014) used statistical models to predict the
+draft order and future success of NFL prospects at the tight end position. However,
+predicting the signing and future performance of free agents is a distinct problem.
+Free agents already have experience in the league and so additional information can
+be incorporated into their predictions. Additionally, unlike drafted players, there
+is no set wage scale for free agents. Players selected in the NFL Draft have contracts
+that are pre-determined for the first 4 years of their career based on when they are
+chosen in the draft. Meanwhile, free agents can negotiate their own salaries with any
+team they desire. Thus, to effectively model NFL free agency, we must model both
+future player performance and salary, as teams would like to find players who will
+have high performance for relatively low cost.
+
+   1   Corresponding author: Shane T. Jensen, email: stjensen@wharton.upenn.edu
+270                                                        Mulholland, J., Jensen, S.T.
+
+
+      In American football, the goal is to advance the ball, through a series of plays,
+to the opposing end of the field to score a touchdown. The ball can be advanced
+through running plays or passing plays. Running plays usually feature the running
+back carrying the ball as far as he can before being tackled. Meanwhile, a passing
+play features the quarterback throwing the ball to one of the skill-position players
+(usually a wide receiver or tight end).
+      Pass-catching positions have grown in importance in the NFL in recent years,
+as many NFL teams now pass on over 60% of their offensive plays. For example,
+the average salary devoted to the tight end position grew from $974,761 (1.1% of the
+team’s salary cap) in 2005 to $1,960,944 (1.6% of their team’s salary cap) by 2013.
+In 2005 only one tight end free agent signed a contract with an average salary over $1.5
+million, while in 2013, ten tight end free agents signed contracts worth that much,
+including six contracts averaging at least $4 million (3.3% of their team’s salary cap).
+      Wide receivers are often regarded as being worth a substantial portion of a
+team’s salary cap. For example, the Miami Dolphins signed Mike Wallace to a 5-
+year $60 million deal in 2013. This average salary of $12 million is 9.8% of the $123
+million salary cap from 2013. No tight end (whether reaching free agency or not)
+has ever signed a contract worth over $10 million per year, while several wide
+receivers take an even larger portion of the salary cap (especially the Calvin Johnson
+and Larry Fitzgerald contracts that were worth over $16 million per year).
+      With increasing salaries, it is becoming even more important to maximize the
+value achieved from signing each player. As a cautionary tale, consider tight end
+James Casey who was signed in the 2013 offseason by the Philadelphia Eagles to
+a 3-year contract with an average salary of $4 million. Over the 2013 and 2014
+seasons, Casey accumulated only 90 receiving yards and two touchdowns on six
+catches and was the third tight end on the Eagles depth chart. He was then cut
+following the 2014 season. It is important for NFL teams to avoid overpaying
+players for their performance given the constraint of the salary cap. In this paper,
+we will present models for predicting future performance of free agent tight ends
+and wide receivers as well as models for predicting future value in terms of
+performance per unit of cost.
+      In creating our prediction models, we use only quantitative variables that
+would be available to teams at the time of their free agent decisions. These predictor
+variables include each free agent’s physical measures, college attended, college
+performance, and NFL performance (and salary) to date. Dhar (2011) used similar
+statistical models to analyze wide receiver draft prospects, as did Mulholland and
+Jensen (2014) to analyze draft decisions for tight ends.
+      In Section 2, we outline our available data and discuss the statistical
+methodology used in our analysis. In Section 3, we present predictive models for
+which free agents will be signed and what those players will be paid, while Section
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL            271
+
+4 presents predictive models for the subsequent performance and value of those
+players. Section 5 compares the set of variables predictive of free agent signings
+(Section 3) to the set of variables predictive of future performance (Section 4).
+Then, in Section 6, we discuss models we created to predict a different NFL
+performance measure, approximate value, for comparison to our models from
+Section 4. We conclude with a discussion in Section 7. However, as an appendix,
+we also present a case study where our models’ predictions for the 2014 wide
+receiver free agent class are evaluated.
+
+2. DATA AND METHODOLOGY
+Our study focuses on all unrestricted free agent tight ends and wide receivers from
+the 2005 offseason until the 2013 offseason, which were the years available on
+ESPN’s NFL Free Agent Tracker (http://espn.go.com/nfl/freeagency/) at the time.
+This includes 242 free agent tight ends (of which 156 were signed) and 372 free
+agent wide receivers (of which 235 were signed). We also obtained data for the 67
+free agent wide receivers from the 2014 offseason in order to evaluate our
+predictions in the appendix.
+       We allow only predictor variables in our models that are known to teams at the
+time of their free agent signing decisions. Specifically, teams are aware of each
+player’s physical attributes, college attended, college performance, NFL perfor-
+mance to date, and NFL salary to date. For our outcome variables in Section 4, we
+also need data for the subsequent NFL performance and salary of these players after
+their free agency period. All of the data that we gathered for this study are available
+on public websites.
+       The physical attributes, college attended, and NFL performance data (both
+before and after free agency) were obtained from pro-football-reference.com.
+Physical attributes include age, height, weight, and BMI, which are measured at the
+NFL Combine before a player enters the league. College attended was used to create
+indicator variables for conference that each player competed in. For tight ends, we
+identified whether the player competed in a BCS-level (Bowl Championship Series
+– i.e. division I-A) conference or not, while for wide receivers, we additionally
+identified whether a receiver played in the Southeastern Conference (SEC), Big
+Ten, Pacific 12 (Pac-12), Big 12, or Atlantic Coast Conference (ACC).
+       The NFL performance data include years played in the NFL, games played,
+games started, receiving yards, receiving touchdowns, and Pro Football Reference’s
+“approximate value” (AV). We used these variables to create additional measures
+of receiving production: NFL career score, NFL career score per game, and NFL
+career score per year. NFL career score is calculated as:
+   NFL Career Score = Receiving Yards + 19.3 × Receiving Touchdowns
+272                                                         Mulholland, J., Jensen, S.T.
+
+
+      The multiplier of 19.3 comes from the analysis of Stuart (2008) which found
+that 20.3 is the average yardage distance that is equal in value to scoring a receiving
+touchdown from the one-yard-line, as calculated from the expected point totals for
+each location on the field. One yard must be subtracted due to the one yard that must
+be advanced to score a touchdown from the one-yard-line, giving 19.3 as the
+yardage value equivalent to a receiving touchdown. NFL career score is a measure
+of aggregate receiving production, while NFL career score per game and per year
+are measures of average receiving production. Note that each of these measures was
+calculated separately for the pre-free-agency career versus the post-free-agency
+career of each player.
+      Approximate value is a measure that Pro Football Reference uses to estimate a
+player’s production. We use this variable as an alternate NFL performance measure
+to evaluate the validity of our use of games started and the NFL career score measures.
+      College performance data were obtained from sports-reference.com/cfb. The
+data include each player’s total receptions, receiving yards, and receiving touchdowns
+for their college career. We created the additional variables of career college yards
+per reception and final year percentages of receptions, yards, and touchdowns (i.e.
+the percentages of each of these three statistics that were accumulated in the
+player’s final college season).
+      Salary data were obtained from spotrac.com and the USA Today salaries
+database. We focus on the “cap hit”, the portion of the salary cap consumed by each
+player, as this is the value that is most important to NFL teams. NFL teams must
+adhere to a strict salary cap, meaning that the sum of all players’ cap hits on each team
+must be below a certain level (i.e. the salary cap). We also assign each player a “cost”
+as the logarithm of his average cap hit (since salary data tend to behave log-normally).
+      We also considered using results from the pre-draft NFL combine for each
+player. However, the available combine data begins in 1999 and since many of the free
+agents in our sample entered the NFL prior to 1999, there were not sufficient data.
+      Overall, for predicting tight end-related outcome variables, there are 16
+possible predictor variables: an indicator of having attended a BCS college, age,
+height, weight, BMI, the seven college receiving statistics, and the four NFL
+performance to date variables. For wide receiver-related outcome variables, we add
+an additional five possible predictor variables: the college conference indicator
+variables. Also, for predicting salary, there is the one additional possible predictor
+of salary to date.
+      We will employ two different types of statistical models using all of these
+predictor variables: ordinary least squares linear regression and recursive partitioning
+trees. We also employ a logistic regression model for the binary outcome of whether
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL            273
+
+or not a free agent will be signed. We implement these models using JMP10
+statistical software.
+      In our linear regression models, we use stepwise variable selection (Hocking,
+1976) to identify the subset of predictor variables that maximizes the predictive
+power of the model, as measured by adjusted R2. In addition to this variable
+selection, our regression analysis is helpful for examining the partial effects of
+individual predictor variables. However, we will be cautious about interpreting our
+partial effects due to the presence of multicollinearity.
+      To explore the possibility of non-linear effects and interactions between
+predictor variables, we also employ recursive partitioning tree models. Recursive
+partitioning models (Breiman et.al., 1984) estimate a decision tree that predicts an
+outcome value for groups of observations that are partitioned into terminal nodes
+based on binary splits on a subset of the predictor variables. The particular
+predictor variables used (and the splitting values) are calculated to maximize
+the logworth = –log10(p value of F statistic), where the F statistic measures the ratio
+of the between-node variance to the within-node variance. A larger logworth
+indicates a greater difference between the terminal nodes and hence greater
+predictive power for the model. We prune each decision tree branch if the number
+of observations in the terminal node falls below 40 or if there are no possible splits
+that have a logworth greater than 1.3, which indicates that each split is significant
+at the 5% level (–log10(0.05) = 1.3).
+      The variables that are used as splitting variables closer to the initial node of
+the tree tend to have the highest logworth and are, therefore, the most significant.
+We do note that recursive partitioning has a tendency to select continuous variables
+over categorical variables (Strobi et.al., 2007), but we have found that in our models
+some of the dummy variables were selected at a relatively high frequency.
+      We compare the fit of our regression and tree models using the root mean
+square error (RMSE) of the predicted values from each model, where RMSE is
+defined as the square root of the average of the squares of the differences between
+the predicted and actual values of the outcome variable. Our logistic regressions
+are evaluated using R2 values based on Cox and Snell (1989).
+
+
+3. PREDICTING FREE AGENT SIGNING AND FREE AGENT SALARIES
+Whether a team decides to sign a free agent and for how much money are indications
+of how productive the team believes that free agent will be in the future. Our first
+set of models predict whether or not each free agent player will be signed and for
+how much money (in terms of average salary cap hit). These models will allow us
+274                                                                                                    Mulholland, J., Jensen, S.T.
+
+
+to assess which predictors are currently important in NFL teams’ evaluation of tight
+end and wide receiver free agents.
+      A summary of all of the models presented in this section, as well as those from
+the following section, can be seen in Tables 1-4. Table 1 and Table 2 show the
+variables selected for the regression models for tight ends and wide receivers,
+respectively. In these two tables, a blank implies the variable was not selected for
+that model, a “+” implies that variable was selected with a positive coefficient, and
+a “-” implies that variable was selected with a negative coefficient. Additionally, if
+the “-” or “+” is in gray shading, that indicates that the variable was significant at
+the 5% level for that given model. Table 3 and Table 4 show summary statistics of
+the tight end and wide receiver models, respectively.
+
+Tab. 1: Tight End Regression Model Variables. Rows are predictor variables and columns are
+        response variables. “+” means selected by the model with a positive coefficient, “ – ”
+        means selected by the model with a negative sign, and a blank cell means not selected
+        by the model. Gray shading indicates that the predictor variable was significant at the
+        5% level for that given model.
+                  Signed vs.    LN (salary)   NFL Games     NFL Career   NFLCS per   NFLCS per   NFL Games     NFL Career   NFLCS per   NFLCS per
+                   Unsigned         PFA       Started PFA   Score PFA    Game PFA     Year PFA   Started per    Score per   Games per    Year per
+Variable           (logistic)                                                                     Cost PFA      Cost PFA     Cost PFA    Cost PFA
+
+Age in Upcoming        –                         –             –              –          –             –            –          –
+Season
+Height
+Weight                 –
+BMI
+BCS                    +
+Career College
+Yards per              +                                                      +          +
+Reception
+Career College                         +                                      +          +
+Reception
+Career College                         _                       _              _          _                          _
+Yards
+Career College                         +         –                                       –             –
+Touchdowns
+Final Year
+College Rec                                                                   –
+Percentage
+Final Year
+College Yards          +
+Percentage
+Final Year
+College TDs            –                                                      +
+Percentage
+NFL Games
+Started (per           +                         +                            –          –             +                       –            –
+cost) to Date
+NFLCareer Score
+(per cost) to          –               –
+Date
+NFLCS per Game
+(per cost) to          –               –                                      +
+Date
+NFLCS per Year
+(per cost) to          +               +                       +              +          +                          +          +            +
+Date
+Average Cap Hit
+to Date
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL                                                                      275
+
+Tab. 2: Wide Receiver Regression Model Variables. Rows are predictor variables and columns
+        are response variables. “+” means selected by the model with a positive coefficient,
+        “–” means selected by the model with a negative sign, and a blank cell means not selected
+        by the model. Gray shading indicates that the predictor variable was significant at the
+        5% level for that given model.
+                  Signed vs.    LN (salary)   NFL Games     NFL Career   NFLCS per   NFLCS per   NFL Games     NFL Career   NFLCS per   NFLCS per
+                   Unsigned         PFA       Started PFA   Score PFA    Game PFA     Year PFA   Started per    Score per   Games per    Year per
+Variable           (logistic)                                                                     Cost PFA      Cost PFA     Cost PFA    Cost PFA
+
+Age in Upcoming        –                         –             –              –          –             –            –          –            –
+Season
+Height                                                                                                              –
+Weight                                                                        –          –                                     –            –
+BMI                                    –
+SEC
+Big Ten                                          +             +              +          +             +            +          +                +
+Big 12                                           –             –              +
+Pa-12                                            –             –                                       –            –
+ACC                                              –             –                                       –            –
+BCS                                    –         –             –              –          –             –            –          –            –
+Career College
+Yards per                                                                                              +
+Reception
+Career College                                                                                                                 +            +
+Reception
+Career College                                                                +          +             +
+Yards
+Career College                         –                                      –          –                                     –
+Touchdowns
+Final Year
+College Rec                                                                                            +                                    +
+Percentage
+Final Year
+College Yards
+Percentage
+Final Year
+College TDs                            –                                      –          –             –                       –            –
+Percentage
+NFL Games
+Started (per           –               –         –                                       –
+cost) to Date
+NFLCareer Score
+(per cost) to                                                                            +
+Date
+NFLCS per Game
+(per cost) to          –               –                       +              +                        +            +          +
+Date
+NFLCS per Year
+(per cost) to          +               +         +                                       +                                                  +
+Date
+Average Cap Hit
+to Date                                –
+
+
+3.1 FREE AGENT SIGNING
+Our fitted logistic regression model for whether or not each free agent tight end was
+signed by a team has an R2 value of 0.152 (significant at the 0.01% level). Ten (of
+16 possible) predictor variables were selected by the model, seven of which have
+partial effects that are significant at the 5% level. The selected predictors for tight
+ends include physical variables (age and weight), college variables (BCS indicator,
+career yards per reception, final year yards percentage, and final year touchdowns
+percentage), and NFL performance to date variables (NFL career score to date, NFL
+career score per game to date, NFL career score per year to date, and NFL games
+started to date). The two most significant variables are age in upcoming season and
+NFL career score per year to date, each significant at the 1% level.
+      Our fitted logistic regression model for whether or not each free agent wide
+receiver was signed by a team has an R2 value of 0.098 (significant at the 1% level).
+276                                    Mulholland, J., Jensen, S.T.
+
+       Tab. 3: Tight End Model Summaries
+
+
+
+
+      Tab. 4: Wide Receiver Model Summaries
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL              277
+
+It includes four (of 21 possible) predictor variables: age in upcoming season, NFL
+games started to date, NFL career score per game to date, and NFL career score per
+year to date. Of these predictor variables, age in upcoming season and NFL career
+score per year to date are the most significant (both at the 1% level) just as they are
+in the model for tight ends.
+       The logistic regression models for both tight ends and wide receivers suggest
+that the primary focus of evaluators is average performance per year thus far and
+how many years a player has left in the league, as measured by age. We also note
+that NFL games started to date has a negative coefficient in both models, which
+suggests that among players with similar receiving production and age, those with
+more starts are less likely to be signed. This likely is due to the fact that players with
+more games started are likely older and past the prime of their career. Additionally,
+they likely have taken more of a physical beating in their career and could be more
+of an injury risk.
+       Our prediction models for players’ salaries after free agency show interesting
+similarities and differences from the logistic regression models for whether a player
+is signed or not. In our model for salary, we use the natural log of the player’s salary
+(in thousands) as the outcome variable. Salary data behaves approximately log-
+normally, so using the log of the salary is a better fit to the assumptions of a linear
+regression model.
+
+3.2 FREE AGENT SALARIES
+The fitted linear regression model for tight end free agent salaries has an adjusted
+R2 of 0.184 (significant at the 0.01% level). This model selected six (of 17 possible)
+predictor variables that are a combination of college performance and NFL
+performance to date. Specifically, the selected predictors were college receptions,
+yards, and touchdowns and NFL career score to date, NFL career score per game
+to date, and NFL career score per year to date. Among these, college receptions and
+NFL career score per game to date are the only variables not significant at the 10%
+level. NFL career score per year to date is the only variable significant at the 1%
+level, indicating that average receiving production to date is the leading indicator
+for tight end salary.
+      We see similar results in our fitted recursive partitioning tree model for tight
+end free agent salary. The tree model has an R2 of 0.386 and RMSE of 0.695, which
+improves upon the RMSE of 0.764 for the linear regression model. The first split
+in the tree uses NFL career score per game to date, which confirms that average NFL
+receiving productivity is the most important predictor of tight end salary. The tree
+uses college and NFL performance variables as well as NFL salary to date as the
+278                                                             Mulholland, J., Jensen, S.T.
+
+
+splitting variables in all but one of the tree’s eight splits.
+       Our results for wide receiver free agent salaries echo those for tight ends,
+though college performance does not appear as frequently in the wide receiver
+models. The fitted linear regression model for wide receiver free agent salary had
+an adjusted R2 of 0.325 (significant at the 0.01% level). Eight (out of 22 possible)
+predictors were selected: salary to date, BCS indicator, BMI, college touchdowns,
+college final year touchdown percentage, NFL games started to date, NFL career
+score per game to date, and NFL career score per year to date. Similar to our models
+for tight end salary, the most significant (at a 0.01% level) variable for wide receiver
+salary is NFL career score per year to date.
+       In this salary model, NFL games started to date has a negative coefficient
+(significant at the 1% level), just as it did in the logistic regression for whether a
+wide receiver would be signed or not. This may indicate that players with more
+games started are seen as a more substantial injury risk in the future, which is
+factored into a lower expected salary. It is surprising that the BCS indicator variable
+is included with a negative coefficient in the wide receiver free agent salary model.
+One possible explanation is selection bias due to the fact that the highest paid
+players in free agency are often players who were low-draft picks (from non-BCS
+schools) which outperformed their low-paying rookie contracts, whereas premier
+players (from BCS schools) are more likely to be re-signed prior to reaching free
+agency because they will require less of a pay increase from their relatively more
+expensive rookie contracts. In our sample, only 23% of the non-BCS wide receivers
+were picked in the first three rounds of the draft, as compared to 58% for BCS wide
+receivers. Meanwhile, only 10% of the non-BCS tight ends in our sample were
+picked in the first three rounds, which is very low relative to the mark of 41% for
+tight ends from BCS schools.
+       As compared to this regression model, we see generally similar findings in our
+fitted recursive partitioning tree model for wide receiver free agent salary. The tree
+model had an R2 of 0.474 and RMSE of 0.770, which improves upon the RMSE
+of 0.891 for the linear regression model. The fact that NFL career score per year
+to date is used as the splitting variable in the first two levels of the partitioning tree
+confirms the importance of prior NFL productivity. One interesting difference in
+the tree model is the role of the physical measure BMI. The regression model did
+include BMI, but it was not significant even at the 20% level. In the tree model,
+BMI is used in three splits, with lower BMI giving higher predicted salary in each
+split. This suggests that in free agency, smaller wide receivers (often slot receivers)
+like Emmanuel Sanders in 2014 will tend to be higher paid. As we discuss later, this may
+be logical as slot receivers tend to be the best available free agent receivers, as the larger,
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL             279
+
+premier wide outs (like Calvin Johnson, Dez Bryant, Demaryius Thomas, etc.) tend to
+be re-signed or franchise-tagged before reaching free agency.
+      In summary, our models for free agent signing and free agent salary have
+suggested that average NFL receiving performance to date is the most important
+factor in NFL teams’ evaluation of receiver free agents. The age of free agents is
+found to be important for predicting signing or not, but not important for predicting
+salaries. We also see that when signing free agent wide receivers, there seems to be
+a bias towards the smaller but talented slot receivers.
+
+
+4. PREDICTING FUTURE FREE AGENT PERFORMANCE AND VALUE
+We now shift our focus to trying to predict the performance of tight end and wide
+receivers after they have been signed as free agents. We employ several different
+measures of NFL performance after free agency: NFL games started post-free-
+agency, NFL career score post-free-agency, NFL career score per game post-free-
+agency and NFL career score per year post-free-agency. The first two measures are
+indicative of cumulative performance whereas the latter two measures are indica-
+tive of average performance. For the cumulative performance measures, we
+required three years of post-free agency performance data to attempt to limit the
+issue of censoring, as there are some players in our data set that have incomplete
+data since they are still active in the league.
+      For each of these outcome measures, we create both linear regression and
+recursive partitioning tree models. In addition, we will also examine the concept of
+value for each player by dividing each of these outcome measures by the “cost”
+(log-salary) of each player.
+      It is important to note that these models are aimed to predict the future
+performance of free agents at the wide receiver and tight end positions, not the
+future performance of all players at these positions. Thus, selection bias may lead
+to certain variables to have some surprising effects, as the best players at these
+positions are often given contract extensions before they reach free agency.
+
+4.1 PREDICTING NFL GAMES STARTED POST-FREE AGENCY
+NFL games started post-free agency is an important measure of NFL perfor-
+mance because it captures aspects of player contribution other than the usual
+receiving statistics.
+      A player can be a starter for a team for reasons other than pure receiving: a tight
+end or wide receiver can also earn a starting job for leadership ability, ability to
+attract defenders and create space, and blocking ability. As a specific example,
+280                                                        Mulholland, J., Jensen, S.T.
+
+
+Hines Ward did not produce high receiving statistics in the final two years of his
+career, but he still was a starting wide receiver for the Pittsburgh Steelers due to his
+ability to block and attract defenders. Additionally, Larry Fitzgerald (who is
+currently one of the highest paid wide receivers of all time) does not produce
+receiving stats at the incredible level he did from 2007 to 2011 (when he had 5
+straight 1000-yard seasons and had 49 touchdowns in that five year span). However,
+due to his still respectable receiving production and his impressive blocking ability
+in both the run game and downfield on pass plays, he continues to start for the
+Cardinals and earn his high salary.
+      Our regression linear model for NFL games started post-free agency of tight
+ends has an adjusted R2 of 0.228 (significant at the 0.01% level). The model selected
+three (out of 16 possible) predictors: age, college touchdowns, and NFL games
+started to date. College touchdowns is significant only at the 10% level while the
+other two variables are significant at the 0.01% level.
+      The significance of age and NFL games started to date makes sense as tight
+ends who have started in the past are likely to start in the future, while a younger
+player will have more time remaining in his career to start more games. The
+regression model for the per-cost version of this outcome variable included the
+same three predictor variables, which suggests these variables are predictors of not
+only tight end starters, but high value tight end starters.
+      The recursive partitioning tree model for NFL games started post-free-agency
+of tight ends shows similar results to the linear regression model. The tree model
+has an R2 of 0.273 and a RMSE of 14.11, which improves slightly upon the RMSE
+of 14.79 for the linear regression model. The first three splits in the fitted tree use
+age or NFL games started to date, which are also the two significant variables in the
+linear regression model. The fitted tree for the per-cost version of NFL games
+started post-free-agency is highly similar.
+      Overall, these models indicate that post-free agency games started for a tight
+end can be best predicted by how many games the player has started pre-free-
+agency and an estimate of how many years the player has remaining in the NFL (as
+measured by age).
+      Our regression linear model for NFL games started post-free agency for wide
+receivers has an adjusted R2 of 0.281 and selected eight (of 21 possible) predictor
+variables. Three predictors are significant at the 1% level: these are the Big Ten
+indicator (positive coefficient), age (negative coefficient), and NFL career score per
+year to date (positive coefficient). The linear model for the per-cost version of this
+outcome is similar, with three variables significant at the 1% level: the Big Ten
+indicator (positive coefficient), age (negative coefficient), and NFL career score per
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL             281
+
+game per cost to date (positive coefficient). Young players from the Big Ten who
+have the highest average performance pre-free-agency are predicted to start the
+most games in the future.
+       The recursive partitioning tree model for NFL games started post-free agency
+of wide receivers has an R2 of 0.389 and a RMSE of 14.36, which improves upon
+the RMSE of 15.62 of the linear regression model. The five highest-level splits in
+the fitted tree use NFL career score per year to date, BMI, and age as the splitting
+variables. These are similar findings to the linear regression in that average NFL
+performance and age are important, but the significance of BMI in the tree is
+surprising given its absence from the regression model. The fitted tree model
+suggests that wide receivers with lower BMIs tend to have more games started post-
+free agency. The fitted tree model for the per-cost version of NFL games started
+post-free-agency is similar in that the first three levels of splits use NFL career score
+per year per cost, the Big Ten dummy variable, and BMI.
+       Overall, it is interesting to find that while age is very important to predicting
+future games started for both tight ends and wide receivers, previous starting
+experience is the most important NFL performance predictor for tight ends’
+projected future games started, while previous average receiving production is most
+important for wide receivers.
+
+4.2 PREDICTING NFL CAREER SCORE POST-FREE AGENCY
+The cumulative measure of NFL receiving performance after free agency that we use
+as an outcome variable is NFL career score post-free agency. NFL career score post-
+free agency combines the yards and touchdowns that a tight end or receiver obtains
+after free agency, which are the primary ways a pass catcher helps their team.
+      The regression model for NFL career score post-free agency of tight ends has
+an adjusted R2 of 0.188 (significant at the 0.01% level). Three (of 16 possible)
+predictor variables are included in the model: age and NFL career score per year to
+date (significant at the 1% level) and college yards (significant at the 10% level).
+The importance of age and average pre-free-agency performance makes sense,
+as players who produce a high yardage and touchdown total each year and have
+more years remaining in the league should be expected to have higher cumulative
+production in their post-free-agency career. The regression model for the per-cost
+version of this outcome confirms these same selected variables.
+      The recursive partitioning tree model for NFL career score post-free agency
+of tight ends confirms the findings of the linear regression model. The partition has
+an R2 of 0.237 and an RMSE of 401.41, which is lower than the regression’s RMSE
+of 424.66. All splits in the fitted tree use age or NFL career score per year to date
+282                                                          Mulholland, J., Jensen, S.T.
+
+
+as the splitting variable, which are the two most significant predictor variables in
+the linear regression. The fitted tree for the per-cost version of this outcome variable
+is also highly similar, demonstrating that prediction of NFL career score post-free
+agency and NFL career score per cost post-free agency of tight ends relies primarily
+on average annual performance and age.
+       The regression model for NFL career score post-free agency of wide receivers
+has an adjusted R2 of 0.242 and selected seven (of a possible 21) predictor variables.
+The selected variables are highly similar to those selected as predictors of NFL
+games started post-free agency of wide receivers. In this model, age and NFL career
+score per game are both 0.01% significant and the Big Ten dummy is the third most
+significant. The regression model for the per-cost version of this outcome also
+selects age, NFL career score per game per cost to date, and the Big Ten dummy as
+the three most significant variables.
+       The recursive partitioning tree model for NFL career score post-free agency
+of wide receivers has an R2 of 0.373 and an RMSE of 1035, which improves upon
+the RMSE of 1142 of the regression model. The fitted tree shows some differences
+from the regression model just discussed but is notably similar to the tree model for
+NFL games started post-free agency. As in the games started tree, this NFL career
+score tree only uses NFL career score per year to date and BMI as splitting variables
+for the first three levels. We see that BMI is again an important variable in the tree
+model but not in regression model, which suggests that BMI has a non-linear
+relationship with cumulative performance.
+       The tree model for the per-cost version of this outcome closely emulates the
+other wide receiver NFL career score post-free agency models. NFL career score
+per year per cost to date, BMI, and are used as the splitting variables in the first three
+levels of the tree.
+       Overall, these findings suggest that in addition to being projected to start the
+most games in the future, young receivers from the Big Ten who have high average
+performance in the past will tend to have the best cumulative receiving performan-
+ce and value in the future.
+
+4.3 PREDICTING AVERAGE NFL PERFORMANCE POST-FREE AGENCY
+The outcome measures in Sections 4.1-4.2 were both cumulative measures of
+post-free agency career performance. We now examine two outcome measures of
+average post-free agency performance: post-free agency NFL career score per
+game and NFL career score per year. While the per-game performance captures
+only performance on the field, the per-year performance measure also incorporates
+how many games played, which can be impacted by injury or suspension. If a player
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL             283
+
+is injury prone or has off-field issues which leads to suspension, that will affect their
+performance per year but not performance per game.
+       These average measures will be especially relevant to teams signing players
+to short-term contracts where high average productivity is needed more than high
+cumulative productivity. In this section, we will focus our analysis on models for
+the per-game outcome and mention some differences from the models for the per-
+year outcome, as they show similar results.
+       The linear regression model for the NFL career score per game post-free
+agency of tight ends has an adjusted R2 of 0.331 (significant at the 0.01% level).
+Nine variables (of a possible 16) were selected: age plus eight variables consisting
+of a mix of college and NFL performance to date. Interestingly, the four variables
+significant at the 5% level are all college performance variables (college yards per
+reception, college receptions, college yards, and final year college reception
+percentage). However, the model for the per-cost version of this outcome model
+selected three variables: age, NFL games started to date, and NFL career score per
+year per cost to date. Of these, NFL career score per year per cost to date is the most
+significant (at the 0.01% level). In total, these results seem to indicate that despite
+college performance being a good predictor of per-game performance, the key
+predictor of per-game “value” for tight ends is their per-year value in the past.
+       The recursive partitioning tree model for NFL career score per game post-free
+agency of tight ends has an R2 of 0.334 and an RMSE of 8.85, which improves
+slightly on the RMSE of 8.99 for the regression model. This tree model uses NFL
+career score per year to date as the initial splitting variable, but the remainder of the
+tree uses a mix of physical and college performance variables. The fitted tree model
+for the per-cost version of NFL career score per game has more focus on per-game
+value in the past as a predictor of future per-game value, with NFL career score per
+game per cost to date being the splitting variable in the first two splits of that tree.
+       It seems that both models for per-game value rely more on average value in
+the past, while the models for per-game performance include a wider variety of
+predictor variables. For the tight end per-year performance models, we find a
+similar result to those of the per-game models, as the college performance
+predictors are still significant. Per-year performance to date is the most significant
+predictor of future per-year performance in that model.
+       Summarizing these models for tight ends, we find that for predicting average
+performance there are a variety of factors (especially college) that have predictive
+power in addition to average performance in the past, but for predicting average
+value after free agency, average value in the past is the most important predictor.
+       Our regression model for NFL career score per game post-free agency of wide
+284                                                        Mulholland, J., Jensen, S.T.
+
+
+receivers has a relatively high adjusted R2 of 0.419. This model selects nine (of 21
+possible) predictors, four of which are significant at the 1% level: age, the BCS
+indicator, career college yards, and NFL career score per game to date. Age and average
+performance to date continue to show significance, while the other two variables are
+not as important in earlier models. The BCS dummy was included in both of the
+games started and cumulative NFL career score regressions, while the college
+yardage measure was not included in either. College measures appear to provide an
+indication of average performance, but not career length, as they are less present in
+the models for the cumulative outcomes. Thus, college performance provides an
+indication of future NFL performance, but not necessarily of career length.
+       The model for the per-cost version of NFL career score per game of wide
+receivers has one difference in the most important predictors: a college measure was
+replaced with weight with a negative coefficient, indicating that the smaller wide
+receiver free agents provide higher average value. This is an interesting finding since,
+while we found that small receivers tend to be paid more, we have also now found them
+to provide more value, indicating they are more than worth the higher pay.
+       The recursive partitioning tree model for NFL career score per game to date
+has a R2 of 0.478 and RMSE is 16.79, which is a slight improvement upon the
+RMSE of 17.83 for the regression model. The first two levels of the tree use NFL
+career score per game to date and NFL career score per year to date as the splitting
+variables, indicating past average performance is the most important predictor of
+future average performance. The third level includes college yards and BMI as
+splitting variables, which provides a further indication that college performance is
+important for predicting average professional performance. BMI continues to be
+included in our tree models but not the linear regression models. The tree model for
+the per-cost version of this outcome measure is generally similar with one notable
+difference: weight was used for a second-level split in the tree, indicating weight’s
+importance in predicting average value.
+       Our regression model for predicting wide receiver per-year performance
+shows a single difference from the per-game performance models: the college
+performance measures are no longer significant, as college performance likely has
+less predictive value for the number of games missed in a season. The recursive
+partition tree (shown in Fig. 1) has average performance to date as the first two splits
+and we also see smaller players (low BMI and low weight) have better predictions.
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL                 285
+
+
+
+
+ Fig. 1: Fitted recursive partitioning tree with post-free-agency NFL career score per year
+         for wide receivers as the outcome variable. The number in the final node indicates
+                  the average expectation of players that would fall into that node.
+
+
+5. COMPARISON OF SALARY AND PERFORMANCE MODELS
+In this section, we compare the variables that are most predictive of free agent
+signing and salary to the variables most predictive of future performance in order
+to evaluate whether NFL teams are focusing on the most important factors in their
+decision-making process.
+      Overall, our models tend to do better predicting average performance than
+cumulative performance and do better predicting wide receivers than tight ends, as
+seen by the higher adjusted R2 values. It makes sense that average performance is
+easier to predict, as cumulative performance is also impacted by the extra variability
+in career length.
+286                                                                   Mulholland, J., Jensen, S.T.
+
+
+      Among the models for predicting future wide receiver performance, two
+predictor variables appear more consistently than all of the others: age and NFL
+career score per year to date. NFL career score per year to date is the first splitting
+variable in the majority of the partition trees. A player who is younger will have
+more years remaining in the league, and if they have higher per-year performance
+in the past, they are more expected to perform at a high level in the future.
+      It is interesting to note that age is not included in the regression model for
+predicting salary (as seen in Fig. 2). This indicates that NFL teams tend to overpay
+veteran players relative to their performance, as age is negatively correlated with
+performance of free agents.
+      The BCS indicator variable also plays an interesting role in our analyses. For
+wide receivers, the BCS indicator is negatively correlated with future performance
+in our prediction models. This may seem counterintuitive since many of the best
+players in the NFL come from BCS conferences. A likely explanation is selection
+bias: as mentioned earlier, our study is focused entirely on free agents, and many
+of the best NFL players don’t reach free agency but rather are franchise tagged (with
+a one-year high salary contract) or signed to long-term contract extensions by their
+team. The top wide receiver free agents tend to be players who exceeded expectations.
+Players who come from schools outside the BCS tend to be late round draft picks
+or undrafted free agents who obtain low pay rookie contracts, as shown earlier.
+Wide receivers who perform well in this subset will then become some of the best
+free agents available. For tight ends, this effect is not as extreme, likely because tight
+ends are usually paid less and so they are more affordable.
+      Alongside the non-BCS players with the best projections in the wide receiver
+models are those from the Big Ten. In these models, the Big Ten dummy is
+consistently included with a positive coefficient, and is 5% significant in the two
+cumulative performance models. However, after performing an influence analysis,
+we find that taking out influential observations2 leads to the Big Ten dummy no
+longer having 5% significance in any of the four post-free agency performance
+models. The most influential observation is Derrick Mason (who went to
+Michigan State University). Mason left the Tennessee Titans in free agency in
+2005 at the age of 31 and went on to start 94 of 96 games for the Baltimore Ravens
+over the next six seasons, including four seasons with over 1,000 receiving yards.
+      Another interesting observation is that in the wide receiver models for the
+average performance outcomes, weight is consistently negative and is very significant
+
+   2                                                         4
+       observations with Cook’s distance greater than a              cutoff, where n is the number of
+                                                          n × k ×1
+
+       observations in the model and k is the number of input variables
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL           287
+
+in the average value models. This result is surprising given that many of the top
+receivers in the NFL over the past decade have been larger receivers, such as Calvin
+Johnson, Brandon Marshall, Dez Bryant, Demaryius Thomas, A.J. Green, Larry
+Fitzgerald, and Andre Johnson. However, note that only one of these top receivers
+(Andre Johnson) reached free agency, and it was not until he had spent 12 years in
+Houston. The other six are still with the team that drafted them or were traded
+(Brandon Marshall).
+       Teams tend to give the top outside wide receivers lucrative extensions before
+they reach free agency, so that these players do not leave their original teams. It is
+the smaller receivers (often lining up in the slot) who become some of the top free
+agents, such as Emmanuel Sanders leaving the Steelers and joining the Broncos in
+2014, Wes Welker leaving the Patriots and joining the Broncos in 2013, Danny
+Amendola leaving the Rams and joining the Patriots in 2013, or Derrick Mason
+leaving the Titans and joining the Ravens in 2005.
+       For tight ends, meanwhile, we discovered that size has no significance in
+predicting future salary, performance, or value. Height, weight, and BMI were not
+included in any of the 9 models for salary, performance, and value of tight ends.
+However, it was included in the model for predicting whether tight ends would be
+signed (though with low significance).
+       We also find that, while college receiving statistics are not important for
+projection of wide receiver free agents in the NFL, they do have some significance
+in prediction of future performance of tight end free agents. This may be due to the
+fact that, in the NFL, wide receivers are targeted more frequently than tight ends (on
+almost every team). This results in lower overall performance from tight ends,
+which makes it harder to differentiate some tight ends based on past NFL
+performance alone. Therefore, college statistics seem to be acting as a supplement
+to the NFL performance to date predictor variables.
+       In Table 5, we evaluate the extent to which the variables that are currently
+important to evaluation of tight end and wide receiver free agents in the NFL are
+similar to the optimal predictor variables selected in our models. Specifically, we
+compare the adjusted R2 of our linear regression models for future performance
+using either (1) the optimal predictors selected for that future performance measure
+or (2) the predictors selected as most predictive of free agent salary. The extent to
+which these two sets of predictors disagree is suggestive of inefficiency in
+evaluation of free agents by NFL decision makers.
+       In Table 5, we see that NFL teams are closer to the optimal adjusted R2 level
+in the average performance measures, especially when considering wide receivers.
+NFL decision makers are less close to the optimal adjusted R2 level for the
+288                                                               Mulholland, J., Jensen, S.T.
+
+
+cumulative measures of performance (and for tight ends), which indicates greater
+uncertainty in evaluation of long-term performance. Thus, it is optimal for NFL
+teams to sign wide receiver free agents to short-term contracts to minimize the
+impact of the uncertainty in the ability of the player to sustain their performance.
+
+ Tab. 5: Comparison of adjusted R2 of the models that we created (using optimal variables)
+           versus the adjusted R2 of models created for the given post-free agency (PFA)
+        outcome variable using the variables selected as most predictive of players’ salaries.
+         Thus, a smaller gap between the corresponding adjusted R2 values would indicate
+        more efficiency (in terms of paying players the efficient salary for their production).
+                             Tight Ends                                  Wide Receivers
+Optimal
+Predictors vs.
+Salary Selected       Adjusted R2         Adjusted R2       Adjusted R2 With     Adjusted R2 using
+Predictors           With Optimal       using Ln(salary)       Optimal           Ln(salary) selected
+                      Variables        selected Variables      Variables             Variables
+NFL Games Started        0.228               0.086               0.281                    0.148
+PFA
+NFL Career Score         0.188               0.119               0.242                    0.154
+PFA
+NFL Career Score         0.331               0.251               0.419                    0.406
+per Game PFA
+NFL Career Score         0.246               0.153               0.419                    0.393
+per Year PFA
+
+
+      In Fig. 2, we examine the specific differences between the selected predictors
+for NFL career score per year post-free agency and Ln(salary) post-free agency for
+wide receivers. As seen in Table 5, this particular comparison is one where the
+salary-selected predictors do almost as good of a job of prediction as the optimal-
+selected predictors. Thus, we see a large overlap in the set of predictors in the Venn
+diagram, though additional variables such as age and weight seem to be
+underemphasized by evaluators.
+
+
+6. PREDICTING FUTURE APPROXIMATE VALUE (AV) OF FREE
+   AGENTS
+To evaluate whether our NFL performance measures (NFL games started, NFL
+career score, NFL career score per game, and NFL career score per year) are
+appropriate indicators of tight ends’ and wide receivers’ contributions to their
+teams, we have also created‘stepwise regression models to predict a player’s
+approximate value (cumulative and per year) after free agency. Approximate value
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL                     289
+
+
+
+
+Fig. 2: Venn diagram comparing the selected variables from linear regression models for (1)
+            NFL career score per year post-free agency as the outcome versus (2) natural
+          logarithm of salary post-free agency as the outcome variable. A “+” indicates that
+        the variable is included in the model with a positive coefficient, while a “–“, indicates
+                        that the variable is included with a negative coefficient.
+
+
+(AV) is a measure that Pro Football Reference uses as their “attempt to put a single
+number on each player-season since 1950” (“Football glossary and football
+statistics glossary,” 2000-2016).
+      Our models for tight end AV and AV per year post-free agency each include
+two predictor variables and have adjusted R2 values of 0.195 and 0.204, respectively.
+Each of these models includes age (with a negative coefficient) and one of the two
+measures of average NFL performance to date (NFL career score per game or per
+year). Meanwhile, age and average NFL performance to date are consistently
+among the most significant predictors of our NFL performance post-free agency
+indicators.
+      For wide receivers, our AV and AV per year post-free agency models include
+a wider variety of predictor variables, but still show similar results to our models
+for future (post-free agency) performance of wide receivers. These models have
+adjusted R2 values of 0.225 and 0.368, respectively. Despite the inclusion of a wider
+variety of predictor variables, we again find that the age (with a negative coefficient)
+and a measure of average performance to date are the most significant predictors
+(both are 0.01% significant in both models), which was also the case when
+modeling our NFL performance post-free agency indicators for wide receivers.
+290                                                        Mulholland, J., Jensen, S.T.
+
+
+      Given the similar results provided by these models for prediction of the future
+approximate value of free agents, the indication is that our NFL performance and
+value post-free agency measures are appropriate measures of the contributions that
+tight ends and wide receivers provide for their teams.
+
+
+7. SUMMARY AND DISCUSSION
+In this paper, we have presented statistical models for predicting the signing, salary
+and future performance of NFL tight end and wide receiver free agents. Our
+predictive modeling strategies were logistic regression, ordinary least squares
+regressions, and recursive partitioning decision trees. These models have shown
+that the most important variables for predicting the future performance of tight end
+free agents include age, average annual receiving performance, number of NFL
+games started, and some college performance variables. Meanwhile, the most
+important variables for predicting the future performance of wide receiver free
+agents include age, average annual receiving performance, the BCS college
+indicator, and the player’s weight.
+      We found that average performance is easier to predict than cumulative
+performance, both in terms of lower overall prediction errors as well as greater
+agreement between the optimal predictors of future average performance and the
+optimal predictors of free agent salary. There is greater disagreement between the
+predictors of future cumulative performance and the predictors of free agent salary.
+      For tight ends, our results display one key inconsistency between predictors
+of future performance and salary. The player’s age is included with a negative
+coefficient in all four future performance regression models and three of the four
+value (performance per cost) models, though it does not appear in the salary model.
+Therefore, NFL teams are overpaying older tight ends relative to their expected
+future performance.
+      There seems to be an overpayment for older wide receivers, as well. All eight
+of the performance and value regression models for wide receivers include age with
+a negative coefficient, while yet again, it does not appear in the salary model.
+Players who sign a contract lasting five or six years with a high salary beginning in
+their players’ primes and continues until they are in the later stages of their careers
+could influence this finding.
+      We also identified a disparity between prediction of future wide receiver free
+agent performance and salary.
+      We find that smaller receivers are projected to have better performance and
+value than their larger counterparts (weight appeared with a negative coefficient in
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL            291
+
+all average performance and value regression models and BMI – favoring a lower
+value - appeared in all of the performance and value partitions). Meanwhile, weight
+and BMI are not significant for prediction of salary, as weight does not appear in
+the model and BMI is not even significant at the 20% level.
+      Separately, it is interesting to note that there are some variables that change
+in sign (positive versus negative impact) depending on the outcome variable. For
+example, consider NFL games started to date for tight end free agents. Those who
+have more games started to date are more likely to be signed and have a higher
+expectation of expected starts in the future, but are projected to have lower average
+performance (using both average performance measures: NFL career score per
+game and NFL career score per year). This is could be due to the fact that a player
+with many starts in the past is an experienced veteran in the league and will likely
+continue to be a starter in the future, but also those with more starts have been in the
+league longer. Thus, they are likely past their prime and will tend to have lower
+average performance than they had produced in their prime.
+      We present one final case study when our model would have suggested a better
+decision. Brandon Jones and Brandon Lloyd were two free agent receivers in 2009.
+Jones signed a contract with San Francisco, paying him $2.6 million that year, while
+Lloyd signed a contract with Denver, paying him just over $500,000 that year. Our
+models projected Jones, who was 27 at the time, to start only 7.6 more NFL games
+and to have an NFL career score post-free agency of 450.5. In the end, Jones
+appeared in 8 games that year and had one catch for 18 yards. He never appeared
+in an NFL game again. On the other hand, Lloyd was projected to start 23.6 games
+and to have an NFL career score of 1620.8. Brandon Lloyd since then has
+exceeded these expectations with 44 starts and an actual NFL career score post-
+free agency of 4141.3 by his retirement at the end of the 2014 season. Lloyd was
+paid less than Jones in 2009, but was projected to perform better by our models.
+In the end, he definitely had a better post-free agency performance, as our models
+predicted.
+     It is important to note several limitations of our approach. We only use
+quantitative predictors, but it is important to take qualitative aspects into
+consideration to adjust predictions, such as a player’s injury history, off-field
+problems, and the depth chart with new team.
+      We believe that paired with an analysis of these qualitative factors, our
+quantitative models can improve the precision in predicting future performance of
+tight end and wide receiver free agents in the NFL. We also believe that these
+modeling strategies can be applied to other NFL positions, assuming a similar set
+of variables can be established to be predictive of future performance.
+292                                                                   Mulholland, J., Jensen, S.T.
+
+
+REFERENCES
+Breiman, L., Friedman, J., Stone, C.J. and Olshen, R.A. (1984). Classification and Regression Trees.
+     Chapman and Hall/CRC, London. First edition.
+Cox, D.R. and Snell, E.J. (1989). Analysis of Binary Data. Chapman & Hall, London. Second edition.
+Dhar, A. (2011). “Drafting NFL wide receivers: Hit or miss?” Technical report. Department of
+      Statistics, University of California at Berkeley.
+“Football glossary and football statistics glossary.” (2016). Pro Football Reference, 2000-2016. http:/
+      /www.pro-football-reference.com/about/glossary.htm. Accessed July 1, 2016.
+Hocking, R.R. (1976). The analysis and selection of variables in linear regression. In Biometrics. 32:1-
+     49.
+JMP, Version 10. (2012). SAS Institute Inc., Cary, NC.
+Mulholland, J. and Jensen, S.T. (2014). Predicting the draft and career success of tight ends in the
+     National Football League. In Journal of Quantitative Analysis in Sports. 10(4): 381-396.
+Strobi, C., Boulesteix, A.L., Zeileis, A. and Hothorn, T. (2007). Bias in random forest variable
+       importance measures: Illustrations, sources and a solution. In BMC Bioinformatics. 8:25.
+Stuart, C. (2008). “The final value of a passing touchdown.” Pro Football Reference Blog, October
+       3, 2008. http:// http://www.pro-football-reference.com/blog/index4db6.html?p=633. Accessed
+       July 1, 2016.
+
+
+
+APPENDIX
+Here we will explore in detail some of our model predictions for the 2014 wide
+receiver free agent class. We focus on this group of 67 wide receiver free agents in
+the NFL in 2014 as they had a variety of intriguing storylines and a larger sample
+than that of tight ends. There were a few receivers who had experienced some
+success and were looking to continue that success elsewhere, while there were
+many looking to prove their skills.
+       Desean Jackson had a breakout year in the 2013 season, his sixth season in the
+NFL. He accumulated 82 catches for 1332 yards and 9 touchdowns. These were
+career highs in catches and yards, and tied his career high in touchdowns. His 1332
+yards put him as the ninth leading receiver in the NFL. After the Eagles cut Desean,
+he was quickly signed by the Redskins to the highest average cap hit deal given to
+a wide receiver that offseason. Our models projected Desean to have the best
+performance in this class in our average performance measures, including NFL
+career score per year post-free agency, which our model projected him to have
+890.5. In his first six seasons, Desean’s NFL career score per year to date was
+1122.4. Our projected decrease in average performance likely came from the fact
+that it was questionable how many more years Desean would be in his prime, as he
+turned 28 years old in the 2014 season. In the first two years of this deal, Desean
+achieved an NFL career score per year of 945, which is slightly higher, but not too
+Predicting the Future of Free Agent Receivers and Tight Ends in the NFL             293
+
+far from our projection of 890.5.
+       The next highest paid free agent receiver in the 2014 offseason was Eric
+Decker. Decker had shown consistently strong performance over the prior two
+seasons, especially in 2013, as he nearly reached 1300 yards. After signing with the
+Jets, people wondered if Decker could continue his high performance with an
+inexperienced quarterback, Geno Smith, after his past years with Peyton Manning.
+According to our models, Decker was projected to have the best cumulative
+performance after free agency of all of this year’s wide receiver free agents and the
+second highest NFL career score per year post-free agency of 808.6. Decker
+achieved an NFL career score per year of 1158.55 from 2014 to 2015, including a
+1000-yard season in 2015 when paired with Brandon Marshall, as Ryan Fitzpatrick
+took over at quarterback for the Jets. It remains to be seen if Decker’s average post-
+free agency performance will fall toward his projection after he passes out of his
+prime years, but his fit as the number two receiver in Chan Gailey’s offense has
+helped him beat his projection thus far.
+       Two younger free agent receivers who were looking to take another step in
+their careers were Golden Tate (former Seahawk) and Andre Roberts (former
+Cardinal). Tate received substantial attention from the Seahawks Super Bowl run
+in the 2013 season. Potentially as a result of this attention, despite the fact that Tate
+only had 72 more yards than Roberts over the first four years of their careers, Tate
+was given a five-year contract with an average cap hit of $6.2 million per year, while
+Roberts was given a four-year contract with an average cap hit of $4 million.
+Roberts, though, was projected to perform better in the future by our models.
+However, we acknowledge that this projection did not account for the fact that Tate
+was entering a better situation as the number two receiver to Calvin Johnson in
+Detroit with Matt Stafford at quarterback, while Roberts became the number three
+receiver behind Desean Jackson and Pierre Garcon in Washington with a questionable
+quarterback situation.
+       If we were to adjust our projections due to these situations, we would have
+adjusted Roberts down from the NFL career score per year post-free agency of
+808.2, while for Tate, we would have adjusted up from the NFL career score per year
+post-free agency of 489.6. In the end, these adjustments would have been appropriate,
+as Tate had a breakout season in 2014 and has an NFL career score of 1168.5 for
+the 2014 and 2015 seasons, while Roberts achieved a NFL career score of 322.3 due
+to his status on the depth chart and the Redskins’ quarterback problems, as he is now
+primarily used as a kick returner.
+       While Tate and Roberts were the notable young receivers in this class, Steve
+Smith was the notable older receiver. Smith spent 13 years as a Carolina Panther,
+294                                                        Mulholland, J., Jensen, S.T.
+
+
+including 5 years as a pro bowl player. He even led the NFL in catches, receiving
+yards, and receiving touchdowns in 2005. For the first time in his NFL career, at age
+35, he played for a team other than the Carolina Panthers. Our models projected that
+Smith would be in the top ten in the average performance categories in this group
+of 67, but not in the top ten in cumulative performance, which clearly makes sense
+as he does not have too many years left in the NFL. In the end, Smith has been
+productive for the Ravens, accumulating an NFL career score per year of 954.35,
+relatively high as compared to his projection of 590.2.
+      Kenny Britt was another interesting storyline in this wide receiver group.
+While he did not get much attention from the media, the St. Louis Rams were quick
+to sign Britt. This signing marked the reuniting of Britt with coach Jeff Fisher who
+originally drafted Britt to the Titans in 2009. Britt had injury problems over the three
+years prior to free agency, along with multiple violations of the personal conduct
+policy resulting in a suspension. His performance fell sharply after a promising first
+two years in the league, and Fisher likely believed he could return Britt to his past
+level of play. Our model projected Britt to have an 80% chance of being signed and
+an unexpectedly high NFL career score per year post-free agency of 577.1 (given
+he had an NFL career score of only 96 for the 2013 season). Our model expected
+him to recover somewhat from his past few years of disappointment, but probably
+not to come all the way back to his performance level in 2009 and 2010. In the end,
+Britt has been productive as our models indicated, even surpassing our model’s
+prediction to achieve an NFL career score per year of 772.4 over the 2014 and 2015
+seasons.
+      Overall, these projections were relatively accurate or were made inaccurate
+by factors that we were able to point out prior to the season (such as the depth chart
+situations that Tate and Roberts entered). However, it is important to note that our
+projections were not just for this season, but were instead for the remainder of each
+player’s career. It will be interesting to see if these players trend more towards our
+projections moving forward.
+

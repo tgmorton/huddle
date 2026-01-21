@@ -1,0 +1,975 @@
+12/25/25, 6:57 AM                                        Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+
+
+
+        Switch to our new article page, redesigned for a smoother reading experience
+
+          View new layout
+
+
+
+
+                                                   International Journal of Forecasting
+                                                          Volume 35, Issue 2, April–June 2019, Pages 767-775
+
+
+
+
+      Optimizing the allocation of funds of an NFL team under
+      the salary cap
+      Jason Mulholland, Shane T. Jensen
+
+      Show more
+
+           Outline             Share        Cite
+
+      https://doi.org/10.1016/j.ijforecast.2018.09.004
+      Get rights and content
+
+                                                                                                                                                    Full text access
+
+
+      Referred to by       Erratum regarding missing Declaration of Competing Interest statements in previously published
+                           articles
+                           International Journal of Forecasting, Volume 37, Issue 3, July–September 2021, Pages 1327-1328
+
+                               View PDF
+
+
+
+
+      Abstract
+      Every NFL team faces the complex decision of having to choose how to allocate salaries to each position while being
+      limited by the salary cap. This paper uses regression strategies to identify which positions are worthy of greater
+      investment, under the assumption that players are paid in an efficient market. Using a combination of univariate
+      regression models, we identify that it is worth investing in elite players at the quarterback, guard, defensive line,
+      and linebacker positions. In addition, through a separate set of regression models we also consider the possibility
+      that markets are not actually efficient. We determine that the optimal way to take advantage of inefficiency is
+      through the draft, in order to find players who can provide significant win contributions early in their careers while
+      they are being paid on relatively low rookie contracts.
+
+
+
+                 Previous                                                                                                                         Next
+
+
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                                             1/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      Keywords
+      National football league; Linear regression; Resource allocation; Salary cap
+
+
+
+
+      1. Introduction
+      The focus on analytics has been increasing within all major sports leagues in the United States since the early 2000s
+      (Fry & Ohlmann, 2012); however, the increase in the National Football League has been relatively slow, perhaps due
+      to the complexity of the game as an interconnected coordination of many players. As analytics is now beginning to
+      take a stronger hold in the NFL, though (as can be seen from the Next Gen Stats program started by the league),
+      salary cap management has appeared as one of the key applications of statistical analysis to NFL team decision-
+      making.
+
+      Unlike some other professional sports leagues, the NFL has a strict team salary cap, meaning that teams cannot pay
+      a luxury tax to obtain permission to have a higher player salary total. This creates a classic ‘allocation of a scarce
+      resource’ decision, a topic that has generated a substantial amount of research. Radner (1972) discussed the
+      allocation of a scarce resource in situations of uncertainty, and Borghesi (2008) applied this issue specifically to the
+      NFL salary cap. Radner (1972) used an economic model for a problem of allocating a scarce raw material to a range
+      of enterprises. The author assigned an output function to each enterprise and attempted to maximize the expected
+      total output with respect to the constraint of the scarce resource. Meanwhile, Borghesi (2008) used regression to
+      identify which NFL players were overpaid relative to their performances and to identify the impact of this
+      overpayment on their team’s performance.
+
+      When NFL executives make decisions as to which players to sign, they are aware of past performances and other
+      observables, but can have no knowledge of the player’s true future value. The literature in this area indicates that
+      players who are paid less can earn large salary increases with improvements in their performances, while those
+      who already receive high pay will not earn much more with improved performances (Leeds & Kowalewski, 2001).
+
+      Motivated by this uncertainty in performance, there has been some literature on how the salary structure of an NFL
+      team can be optimized to increase individual player performances, and thus, the overall team performance.
+      Mondello and Maxcy (2009) find that giving a player an increase in salary with incentive bonuses for performance
+      within a mostly uniform salary structure (one with little spread in player salaries) will result in an improved on-
+      field performance. Meanwhile, Jane, San, and Ou (2009) find that a uniform salary structure is optimal for team
+      performance in the Taiwanese professional baseball league.
+
+      However, Quinn, Geier, and Berkovitz (2007) find that teams in the NFL do not have a uniform salary structure, but
+      more of a “superstar” salary structure, with some players earning far higher salaries than others. They believe that
+      this is due to NFL owners and managers having convex utility curves regarding wins, so that gaining a small
+      amount of extra talent on their roster is believed to have a large impact on the utility. The paper concludes by
+      stating, “Moreover, while there may be some rather difficult-to-detect strategies in cap allocation across players to
+      enhance winning, teasing them out of the available data remains elusive” (Quinn et al., 2007 p. 15).
+
+      Winsberg (2015) attempted to discover some of these cap allocation strategies in order to maximize wins. He
+      focused on only a few position groups, and concluded that paying offensive lineman and quarterbacks more than
+      the league average leads to a decreased team performance.
+
+      The main contribution of our paper is to consider all position groups in the National Football League in order to
+      identify the optimal percentage breakdown of the salary cap by position group that maximizes the total expected
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    2/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      win contribution across all positions (i.e., expected wins) with the restriction of the salary cap.
+
+      It is then possible to extend our approach to add the dimension of the performance levels (or win contributions) of
+      specific players. Not only does this identify what salary cap allocations have led teams to the most success in the
+      past, it also provides the ability to identify the marginal win contribution that can be added by investing more
+      money in any given position. This approach allows us to identify the positions in which an added investment will
+      achieve the greatest increase in expected wins. Thus, when presented with limited salary cap room remaining and
+      multiple positions to fill, a team will know which positions are worth the investment of those final dollars.
+
+      With a full consideration of all position groups and player performance levels, the goal of this analysis is to identify
+      the best possible salary cap allocation, by which a team will maximize the win contribution per marginal cost at
+      every position, thereby maximizing a team’s expected wins.
+
+      Past results indicate that a more uniform salary structure will be found to be optimal, rather than that which
+      currently exists in the NFL. Even though it seems as though the teams with the best quarterbacks are those that win
+      the most, Winsberg (2015) found that it is not optimal in terms of team performance to have a highly paid
+      quarterback. However, once player performance (in terms of win contributions) is taken into consideration, we find
+      that the optimal allocation strategy is highly non-uniform and does allocate a relatively high salary to quarterbacks,
+      though not as high as the top NFL quarterbacks actually receive.
+
+      Quarterbacks are the primary driver of a team’s salary cap situation. As there are so few quality quarterbacks, once
+      a team finds the QB whom they believe can bring success, they will pay whatever is necessary to keep that QB
+      under contract. Kelly (2016) notes that there are “essentially three types of rosters: the ones that pay a quarterback
+      big money, the ones that pay a young quarterback rookie-contract money, and the ones that don’t do either”. Teams
+      with no quarterback try to find a quarterback, teams with a good quarterback try to structure their roster to win
+      within that quarterback’s prime years, and the lucky few teams with a good QB on a rookie contract enjoy both
+      good production at quarterback and extra money to spend on other positions.
+
+      It should be noted that the optimal allocation strategies that we identify in this paper assume that players are paid
+      efficiently (i.e., players perform to their salary: higher paid players should outperform their lesser paid peers),
+      which is not the case in reality, especially with young players outperforming their low-pay rookie contracts. If
+      every team had complete information on how each player would perform in the future, they could refuse to pay a
+      player anything above the efficient salary for his performance; however, future performance is uncertain, leading to
+      an inefficient marketplace due to varying performance expectations. Thus, the fact that one player is paid more
+      than another does not guarantee that the higher paid player will perform better than the lower.
+
+      Thus, we will also analyze separately the ways in which the specific players’ win contributions compare to their
+      salaries, in order to identify uncompensated win contributions: win contributions beyond what would be expected
+      given their salary. Teams that pay players low salaries and get many uncompensated wins tend to be the best
+      teams. The success of this formula can be seen by the dominance of the Seattle Seahawks in 2013 and 2014, who
+      earned many uncompensated wins with quarterback Russell Wilson on his rookie contract, while they also had
+      very few players earning “superstar” salaries. In 2014, only two Seahawks players had salary cap hits of more than
+      $8 million.1
+
+      Overall, there are three questions that are fundamental to this current work. First, in what positions should teams
+      generally invest the most money in order to maximize their expected wins? Second, what is the best way of
+      measuring the performances (value) of players at each position? And, finally, how do players at different positions
+      compare in terms of their additional marginal win contributions from additional investment at that position?
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    3/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      These three pieces of information give teams the ability to identify the available players with the highest expected
+      performances through prediction models. Then, by considering their expected performance levels and positions,
+      the team will be able to identify the additional marginal win contribution that will be gained by spending on one
+      player over another, and the salary that would be efficient for each player’s win contribution.
+
+      This analysis addresses this allocation problem with an optimal solution that can be the overall goal for a team, but
+      that also offers insights to assist in individual personnel decisions. The methodology used in this analysis is
+      applicable to any sports league with a strict salary cap.
+
+
+      2. Data and methodology
+      This analysis requires data on NFL player compensation, NFL team performance and NFL player performance.
+      Compensation data for the 2011-2015 seasons was obtained from spotrac.com. Though this provides only 160
+      team-seasons (32 teams over five years), having a data set that is focused on the recent past can be beneficial
+      because team strategy in the NFL evolves continually. Focusing on the recent past will provide solutions that are
+      more applicable to upcoming seasons of the NFL.
+
+      Our analysis of player salaries uses the cap hit of each contract as the measure of player compensation. A contract’s
+      cap hit is the amount of money that the contract counts towards the team’s salary cap in a given season. The cap hit
+      usually includes the player’s salary that season plus prorated portions of any bonuses paid earlier in the contract.
+      We chose to use the cap hit of a player’s salary because the salary cap is the real constraint on NFL team spending,
+      and thus, the dollar amount of the salary cap that a player’s contract takes up (i.e., the player’s cap hit) is the most
+      important measure of a team’s allocation of resources to that player. Furthermore, the sum of the cap hits at each
+      position is a good indicator of how much a team has invested in that position. While the cap hit is the dollar
+      amount that counts towards the salary cap, it can also be insightful to view it as a percentage of the total salary cap
+      that teams can spend each season.
+
+      NFL team performance data on team wins were obtained from NFL.com, while data measuring player performance
+      were gathered from Pro-Football-Reference.com. The performance measure Approximate Value (AV) is Pro Football
+      Reference’s “attempt to put a single number on each player-season since 1950” in order to measure player value.2
+      Approximate Value is calculated based on linear combinations of team statistics (including points per possession),
+      along with individual statistics including games played, games started, pro bowl selection, and production-based
+      statistics (e.g. receiving yards for wide receivers). Since these individual statistics are cumulative, AV is a measure of
+      the cumulative individual performance (rather than the average performance per game or per play). The team
+      statistics are used to identify the total value to be split amongst the players on the team, while the individual
+      statistics then identify how much of the AV is to be allocated to each player.3
+
+      Yurko, Ventura, and Horowitz (2018) explain that while AV is based on both objective and subjective analyses, it has
+      the rare advantage of being available publicly and using the same scale across all positions. AV has been used in
+      analyses by many other sources, including FiveThirtyEight (Paine & McCann, 2015).
+
+      It is crucial to this analysis that the scale is the same across positions. The regression coefficients that our
+      methodology uses as conversion factors from AV to the win contribution negate some of the subjectivity in the way
+      in which AV is allocated by position. Other performance measures do exist, such as Pro Football Focus grades, but
+      these alternatives are not available publicly, and are also subjective.
+
+      Our analysis first requires the identification of each player’s win contribution each season. We observe the total AV
+      at each position (using a split into 19 positions - QB, RB, FB, WR, TE, LT, G, C, RT, DE, DT, ILB, OLB, CB, FS, SS, K, P, and
+      LS) for the 160 team-seasons in our data set. While there are 53 players on each team roster and each team has only
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    4/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      11 players on the field at any given time, these 19 positions cover all possible positions at which a player will line
+      up (and there can be multiple players at the same position on the field - for example, a team will have two guards
+      (G) on offense).
+
+      We used a linear regression model that predicts team wins from the total AV that the team had from each position
+      (i.e., position 4 is WR, so                     is the sum of the AVs of all of the wide receivers on team t). The intercept term
+      from this regression                is a global constant that will be used throughout our models.
+
+
+
+
+      Note that the outcome variable of this regression is not independent, as the number of games is finite, and thus the
+      total number of wins across all teams is pre-determined, since each game can only have one winner. However,
+      given that the sole purpose of this step is to calculate conversion factors for translating AVs into win contributions,
+      we believe that teams with greater AVs at more important positions will still tend to win more games, despite this
+      interdependence. Therefore, this regression should still provide applicable conversion factors (denoted by                                ).
+
+      The regression performed on data from the 2011–2015 seasons has an                               of 0.77. The intercept and six position
+      coefficients (QB, DE, DT, ILB, OLB, and CB) are significant at the 0.1% level. In addition, the WR and G coefficients are
+      significant at the 5% level. In Table A.1 of the appendix, we provide estimates and standard errors for each
+      parameter from this regression model.
+
+      Each player’s win contribution for any given year can be calculated by multiplying the AV that the player obtained
+      that year by the         for the player’s position. In addition, a team’s win contribution from any position can be
+      calculated as the total AV from that position multiplied by the position’s                         value.
+
+      Now, knowing the win contribution that each team gained from each position, it is possible to model the salary (in
+      terms of the cap hit) versus win contribution to identify the return-on-investment gained by spending cap space on
+      each position.
+
+      We decided to use a univariate modeling strategy to identify these relationships. Specifically, we created a separate
+      univariate regression for each of the 19 positions in order to identify the “compensated” (expected) win
+      contribution from that position given the amount of the salary cap that a team invested in that position:
+
+
+
+
+      where                                         and                         are the total win contribution and the cap hit for each
+      team t at position i. We use the uni subscript here to differentiate the coefficients from these univariate models of
+      cap hit versus wins from those of the earlier linear model with multiple predictor variables that converted the AV
+      from each position into a win contribution. Table A.2 of the appendix provides parameter estimates from these
+      univariate regression models, fit separately for each position. In these regressions,                                is significant at the 5%
+      level for 17 of the 19 positions (all but the RB and LS positions).
+
+      This univariate methodology preserves the fact that the win contribution from one position is associated with the
+      size of the portion of the salary cap that the given team allocated to that position. Once these univariate models
+      have been created, a team’s projected (compensated) wins can be obtained through a combination of the 19
+      univariate regressions along with                   from the earlier model:
+
+
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                            5/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      We call this outcome a team’s “compensated wins”: the number of wins that a team is expected to win based on
+      their salary cap allocation to each position.
+
+      Once we have this formula for compensated wins, linear programming can be used to identify the salary allocation
+      that optimizes the compensated wins given the salary cap constraint. It is important to note that this paper focuses
+      on identifying the optimal allocation of the salary cap by position, not by player. Thus, we will not focus on
+      breakdowns between starters and backups, but rather on the breakdown of the salary cap across positions.
+
+      With known value contributions per investment at each position, linear programming allocates scarce funds to
+      these investments in order to optimize the overall value (Asher, 1962). Beginning with the rookie minimum salary
+      for the number of players that a team must carry at each position, each additional dollar is allocated to the position
+      that has the highest current marginal benefit (the highest partial derivative with respect to salary). Thus, this
+      method will create a breakdown of how much should be paid to each position in order to achieve the maximal
+      projected wins.
+
+      Our procedure produces an optimal allocation of salary by position under the assumption of “efficient pay”, i.e.,
+      that each player’s performance will match the expected win contribution of their cap hit and that a team’s actual
+      win totals will match their compensated win totals. However, as we noted earlier, the reality is that pay is not truly
+      efficient in this way. We can therefore quantify the “uncompensated” win contribution of individual players by
+      comparing their actual win contributions (their AVs multiplied by the                            from the win regression model) to their
+      predicted individual compensated wins.
+
+      We obtain their predicted individual compensated wins using a player-by-player univariate regression of X =
+                       versus Y = win contribution of individual players at each position. Then, an individual player’s
+      compensated win contribution can be calculated as the predicted win contribution for that player’s cap hit from
+      the log-curve of this new regression model. Note that this model is fitted at the player level, and therefore is
+      distinct from our earlier regression models of win contribution (by position) on cap hit (by position) that were
+      fitted at the position level.
+
+      An individual player’s uncompensated win contribution is then their actual win contribution minus their
+      compensated win contribution. Teams can take advantage of the inefficient marketplace by signing players whose
+      actual win contribution they expect to be greater than their compensated win contribution based on their salary.
+
+
+      3. In-sample data analysis and model fit
+
+      3.1. Allocation model results
+      The optimal allocation strategy can be identified using linear programming, assuming the constraint of the 2016
+      NFL team salary cap of $155.27 million. The resulting optimal allocation can be seen in Table 1, both in dollar terms
+      (total cap hit by position) and as a percentage of the salary cap. This allocation confirms the commonly held-belief
+      that it is worth paying more for a quarterback, though not as high as some would expect.
+
+      Our model would probably suggest an even higher pay for quarterbacks if it were not for the extreme savings in the
+      period considered of having several highly successful quarterbacks such as Russell Wilson and Cam Newton on
+      rookie contracts. Relative to what top players at each position currently get paid in the league, the model suggests
+      paying for more expensive guards, defensive lineman, and linebackers.
+
+      The optimal allocation from the univariate model pays a very low salary to running backs, which has been a trend
+      throughout the league in recent years. However, the low salary for left tackles is the opposite of the trend in the
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                       6/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      league. Left tackles are considered as more important and valuable, as they protect the “blind side” of their
+      quarterbacks (who are almost all right-handed). Left tackles are among the highest paid players in the NFL, but this
+      model suggests that they are often not worth the investment. While many left tackles are being paid high salaries,
+      not all of them deserve this, due to lackluster performances. Thus, since many left tackles with high salaries
+      actually do not have high win contributions, the expected marginal win contribution from paying a higher salary to
+      left tackles is lower than those of other positions. Of course, there are some talented left tackles that are exceptions
+      to this rule.
+
+
+      3.2. Evaluation of team allocations
+      Our approach can be also be used to calculate which teams were expected to have the highest numbers of
+      compensated wins based on their salary allocations each year. Table 2 displays the team that was projected to have
+      the highest compensated win total each year, along with their actual win total, while Table 3 gives the same
+      information for the team that was projected to have the lowest compensated win total in each year. For the most
+      part, the teams with the best allocations did have successful seasons and those with the worst allocations did not,
+      but it is important to note that these were the teams which were projected to have the most/fewest compensated
+      wins, not actual wins. It is also interesting to note that while the top teams are not projected to be too far above the
+      league average of eight wins, some of the worst teams are projected to have very few wins. This indicates that
+      while allocating closer to optimally will not provide separation from other well-allocated teams, allocating heavily
+      towards the wrong positions will greatly hurt a team’s chances of winning many games (though the 2012 Giants
+      had an impressive number of actual wins given their sub-optimal allocation).
+
+      One interesting team in Table 2 is the 2013 New Orleans Saints. When considering their allocation, three of the five
+      highest cap hits (including the two highest) are a quarterback (Drew Brees) and two guards (Jahri Evans and Ben
+      Grubbs). Thus, the Saints were focusing their allocation primarily on the optimal offensive positions from the
+      model and were able to win eleven games in the regular season, before being eliminated from the playoffs in the
+      divisional round.
+
+      Table 1. Optimal allocation.
+
+
+       Position                                                                  Cap hit                              Percent of cap
+
+       Quarterback (QB)                                                          $13,393,874                          8.6%
+
+       Running Back (RB)                                                         $1,274,152                           0.8%
+
+       Fullback (FB)                                                             $3,238,137                           2.1%
+
+       Wide Receiver (WR)b                                                       $8,636,432                           5.6%
+
+       Tight End (TE)                                                            $1,035,909                           0.7%
+
+       Left Tackle (LT)                                                          $1,825,435                           1.2%
+
+       Guard (G)b                                                                $16,475,218                          10.6%
+
+       Center (C)                                                                $2,907,167                           1.9%
+
+       Right Tackle (RT)                                                         $3,890,938                           2.5%
+
+       Defensive End (DE)b                                                       $21,258,202                          13.7%
+
+       Defensive Tackle (DT)a                                                    $15,766,992                          10.2%
+
+       Inside Linebacker (ILB)a                                                  $15,589,591                          10.0%
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    7/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+       Position                                                                  Cap hit                              Percent of cap
+
+       Outside Linebacker (OLB)b                                                 $23,590,392                          15.2%
+
+       Cornerback (CB)b                                                          $11,082,839                          7.1%
+
+       Free Safety (FS)                                                          $6,761,298                           4.4%
+
+       Strong Safety (SS)                                                        $5,030,941                           3.2%
+
+       Kicker (K)                                                                $1,366,229                           0.9%
+
+       Punter (P)                                                                $1,696,254                           1.1%
+
+       Long Snapper (LS)                                                         $450,000                             0.3%
+
+
+          All other positions teams typically have one starter.
+
+          a
+              Some teams will have 2 starters at this position.
+
+          b
+              All teams will have 2 starters at this position.
+
+
+
+      Table 2. Best team allocations.
+
+
+       Year                  Team                     Compensated wins                                                             Actual
+
+       2011                  PIT                      10.9                                                                         12
+
+       2012                  SF                       9.6                                                                          11.5
+
+       2013                  NO                       9.2                                                                          11
+
+       2014                  GB                       9.0                                                                          12
+
+       2015                  CIN                      9.2                                                                          12
+
+
+
+      Table 3. Worst team allocations.
+
+
+       Year                  Team                     Compensated wins                                                             Actual
+
+       2011                  STL                      0.0                                                                          2
+
+       2012                  NYG                      3.6                                                                          9
+
+       2013                  OAK                      5.2                                                                          4
+
+       2014                  SD                       6.7                                                                          9
+
+       2015                  CHI                      6.2                                                                          6
+
+
+
+
+      3.3. Uncompensated wins
+      While the New Orleans Saints were the best team in 2013 in terms of compensated wins, the Seattle Seahawks
+      (which eliminated the Saints and won the Super Bowl) had the highest uncompensated wins of any team in 2013.
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    8/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      Uncompensated wins account for the difference between a team’s actual wins and their compensated wins. Thus, a
+      team will have high uncompensated wins if players outperform the cap hit of their contract.
+
+      Based on their compensated wins, the Seahawks were expected to win less than half of their games that year.
+      However, with impressive production from many players on rookie contracts with cap hits under $1 million
+      (Russell Wilson, Richard Sherman, Bobby Wagner, Golden Tate, Doug Baldwin, Malcolm Smith, K.J. Wright, Byron
+      Maxwell, Walter Thurmond, J.R. Sweezy, etc.), the Seahawks were able to achieve more uncompensated wins than
+      any other team in the league that year (see Table 7 for average uncompensated wins for 2011 to 2015). More
+      generally, the overpayment or underpayment of specific players is a major contributor to the difference between
+      compensated and actual wins, with rookie contracts being a specific underpayment that is mandated by the salary
+      structure of the National Football League.
+
+      Table 4. Total 2011–15 uncompensated win contribution.
+
+
+       Rank                Name                                                 Uncomp. Win Cont. Total
+
+       1                   Russell Wilson                                       15.8
+
+       2                   Cam Newton                                           12.3
+
+       3                   Tom Brady                                            10.4
+
+       4                   Aaron Rodgers                                        9.9
+
+       5                   Andy Dalton                                          9.2
+
+       6                   Drew Brees                                           8.6
+
+       7                   Matt Ryan                                            6.7
+
+       8                   Richard Sherman                                      6.0
+
+       9                   Alex Smith (QB)                                      5.9
+
+       10                  Ryan Tannehill                                       5.7
+
+
+
+      Table 5. Average 2011–15 uncompensated win contribution.
+
+
+       Rank              Name                                                 Uncomp. Win Cont. Average
+
+       1                 Russell Wilson                                       4.0
+
+       2                 Cam Newton                                           2.5
+
+       3                 Tom Brady                                            2.1
+
+       4                 Teddy Bridgewater                                    2.0
+
+       5                 Aaron Rodgers                                        2.0
+
+       6                 Andy Dalton                                          1.8
+
+       7                 Drew Brees                                           1.7
+
+       8                 Jameis Winston                                       1.7
+
+       9                 Derek Carr                                           1.6
+
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    9/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+       Rank              Name                                                 Uncomp. Win Cont. Average
+
+       10                Ryan Tannehill                                       1.4
+
+
+
+      Fig. 1 shows the regression log-curve for the relationship between the player cap hit and the player win
+      contribution for each position. The coefficient for the                                 in each of these player-level models shown in
+      Fig. 1 is significant at the 0.1% level (with the exception of LS, which is significant at the 1% level). The expected
+      (compensated) win contribution for a player is the y-coordinate of the log-curve for their x-coordinate (the player’s
+      cap hit). The player’s uncompensated win contribution is their actual win contribution (AV multiplied by                                for the
+      position from the original win model) minus this expected win contribution. As was noted earlier, it is optimal for
+      teams to attempt to sign players that they believe will be above the line (i.e., their actual win contribution will be
+      greater than the compensated win contribution for their salary, or, equivalently, their uncompensated win
+      contribution will be greater than zero).
+
+      Table 6. Average 2011-15 Non-QB uncompensated win contribution.
+
+
+       Rank               Name                                             Uncomp. Win Cont. Average
+
+       1                  Richard Sherman                                  1.2
+
+       2                  J.J. Watt                                        1.0
+
+       3                  Patrick Peterson                                 0.9
+
+       4                  Marcus Peters                                    0.8
+
+       5                  Justin Houston                                   0.8
+
+       6                  Aaron Donald                                     0.8
+
+       7                  Luke Kuechly                                     0.8
+
+       8                  Bobby Wagner                                     0.8
+
+       9                  Von Miller                                       0.8
+
+       10                 Lavonte David                                    0.7
+
+
+
+      Table 7. Team rankings of average uncompensated wins per season.
+
+
+       Rank            Team            Uncompensated                                Rank             Team             Uncompensated
+                                       win Avg                                                                        win Avg
+
+       1               NE              4.0                                          17               PHI              −0.3
+
+       2               DEN             3.9                                          18               CHI              −0.4
+
+       3               SEA             3.0                                          19               SD               −0.4
+
+       4               GB              2.6                                          20               ATL              −0.5
+
+       5               BAL             2.0                                          21               STL              −0.7
+
+       6               ARI             1.7                                          22               MIA              −0.7
+
+       7               CIN             1.7                                          23               NYJ              −0.8
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                              10/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+       Rank            Team            Uncompensated                                Rank             Team              Uncompensated
+                                       win Avg                                                                         win Avg
+
+       8               NYG             1.3                                          24               DET               −0.8
+
+       9               CAR             1.1                                          25               BUF               −1.2
+
+       10              SF              1.0                                          26               MIN               −1.3
+
+       11              IND             0.8                                          27               OAK               −1.8
+
+       12              PIT             0.6                                          28               WAS               −2.2
+
+       13              NO              0.5                                          29               TB                −3.1
+
+       14              KC              0.2                                          30               TEN               −3.1
+
+       15              HOU             0.1                                          31               CLE               −3.3
+
+       16              DAL             0.1                                          32               JAC               −4.0
+
+
+
+      Table 8. 2016 Projected Wins.
+
+
+       Team             Compensated                              Uncomp win                                     Projected                     Actual
+                        wins projected                           average 2011–15                                wins                          wins
+
+       DEN              7.8                                      3.9                                            11.7                          9
+
+       GB               9.0                                      2.6                                            11.6                          10
+
+       SEA              8.6                                      3.0                                            11.6                          10.5
+
+       CIN              9.4                                      1.7                                            11.0                          6.5
+
+       NE               6.7                                      4.0                                            10.7                          14
+
+       BAL              8.3                                      2.0                                            10.3                          8
+
+       PIT              9.2                                      0.6                                            9.8                           11
+
+       HOU              9.6                                      0.1                                            9.7                           9
+
+       ARI              8.0                                      1.7                                            9.7                           7.5
+
+       NYG              7.9                                      1.3                                            9.2                           11
+
+       KC               8.8                                      0.2                                            9.1                           12
+
+       DAL              8.9                                      0.1                                            9.0                           13
+
+       SF               7.9                                      1.0                                            8.9                           2
+
+       STL              9.3                                      −0.7                                           8.7                           4
+
+       SD               9.0                                      −0.4                                           8.6                           5
+
+       CAR              7.4                                      1.1                                            8.5                           6
+
+       IND              7.7                                      0.8                                            8.5                           8
+
+       ATL              8.6                                      −0.5                                           8.1                           11
+
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                             11/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+       Team             Compensated                              Uncomp win                                     Projected                     Actual
+                        wins projected                           average 2011–15                                wins                          wins
+
+       CHI              7.9                                      −0.4                                           7.5                           3
+
+       NO               6.9                                      0.5                                            7.4                           7
+
+       BUF              8.4                                      −1.2                                           7.2                           7
+
+       OAK              9.0                                      −1.8                                           7.2                           12
+
+       MIN              8.5                                      −1.3                                           7.2                           8
+
+       NYJ              8.0                                      −0.8                                           7.2                           5
+
+       PHI              7.4                                      −0.3                                           7.1                           7
+
+       DET              7.9                                      −0.8                                           7.0                           9
+
+       MIA              7.3                                      −0.7                                           6.6                           10
+
+       TEN              8.6                                      −3.1                                           5.5                           9
+
+       TB               8.3                                      −3.1                                           5.2                           9
+
+       WAS              4.5                                      −2.2                                           2.4                           8.5
+
+       JAC              6.0                                      −4.0                                           2.1                           3
+
+       CLE              5.3                                      −3.3                                           2.0                           1
+
+
+
+      When observing Fig. 1, it is important to pay attention to differences in scale. For example, the top of the -axis of
+      the quarterback plot reaches a far higher win contribution than the other charts. The win contribution does favor
+      quarterbacks heavily, which makes sense, as it is the position that is widely considered to have the highest impact
+      on the quality of a team.
+
+      Accordingly, quarterbacks dominate the chart when observing the highest uncompensated win contributions.
+      Table 4 shows the best ten cumulative uncompensated win contributions (2011-15 seasons), while Table 5 shows
+      the best ten average uncompensated win contributions per season (2011-15 seasons). Note that providing both
+      rankings is not redundant, as some players were not in the league all five seasons. With the exception of Richard
+      Sherman, who is only on the cumulative chart not the average chart, every player in the top ten is a quarterback.
+      Also, unsurprisingly, seven of the ten quarterbacks on the average uncompensated win contribution chart are
+      players who were on their rookie contract for most of this five-year span. For comparison, Table 4, Table 5 also
+      shows the worst five quarterbacks in terms of total and average uncompensated win contributions. These tend to
+      be well-compensated quarterbacks who were injured for large parts of the 2011-15 seasons.
+
+      The same pattern is also evident when we exclude quarterbacks. Table 6 shows the top ten non-quarterbacks in
+      average uncompensated wins per season. Again, every player in this chart was on their rookie contract for at least
+      part of the sample 2011 to 2015. Interestingly, every player is a defensive player, probably due to the fact that the
+      quarterback dominates a team’s win contribution from its offense, while there is no single position that dominates
+      the defensive win contribution.
+
+
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                             12/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+
+
+
+      Download: Download high-res image (405KB)
+      Download: Download full-size image
+
+      Fig. 1. Relationship between cap hit and win contribution by position.
+
+      These results indicate that to achieve high uncompensated wins, teams must be skilled in selecting the best players
+      in the NFL Draft, because with the exception of top tier quarterbacks, it is these recently drafted players with low
+      rookie salaries that contribute the most uncompensated wins. It is generally accepted that the reason why the
+      Seahawks had sustained success during this time period is that they succeeded in finding successful players in the
+      NFL Draft. This is evident in Table 7, as the Seahawks have one of the highest uncompensated win averages of any
+      team from 2011 to 2015.
+
+      It is also noteworthy that the top franchises in uncompensated wins per season in Table 7 are, in fact, the best
+      franchises over the sample from 2011 to 2015. A high uncompensated win average indicates that, over this period,
+      the franchise succeeded in identifying players that would outperform their contracts. Over this five-year sample,
+      average uncompensated wins per season has a correlation of 0.9 with average actual wins per season. Drafting well
+      is the key not only to increasing uncompensated wins, but also to leading a team to the top of the league standings.
+
+      Table A.1. Parameter estimates from the linear regression model of wins as a function of the approximate value at
+      each position.
+
+
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    13/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+
+
+
+          Notes: We provide estimates, standard errors, test statistics and -values for the intercept (                    ) and slope (      ) for each
+          position . Gray shading is used to indicate estimates that are significantly different from zero.
+
+
+
+      Table A.2. Parameter estimates from the univariate linear regression models of the win contribution as a function of
+      the log (cap hit), fitted separately for each position.
+
+
+
+
+          Notes: Estimates of the intercept ( alpha) and slope ( beta) are given, along with the standard error of the estimated slope.
+          Gray shading is used to indicate estimates that are significantly different from zero.
+
+
+
+
+      4. Out-of-sample forecasting of the 2016 NFL season
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                                 14/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      The models developed in this analysis were then used to project the 2016 season out-of-sample based on the
+      teams’ salary cap allocations that season. The 2016 projections from our model for compensated wins can be seen
+      in Table 8. To obtain a projected win total, we added each team’s average uncompensated wins from 2011-15 to its
+      compensated win projection, which assumes some consistency in a franchise’s skill at acquiring talent.
+
+      Interestingly, the team with the highest projection for compensated wins is the Houston Texans. The Texans
+      famously signed quarterback Brock Osweiler to a very high-paying contract prior to the 2016 season, despite his
+      lack of experience, and were paying defensive end J.J. Watt a high salary as well. Thus, they had high salaries at two
+      positions that should be allocated high amounts, though in the event Osweiler under-performed and Watt missed
+      the majority of the season due to injury. Meanwhile, the Washington Redskins were projected to achieve the fewest
+      compensated wins for 2016. This result was influenced heavily by the Redskins having allocations that were far
+      higher than optimal at three offensive positions: left tackle (Trent Williams), wide receiver (primarily Pierre Garcon
+      and Desean Jackson), and tight end (Jordan Reed and Vernon Davis).
+
+      As can be seen from Table 8, the uncompensated win average is the primary driver of projected wins, when
+      calculated in this manner. Thus, the teams that had success in 2011-15 continued to be the best projected for 2016.
+
+      In the end, compensated wins had a correlation of 0.3 with actual wins in 2016, while projected wins had a
+      correlation of 0.41 with actual wins (the win totals can be seen in the right column of Table 8). The teams with the
+      largest differences between projected and actual wins were the Washington Redskins, Oakland Raiders, and Dallas
+      Cowboys. This can be accounted for by a large upward swing in uncompensated wins driven by contributions from
+      rookie contract players for the Washington Redskins, and good play by young quarterbacks Derek Carr for the
+      Oakland Raiders and Dak Prescott for the Dallas Cowboys.
+
+
+      5. Summary and discussion
+      This paper has presented an optimization of salary cap allocations for NFL teams based on a regression approach
+      that combines a linear regression for connecting a player’s win contribution to his approximate value with a series
+      of additional linear regressions for connecting win contribution by position to cap hit by position.
+
+      The optimal allocation found by our approach suggests that, relative to current NFL salaries, it is optimal to pay for
+      high-end players at guard, defensive line, and linebacker, rather than at left tackle as is commonly believed. The
+      model also supports the current trend throughout the league of paying lower salaries to running backs.
+
+      One shortcoming of our modeling approach is that it assumes that all teams will achieve the same win contribution
+      returns from an investment at each given position; i.e., every player is paid exactly efficiently according to their win
+      contribution. However, this is not actually the case, as teams have varying abilities in terms of player evaluation, as
+      well as incomplete information, leading to an inefficient market. We have also created univariate models by player
+      at each position, in order to investigate which players produce more (or less) than the win contribution that would
+      be expected based on their salary. Thus, we can observe which teams are getting higher returns than expected
+      (i.e., a greater uncompensated win contribution) from the players that they are paying.
+
+      Through these models, we identified that the Seattle Seahawks were among the teams that achieved the highest
+      uncompensated wins from 2011 to 2015, due to the fact that the Seahawks were able to make many successful draft
+      picks and had productive players playing on low rookie-contract salaries (especially Russell Wilson). In addition,
+      we find that a team’s uncompensated win total is correlated very closely with the team’s actual win total. This
+      implies that the key way to ensure that teams will be among the premier organizations is to draft players who will
+      achieve high win contributions while still playing on their rookie contracts (which typically last four years).
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    15/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      Overall, we believe that if a team focuses their salary allocation on positions that have higher optimal salaries in
+      our univariate model (unless they have players on their rookie contracts in those positions) and is able to draft
+      players who can make an impact in the league quickly, that team will be expected to win more games. Optimally, a
+      team can create prediction models for player win contributions, use those projections to observe the expected
+      efficient salary for each player, and attempt to sign players whose salaries implied by the existing free agent market
+      are lower than what were determined to be their expected efficient salaries. If a team is able to sign many players
+      for salaries that are below their efficient value, they will achieve more uncompensated wins and then have the
+      salary cap space to invest more money in key positions where a high return of compensated wins is expected, thus
+      achieving the maximal expected wins.
+
+
+      Appendix.
+      See Table A.1, Table A.2.
+
+
+        Recommended articles
+
+
+
+      References
+      Asher, 1962 Asher D.T.
+               A linear programming model for the allocation of R and D efforts
+               IRE Transactions on Engineering Management, 9 (4) (1962), pp. 154-157
+               View in Scopus          Google Scholar
+
+      Borghesi, 2008 Borghesi R.
+               Allocation of scarce resources: Insight from the NFL salary cap
+               Journal of Economics and Business, 60 (2008), pp. 536-550
+                    View PDF      View article       View in Scopus          Google Scholar
+
+      Fry and Ohlmann, 2012 Fry M.J., Ohlmann J.W.
+               Introduction to the special issue on analytics in sports, part i: general sports applications
+               Interfaces, 42 (2) (2012), pp. 105-108
+               Crossref        View in Scopus          Google Scholar
+
+      Jane et al., 2009 Jane W.-J., San G., Ou Y.-P.
+               The causality between salary structures and team performance: a panel analysis in a professional
+               baseball league
+               International Journal of Sport Finance, 4 (2) (2009), pp. 136-150
+               Crossref        View in Scopus          Google Scholar
+
+      Kelly, 2016 Kelly D.
+               How NFL teams spend their money
+               The Ringer (2016)
+               August 10, 2016 Accessed February 02, 2018
+               Google Scholar
+
+      Leeds and Kowalewski, 2001 Leeds M.A., Kowalewski S.
+               Winner take all in the NFL: the effect of the salary cap and free agency on the compensation of
+               skill position players
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    16/18
+12/25/25, 6:57 AM                                    Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+               Journal of Sports Economics, 2 (3) (2001), pp. 244-256
+           Crossref      View in Scopus     Google Scholar
+      Mondello and Maxcy, 2009 Mondello M., Maxcy J.
+               The impact of salary dispersion and performance bonuses in NFL organizations
+               Management Decision, 47 (1) (2009), pp. 110-123
+               Crossref        View in Scopus          Google Scholar
+
+      Paine and McCann, 2015 Paine N., McCann A.
+               Are some positions riskier to pick than others in the nfl draft? fivethirtyeight
+               (2015)
+               https://fivethirtyeight.com/features/are-some-positions-riskier-to-pick-than-others-in-the-nfl-draft/
+               Google Scholar
+
+      Quinn et al., 2007 Quinn K.G., Geier M., Berkovitz A.
+            Superstars and journeymen: an analysis of national football team’s allocation of the salary cap across rosters, 2000-
+            2005, IASE/NAASE Working Paper Series, Paper No. 07-22, International Association of Sports Economists (2007)
+               Google Scholar
+
+      Radner, 1972 Radner R.
+               Allocation of a scarce resource under uncertainty: an example of a team
+               McGuire C.B., Radner R. (Eds.), Decision and organization, North-Holland Publishing Company, Amsterdam (1972), pp.
+               217-236
+               Google Scholar
+
+      Winsberg, 2015 Winsberg M.
+               Player compensation and team performance: salary cap allocation strategies across the NFL
+               (Thesis)
+               Claremont McKenna College (2015)
+               Google Scholar
+
+      Yurko et al., 2018 Yurko R., Ventura S., Horowitz M.
+               NflWAR: A reproducible method for offensive player evaluation in football: Technical Report
+               (2018)
+               arXiv:1802.00998
+               Google Scholar
+
+
+      Cited by (5)
+
+      Forecasting: theory and practice
+      2022, International Journal of Forecasting
+
+         Citation Excerpt :
+         …Important works predicting outcomes range from Dixon and Coles (1997) in soccer, to Kovalchik and Reid (2019) for tennis,
+         while the increasing abundance of data means that machine learning and deep learning methods are beginning to dominate the
+         landscape. See, for example, Hubáček, Šourek, and Železnỳ (2019) and Maymin (2019) for basketball, and Mulholland and Jensen
+         (2019) for NFL. Megaprojects are significant activities characterised by a multi-organisation structure, which produces highly
+         visible infrastructure or asset with very crucial social impacts (Aaltonen, 2011).…
+
+      Show abstract
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                    17/18
+12/25/25, 6:57 AM                                                     Optimizing the allocation of funds of an NFL team under the salary cap - ScienceDirect
+
+      Organizational experience and cost-cutting agreements in the Formula One industry: a dynamic
+      capabilities approach
+      2025, European Sport Management Quarterly
+
+
+      Violating the salary cap: exploring performance gains in the National Basketball Association
+      2025, Frontiers in Sports and Active Living
+
+
+      More Talent, More Leeway: Do Violence Against Women Arrests Really Hurt NFL Player Careers?
+      2023, Violence Against Women
+
+
+      Estimating player value in American football using plus-minus models
+      2021, Journal of Quantitative Analysis in Sports
+          1       http://www.spotrac.com/nfl/seattle-seahawks/cap/2014 .
+
+
+          2       http://www.pro-football-reference.com/about/glossary.htm .
+
+
+          3       Approximate value II: https://www.pro-football-reference.com/blog/index2905.html?p=466 .
+
+      View Abstract
+
+
+      © 2018 International Institute of Forecasters. Published by Elsevier B.V. All rights reserved.
+
+
+
+
+   All content on this site: Copyright © 2025 Elsevier B.V., its licensors, and contributors. All rights are reserved, including those for text and data mining, AI training, and similar technologies. For all
+   open access content, the relevant licensing terms apply.
+
+
+
+
+https://www.sciencedirect.com/science/article/pii/S0169207018301559?utm_source=chatgpt.com                                                                                                                        18/18
+

@@ -1,0 +1,438 @@
+{
+  "version": "1.0",
+  "generated": "2024-12-24",
+  "purpose": "Index football coaching books for simulation research",
+  "books": [
+    {
+      "id": "complete_offensive_line",
+      "title": "Complete Offensive Line",
+      "author": "Rick Trickett",
+      "publisher": "Human Kinetics",
+      "year": 2012,
+      "format": "pdf",
+      "filename": "Complete Offensive Line -- Rick Trickett -- Aug 19, 2012 -- Human Kinetics -- 9780736086516 -- 7c1223ff80ce294128d8d104abfc9c98 -- Anna’s Archive.pdf",
+      "isbn": "9780736086516",
+      "category": "technique",
+      "position_focus": [
+        "OL"
+      ],
+      "topics": [
+        "stance",
+        "footwork",
+        "hand_placement",
+        "pass_protection",
+        "run_blocking",
+        "zone_schemes",
+        "gap_schemes",
+        "combo_blocks",
+        "communication",
+        "film_study"
+      ],
+      "simulation_relevance": "high",
+      "relevance_notes": "Core reference for OL mechanics, directly applicable to arms_prototype blocking system"
+    },
+    {
+      "id": "coaching_offensive_linemen",
+      "title": "Coaching Offensive Linemen: The Art & Science of Coaching",
+      "author": "Dave Christensen, James A. Peterson",
+      "publisher": "Sagamore Publishing",
+      "year": 1995,
+      "format": "pdf",
+      "filename": "Coaching Offensive Linemen- The Art & Science Of Coaching -- Christensen, Dave; Peterson, James A_, 1943- -- Sagamore Publishing Inc_, Champaign, IL, -- 9780585075068 -- 497de1a8a6304d4eb3c84a3eac9ec6dd -- Anna’s Archive.pdf",
+      "isbn": "9780585075068",
+      "pages": 252,
+      "category": "technique",
+      "position_focus": [
+        "OL"
+      ],
+      "topics": [
+        "fundamentals",
+        "stance",
+        "blocking_techniques",
+        "pass_protection",
+        "run_blocking",
+        "pulling",
+        "trapping",
+        "double_teams"
+      ],
+      "simulation_relevance": "high",
+      "relevance_notes": "Detailed technique breakdowns, good for calibrating blocking mechanics"
+    },
+    {
+      "id": "coaching_linebackers",
+      "title": "Coaching Linebackers",
+      "author": "Jerry Sandusky, Cedric X. Bryant",
+      "publisher": "Sagamore Publishing",
+      "year": 1995,
+      "format": "pdf",
+      "filename": "Coaching Linebackers (art & Science Of Coaching) -- Sandusky, Jerry; Bryant, Cedric X_, 1960- -- Sagamore Publishing Inc_, Champaign, IL, 1995 -- 9780585090733 -- 0025acb46d91666be5aa780ee7251952 -- Anna’s Archive.pdf",
+      "isbn": "9780585090733",
+      "category": "technique",
+      "position_focus": [
+        "LB"
+      ],
+      "topics": [
+        "tackling",
+        "pursuit_angles",
+        "gap_responsibility",
+        "coverage",
+        "blitzing",
+        "reading_keys",
+        "shedding_blocks"
+      ],
+      "simulation_relevance": "medium",
+      "relevance_notes": "Useful for LB brain behaviors, tackling mechanics, pursuit"
+    },
+    {
+      "id": "delaware_wing_t",
+      "title": "The Delaware Wing T: The Running Game",
+      "author": "Harold R. Raymond, Ted Kempski",
+      "publisher": "Sagamore Publishing",
+      "year": null,
+      "format": "pdf",
+      "filename": "The Delaware Wing T- The Running Game (the Art & Science Of -- Raymond, Harold R_, 1926-; Kempski, Ted -- Sagamore Publishing Inc_, Champaign, IL, -- 9780585063010 -- 3acc1b1fc07efad945166668b8a37bd7 -- Anna’s Archive.pdf",
+      "isbn": "9780585063010",
+      "pages": 168,
+      "category": "scheme",
+      "position_focus": [
+        "offense"
+      ],
+      "topics": [
+        "wing_t",
+        "misdirection",
+        "trap_blocking",
+        "counter",
+        "sweep",
+        "power",
+        "backfield_action"
+      ],
+      "simulation_relevance": "medium",
+      "relevance_notes": "Run game concepts, useful for run_concepts.py expansion"
+    },
+    {
+      "id": "blood_sweat_chalk",
+      "title": "Sports Illustrated Blood, Sweat and Chalk: The Ultimate Football Playbook",
+      "author": "Tim Layden",
+      "publisher": "Liberty Street / Hachette",
+      "year": 2010,
+      "format": "pdf",
+      "filename": "Sports Illustrated Blood, Sweat and Chalk - The Ultimate -- Layden, Tim -- Hachette Book Group, New York, N_Y_, 2010 -- Liberty Street -- 9781603200615 -- 42db3f0a789be65e89f95927852bee60 -- Anna’s Archive.pdf",
+      "isbn": "9781603200615",
+      "category": "history_scheme",
+      "position_focus": [
+        "offense",
+        "defense"
+      ],
+      "topics": [
+        "west_coast_offense",
+        "spread_offense",
+        "zone_blitz",
+        "cover_2",
+        "air_raid",
+        "run_and_shoot",
+        "option",
+        "46_defense",
+        "play_design_history",
+        "coaching_trees"
+      ],
+      "simulation_relevance": "high",
+      "relevance_notes": "Excellent for playbook concepts, scheme philosophy, coverage beaters"
+    },
+    {
+      "id": "genius_of_desperation",
+      "title": "The Genius of Desperation: The Schematic Innovations That Changed the Game",
+      "author": "Doug Farrar, Louis Riddick",
+      "publisher": "Independent Publishers Group",
+      "year": 2018,
+      "format": "epub",
+      "filename": "The Genius of Desperation - The Schematic Innovations That -- Doug Farrar; Louis Riddick -- Independent Publishers Group, Chicago, Illinois, 2018 -- 9781629375793 -- 610d113780ac1c8e8e6404afb6f93ef7 -- Anna’s Archive.epub",
+      "isbn": "9781629375793",
+      "category": "history_scheme",
+      "position_focus": [
+        "offense",
+        "defense"
+      ],
+      "topics": [
+        "scheme_evolution",
+        "zone_coverage",
+        "press_coverage",
+        "nickel_defense",
+        "spread",
+        "rpo",
+        "modern_passing"
+      ],
+      "simulation_relevance": "high",
+      "relevance_notes": "Modern scheme concepts, good for pass concepts and coverage calibration"
+    },
+    {
+      "id": "gridiron_genius",
+      "title": "Gridiron Genius: A Master Class in Winning Championships",
+      "author": "Michael Lombardi, Bill Belichick (foreword)",
+      "publisher": "Crown Archetype",
+      "year": 2018,
+      "format": "epub",
+      "filename": "Gridiron genius - a master class in winning championships -- Michael Lombardi, Bill Belichick -- First paperback edition, 2019;2018 -- 9780525573814 -- 5198a3fdc7ba6504f31c66d0380f5fff -- Anna’s Archive.epub",
+      "isbn": "9780525573814",
+      "category": "philosophy",
+      "position_focus": [
+        "management",
+        "coaching"
+      ],
+      "topics": [
+        "team_building",
+        "draft_evaluation",
+        "coaching_philosophy",
+        "game_planning",
+        "player_development",
+        "culture"
+      ],
+      "simulation_relevance": "medium",
+      "relevance_notes": "Management philosophy, useful for franchise mode design"
+    },
+    {
+      "id": "q_factor",
+      "title": "The Q Factor: The Elusive Search for the Next Great NFL Quarterback",
+      "author": "Brian Billick, James Dale",
+      "publisher": "Grand Central Publishing",
+      "year": 2020,
+      "format": "epub",
+      "filename": "The Q Factor - The Elusive Search for the Next Great NFL -- Brian Billick; James Dale -- Hachette Book Group, [N_p_], 2020 -- Grand Central Publishing -- 9781538749913 -- 881a503f6be3c94fe10023da7a63500d -- Anna’s Archive.epub",
+      "isbn": "9781538749913",
+      "category": "evaluation",
+      "position_focus": [
+        "QB"
+      ],
+      "topics": [
+        "qb_evaluation",
+        "intangibles",
+        "draft_process",
+        "arm_talent",
+        "decision_making",
+        "leadership",
+        "pressure_handling"
+      ],
+      "simulation_relevance": "high",
+      "relevance_notes": "QB intangibles framework, directly applicable to qb_intangibles implementation"
+    },
+    {
+      "id": "coach_of_year_clinics",
+      "title": "1997 Coach of the Year Clinics Football Manual",
+      "author": "Earl Browning (editor)",
+      "publisher": "Coaches Choice",
+      "year": 1999,
+      "format": "epub",
+      "filename": "1997 Coach of the Year Clinics Football Manual (Coach of the -- Earl Browning (editor) -- 1999 -- Coaches Choice -- 9780585305301 -- 6e313de699e94573ecf7d3cfc8ef6a08 -- Anna’s Archive.epub",
+      "isbn": "9780585305301",
+      "category": "technique_collection",
+      "position_focus": [
+        "all"
+      ],
+      "topics": [
+        "drills",
+        "techniques",
+        "schemes",
+        "special_teams",
+        "practice_organization",
+        "coaching_clinics"
+      ],
+      "simulation_relevance": "medium",
+      "relevance_notes": "Collection of coaching clinic presentations, varied techniques"
+    }
+  ],
+  "topic_index": {
+    "ol_techniques": {
+      "description": "Offensive line blocking techniques and fundamentals",
+      "sources": [
+        "complete_offensive_line",
+        "coaching_offensive_linemen"
+      ],
+      "subtopics": [
+        "stance",
+        "footwork",
+        "hand_placement",
+        "punch",
+        "anchor"
+      ]
+    },
+    "pass_protection": {
+      "description": "Pass blocking techniques and schemes",
+      "sources": [
+        "complete_offensive_line",
+        "coaching_offensive_linemen"
+      ],
+      "subtopics": [
+        "kick_step",
+        "vertical_set",
+        "slide_protection",
+        "man_protection"
+      ]
+    },
+    "run_blocking": {
+      "description": "Run blocking schemes and techniques",
+      "sources": [
+        "complete_offensive_line",
+        "coaching_offensive_linemen",
+        "delaware_wing_t"
+      ],
+      "subtopics": [
+        "zone_blocking",
+        "gap_blocking",
+        "combo_blocks",
+        "pulling",
+        "trapping"
+      ]
+    },
+    "pass_rush": {
+      "description": "Defensive line pass rush techniques",
+      "sources": [
+        "coaching_linebackers"
+      ],
+      "subtopics": [
+        "swim",
+        "rip",
+        "bull_rush",
+        "spin",
+        "club"
+      ]
+    },
+    "tackling": {
+      "description": "Tackling mechanics and pursuit",
+      "sources": [
+        "coaching_linebackers"
+      ],
+      "subtopics": [
+        "form_tackling",
+        "pursuit_angles",
+        "gang_tackling"
+      ]
+    },
+    "offensive_schemes": {
+      "description": "Offensive play concepts and formations",
+      "sources": [
+        "blood_sweat_chalk",
+        "genius_of_desperation",
+        "delaware_wing_t"
+      ],
+      "subtopics": [
+        "west_coast",
+        "spread",
+        "air_raid",
+        "option",
+        "rpo",
+        "wing_t"
+      ]
+    },
+    "defensive_schemes": {
+      "description": "Defensive coverages and fronts",
+      "sources": [
+        "blood_sweat_chalk",
+        "genius_of_desperation"
+      ],
+      "subtopics": [
+        "cover_2",
+        "cover_3",
+        "zone_blitz",
+        "press_man",
+        "nickel"
+      ]
+    },
+    "qb_evaluation": {
+      "description": "Quarterback assessment and intangibles",
+      "sources": [
+        "q_factor",
+        "gridiron_genius"
+      ],
+      "subtopics": [
+        "arm_talent",
+        "decision_making",
+        "poise",
+        "leadership",
+        "anticipation"
+      ]
+    },
+    "team_building": {
+      "description": "Roster construction and player development",
+      "sources": [
+        "gridiron_genius",
+        "q_factor"
+      ],
+      "subtopics": [
+        "drafting",
+        "free_agency",
+        "player_development",
+        "culture"
+      ]
+    }
+  },
+  "simulation_relevance_map": {
+    "arms_prototype": {
+      "description": "OL/DL battle physics",
+      "priority_books": [
+        "complete_offensive_line",
+        "coaching_offensive_linemen"
+      ],
+      "key_topics": [
+        "pass_protection",
+        "hand_placement",
+        "leverage",
+        "footwork"
+      ]
+    },
+    "qb_brain": {
+      "description": "QB decision making and behavior",
+      "priority_books": [
+        "q_factor",
+        "blood_sweat_chalk"
+      ],
+      "key_topics": [
+        "qb_evaluation",
+        "decision_making",
+        "read_progression"
+      ]
+    },
+    "playbook_catalogue": {
+      "description": "Play concepts and schemes",
+      "priority_books": [
+        "blood_sweat_chalk",
+        "genius_of_desperation"
+      ],
+      "key_topics": [
+        "offensive_schemes",
+        "defensive_schemes"
+      ]
+    },
+    "run_concepts": {
+      "description": "Run play mechanics",
+      "priority_books": [
+        "delaware_wing_t",
+        "complete_offensive_line"
+      ],
+      "key_topics": [
+        "run_blocking",
+        "zone_blocking",
+        "gap_blocking"
+      ]
+    },
+    "lb_brain": {
+      "description": "Linebacker behavior",
+      "priority_books": [
+        "coaching_linebackers"
+      ],
+      "key_topics": [
+        "tackling",
+        "pursuit_angles",
+        "gap_responsibility"
+      ]
+    },
+    "management_system": {
+      "description": "Franchise mode design",
+      "priority_books": [
+        "gridiron_genius"
+      ],
+      "key_topics": [
+        "team_building",
+        "player_development"
+      ]
+    }
+  }
+}

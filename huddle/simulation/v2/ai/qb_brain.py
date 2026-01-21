@@ -38,6 +38,11 @@ from ..core.variance import (
     target_selection_noise,
     execution_timing,
 )
+from ..core.read_registry import get_reads_for_situation
+from ..core.read_evaluator import get_read_evaluator, ReadEvaluationResult
+from ..core.reads import BrainType
+from ..physics.ball_flight import calculate_drag_factor
+from ..systems.pressure import PressureLevel as SystemPressureLevel, PressureState
 
 
 # =============================================================================
@@ -424,86 +429,45 @@ def _get_read_target_facing(world: WorldState, read_order: int) -> Optional[Vec2
     return None
 
 
-def _calculate_pressure(world: WorldState) -> Tuple[PressureLevel, List[PlayerView]]:
-    """Calculate platform stability based on defender proximity.
+def _get_perceived_pressure_from_state(world: WorldState) -> PressureLevel:
+    """Get QB's perceived pressure from the pre-computed PressureSystem state.
+
+    Uses the PressureSystem's instant_level (already computed by orchestrator)
+    and applies awareness-based perception filtering.
 
     COMPLETION-FIRST: This determines how clean our throwing platform is.
     Defenders are obstacles to making accurate throws - their proximity
     degrades our ability to complete passes.
 
+    Args:
+        world: WorldState with pressure_state populated by orchestrator
+
     Returns:
-        (platform_stability, list of nearby obstacles)
+        Perceived pressure level (filtered by awareness)
     """
-    qb_pos = world.me.pos
-    threats = []
-    total_threat_score = 0.0
+    # Get the pre-computed pressure from PressureSystem
+    pressure_state = getattr(world, 'pressure_state', None)
 
-    for opp in world.opponents:
-        distance = opp.pos.distance_to(qb_pos)
+    if pressure_state is None:
+        # Fallback if pressure_state not available (shouldn't happen)
+        return PressureLevel.CLEAN
 
-        # Only consider players within threat range
-        if distance > 15.0:
-            continue
-
-        # Calculate time to arrival (ETA)
-        closing_speed = opp.speed if opp.speed > 0 else 5.0
-        eta = distance / closing_speed if closing_speed > 0 else 10.0
-
-        # Threat score inversely proportional to ETA
-        threat_score = 1.0 / (eta + 0.1)
-
-        # Blind side bonus (left side for right-handed QB)
-        if opp.pos.x < qb_pos.x:  # Coming from left
-            threat_score *= 1.5
-
-        # Blocker protection check - reduce threat if OL is between threat and QB
-        threat_blocked = False
-        for teammate in world.teammates:
-            if teammate.position not in (Position.LT, Position.LG, Position.C, Position.RG, Position.RT):
-                continue
-            # Check if blocker is between threat and QB
-            # Blocker is "between" if:
-            # 1. Closer to threat than QB is
-            # 2. Roughly in the lane (within 2 yards of threat-QB line)
-            blocker_to_threat = teammate.pos.distance_to(opp.pos)
-            if blocker_to_threat < distance:  # Blocker is closer to threat than QB
-                # Check if blocker is in the lane (perpendicular distance to threat-QB line)
-                threat_to_qb = qb_pos - opp.pos
-                threat_to_blocker = teammate.pos - opp.pos
-                if threat_to_qb.length() > 0.1:
-                    # Project blocker onto threat-QB line
-                    t = threat_to_blocker.dot(threat_to_qb) / threat_to_qb.dot(threat_to_qb)
-                    if 0 < t < 1:  # Blocker is between (not behind threat or past QB)
-                        closest_point = opp.pos + threat_to_qb * t
-                        lane_distance = teammate.pos.distance_to(closest_point)
-                        if lane_distance < 2.0:  # Within 2 yards of direct path
-                            threat_blocked = True
-                            break
-
-        if threat_blocked:
-            threat_score *= 0.3  # Significantly reduce threat if blocked
-
-        total_threat_score += threat_score
-
-        if eta < 2.0:  # Imminent threat
-            threats.append(opp)
-
-    # Map total threat to pressure level
-    if total_threat_score < 0.5:
-        level = PressureLevel.CLEAN
-    elif total_threat_score < 1.0:
-        level = PressureLevel.LIGHT
-    elif total_threat_score < 2.0:
-        level = PressureLevel.MODERATE
-    elif total_threat_score < 3.5:
-        level = PressureLevel.HEAVY
-    else:
-        level = PressureLevel.CRITICAL
+    # Map SystemPressureLevel to local PressureLevel enum
+    # (they have the same values but are different types)
+    level_map = {
+        SystemPressureLevel.CLEAN: PressureLevel.CLEAN,
+        SystemPressureLevel.LIGHT: PressureLevel.LIGHT,
+        SystemPressureLevel.MODERATE: PressureLevel.MODERATE,
+        SystemPressureLevel.HEAVY: PressureLevel.HEAVY,
+        SystemPressureLevel.CRITICAL: PressureLevel.CRITICAL,
+    }
+    level = level_map.get(pressure_state.instant_level, PressureLevel.CLEAN)
 
     # Awareness modifier for detection
+    # Low awareness QBs might not perceive pressure that exists
     awareness = world.me.attributes.awareness
     if awareness >= 90:
-        # Elite awareness - detect pressure early (already calculated)
+        # Elite awareness - detect pressure accurately
         pass
     elif awareness < 70:
         # Low awareness - might miss pressure
@@ -512,7 +476,7 @@ def _calculate_pressure(world: WorldState) -> Tuple[PressureLevel, List[PlayerVi
         elif level == PressureLevel.MODERATE:
             level = PressureLevel.LIGHT
 
-    return level, threats
+    return level
 
 
 def _evaluate_receivers(world: WorldState, pressure: PressureLevel = None) -> List[ReceiverEval]:
@@ -529,7 +493,7 @@ def _evaluate_receivers(world: WorldState, pressure: PressureLevel = None) -> Li
 
     # Calculate effective vision under current pressure
     if pressure is None:
-        pressure, _ = _calculate_pressure(world)
+        pressure = _get_perceived_pressure_from_state(world)
 
     pressure_float = _pressure_to_float(pressure)
     awareness = getattr(world.me.attributes, 'awareness', 80)
@@ -829,6 +793,129 @@ def _find_best_receiver(
     return None, False, "no open receivers"
 
 
+# =============================================================================
+# Read System Integration
+# =============================================================================
+
+def _select_target_with_reads(
+    world: QBContext,
+    evaluations: List[ReceiverEval],
+    play_concept: str,
+    detected_coverage: str,
+    pressure: PressureLevel,
+) -> Tuple[Optional[ReceiverEval], str]:
+    """Attempt to select a target using the read system.
+
+    The read system finds the designed target based on:
+    1. The play concept being run
+    2. The detected defensive coverage
+    3. What the key defender is doing (triggers)
+    4. QB attributes (awareness, decision-making, poise)
+
+    This is tried BEFORE the separation-based fallback logic.
+
+    Args:
+        world: QB context with play concept and coverage info
+        evaluations: Evaluated receivers with separation data
+        play_concept: The play concept (e.g., "smash", "flood")
+        detected_coverage: Detected coverage (e.g., "cover_2")
+        pressure: Current pressure level
+
+    Returns:
+        (target_eval, reasoning) - target_eval is None if read system doesn't apply
+    """
+    # Skip if no concept or coverage info
+    if not play_concept:
+        return None, "no play concept"
+
+    # Get applicable reads for this situation
+    reads = get_reads_for_situation(
+        concept=play_concept,
+        coverage=detected_coverage,
+        brain_type=BrainType.QB,
+    )
+
+    if not reads:
+        _trace(f"[READ] No reads for concept={play_concept}, coverage={detected_coverage}")
+        return None, "no applicable reads"
+
+    # Get the read evaluator
+    evaluator = get_read_evaluator()
+
+    # Convert pressure level to string
+    pressure_str = pressure.value if hasattr(pressure, 'value') else str(pressure)
+
+    # Try each applicable read
+    for read in reads:
+        result = evaluator.evaluate(
+            read=read,
+            player_attributes=world.me.attributes,
+            opponents=world.opponents,
+            field_context=world,
+            pressure_level=pressure_str,
+            time_since_snap=world.time_since_snap,
+            current_time=world.current_time,
+            player_id=world.me.id,
+            player_name=world.me.name,
+        )
+
+        if result.success and result.outcome:
+            # Find the receiver that matches the outcome target position
+            target_pos = result.outcome.target_position.lower()
+
+            for evaluation in evaluations:
+                # Match by position slot (e.g., "slot_l", "x", "z")
+                # First check position_slot on the teammate
+                receiver = None
+                for t in world.teammates:
+                    if t.id == evaluation.player_id:
+                        receiver = t
+                        break
+
+                if receiver is None:
+                    continue
+
+                # Check position slot match
+                slot = getattr(receiver, 'position_slot', '').lower()
+                position = getattr(receiver, 'position', None)
+                position_name = position.value.lower() if position else ""
+
+                # Match various forms: "slot_l", "WR", "x", "z"
+                matched = False
+                if slot == target_pos:
+                    matched = True
+                elif position_name == target_pos:
+                    matched = True
+                elif target_pos in ("x", "z", "y") and slot.startswith(target_pos):
+                    matched = True
+                # Map common position references
+                elif target_pos == "slot_l" and slot in ("slot_l", "slot"):
+                    matched = True
+                elif target_pos == "slot_r" and slot in ("slot_r", "slot"):
+                    matched = True
+
+                if matched:
+                    reasoning = f"READ: {result.reasoning}"
+                    _trace(f"[READ] Target={evaluation.player_id}, {reasoning}")
+
+                    # Verify target is reasonably open
+                    if evaluation.status in (ReceiverStatus.COVERED,):
+                        # Read says throw here but receiver is covered
+                        # Check if it's a designed anticipation throw
+                        if result.outcome.adjustment == "anticipation":
+                            return evaluation, reasoning
+                        # Otherwise, note the read but let fallback handle it
+                        _trace(f"[READ] Target covered, deferring to fallback")
+                        continue
+
+                    return evaluation, reasoning
+
+            # Couldn't find matching receiver
+            _trace(f"[READ] Outcome target '{target_pos}' not found in evaluations")
+
+    return None, "no read triggered"
+
+
 def _find_escape_lane(world: WorldState) -> Optional[Vec2]:
     """Find a lane to extend the play for a completion opportunity.
 
@@ -840,8 +927,14 @@ def _find_escape_lane(world: WorldState) -> Optional[Vec2]:
     - Escape away from closest threat
     - Use pocket geometry to find open lanes
     - Prioritize staying in throwing position
+    - CAP RETREAT DEPTH to prevent infinite backpedaling
     """
     qb_pos = world.me.pos
+    los_y = getattr(world, 'los_y', 0.0)
+
+    # Maximum retreat depth - don't go more than 12 yards behind LOS
+    MAX_RETREAT_DEPTH = 12.0
+    max_allowed_y = los_y - MAX_RETREAT_DEPTH
 
     # Get pressure info if available
     pressure_state = getattr(world, 'pressure_state', None)
@@ -876,9 +969,13 @@ def _find_escape_lane(world: WorldState) -> Optional[Vec2]:
         extend_options.append(Vec2(qb_pos.x - 5, qb_pos.y - 2))  # Roll left
 
     best_option = None
-    best_clearance = 0.0
+    best_score = 0.0
 
     for extend_pos in extend_options:
+        # DEPTH CAP: Skip options that retreat too far
+        if extend_pos.y < max_allowed_y:
+            continue
+
         # Find nearest obstacle to this position
         min_dist = float('inf')
         for opp in world.opponents:
@@ -886,13 +983,18 @@ def _find_escape_lane(world: WorldState) -> Optional[Vec2]:
             if dist < min_dist:
                 min_dist = dist
 
-        if min_dist > best_clearance:
-            best_clearance = min_dist
+        # Score combines clearance with forward preference
+        # Bonus for stepping UP (positive y movement) to prevent infinite retreat
+        forward_bonus = max(0.0, (extend_pos.y - qb_pos.y)) * 0.5
+        score = min_dist + forward_bonus
+
+        if score > best_score:
+            best_score = score
             best_option = extend_pos
 
     # Lower threshold when pocket is collapsed - must escape
     min_clearance = 2.0 if (pressure_state and pressure_state.pocket_collapsed) else 3.0
-    return best_option if best_clearance > min_clearance else None
+    return best_option if best_score > min_clearance else None
 
 
 def _get_dropback_target(world: WorldState) -> Vec2:
@@ -1055,13 +1157,27 @@ def _calculate_throw_lead(
     # Calculate ball physics
     base_ball_speed = 50 + (throw_power - 50) * 0.76  # 50-88 fps range
 
+    # Account for aerodynamic drag on longer throws
+    # Estimate throw type based on distance for drag calculation
+    rough_distance = qb_pos.distance_to(receiver.position)
+    estimated_throw_type = "BULLET" if rough_distance < 15 else "TOUCH" if rough_distance < 30 else "LOB"
+    drag_factor = calculate_drag_factor(rough_distance, estimated_throw_type)
+    base_ball_speed = base_ball_speed * drag_factor
+
     # =======================================================================
     # POST-BREAK: If receiver has already broken, use their ACTUAL movement
     # =======================================================================
     receiver_speed = receiver.velocity.length()
 
-    if not receiver.pre_break and receiver.route_phase == "post_break":
+    # Trace throw lead calculation for debugging
+    _trace(f"[THROW_LEAD] pre_break={receiver.pre_break}, route_phase={receiver.route_phase}, "
+           f"break_point={receiver.break_point}, route_dir={receiver.route_direction}")
+
+    # Use pre_break as source of truth (waypoint-based, accurate)
+    # Don't require route_phase match - it's time-based and can lag behind
+    if not receiver.pre_break:
         # Receiver has already broken - trust their current movement
+        _trace(f"[THROW_LEAD] Post-break receiver - using actual velocity")
         if receiver_speed < 1.0:
             # Barely moving post-break = settling route (hitch, curl)
             # Throw right at them
@@ -1116,7 +1232,8 @@ def _calculate_throw_lead(
     # IMPORTANT: Only use break_point if receiver hasn't passed it yet!
     # If receiver is post-break, the break_point is BEHIND them.
     if receiver.break_point and receiver.pre_break:
-        # Route has a defined break point
+        # Route has a defined break point - use route structure for throw lead
+        _trace(f"[THROW_LEAD] Using route structure (pre-break with break_point)")
         break_point = receiver.break_point
 
         # How far is receiver from break point?
@@ -1130,13 +1247,30 @@ def _calculate_throw_lead(
         time_to_break = receiver_to_break / receiver_speed if receiver_speed > 0.1 else 0
 
         # Determine post-break direction from route_direction
-        if receiver.route_direction == "inside":
+        # If route_direction is missing/empty, infer from break_point vector
+        effective_route_dir = receiver.route_direction
+        if not effective_route_dir or effective_route_dir == "vertical":
+            # Try to infer from break_point lateral offset
+            # If break_point is significantly left/right of receiver, it's an inside/outside break
+            lateral_offset = break_point.x - receiver.position.x
+            if abs(lateral_offset) > 1.5:  # Significant lateral movement
+                # Determine if this is inside or outside based on receiver position
+                # Inside = toward center (x=0), Outside = away from center
+                if receiver.position.x > 0:
+                    # Receiver on right side: negative offset = inside, positive = outside
+                    effective_route_dir = "inside" if lateral_offset < 0 else "outside"
+                else:
+                    # Receiver on left side: positive offset = inside, negative = outside
+                    effective_route_dir = "inside" if lateral_offset > 0 else "outside"
+                _trace(f"[THROW_LEAD] Inferred route_dir={effective_route_dir} from break_point offset={lateral_offset:.1f}")
+
+        if effective_route_dir == "inside":
             # Slant, dig, post - continue inside after break
             if receiver.position.x > 0:
                 post_break_dir = Vec2(-0.8, 0.4).normalized()
             else:
                 post_break_dir = Vec2(0.8, 0.4).normalized()
-        elif receiver.route_direction == "outside":
+        elif effective_route_dir == "outside":
             # Out, corner - continue outside after break
             if receiver.position.x > 0:
                 post_break_dir = Vec2(0.8, 0.2).normalized()
@@ -1195,14 +1329,36 @@ def _calculate_throw_lead(
 
         else:
             # NO: Ball arrives at break point before receiver gets there
-            # This is an anticipation throw - throw to break point with YAC lead
-            # Receiver will catch in stride as they arrive at break
-            yac_buffer = 1.0
-            target = break_point + post_break_dir * yac_buffer
+            # Check how far behind the receiver is - if too far, abort anticipation
+            # "Ghost Throw" prevention: don't throw to empty break point if receiver is delayed
+            arrival_gap = time_to_break - flight_time_to_break
+
+            if arrival_gap > 0.5:
+                # Receiver is way too far behind (>0.5s) - likely jammed or delayed
+                # Abort anticipation throw - target receiver's current projected position instead
+                _trace(f"[THROW_LEAD] Aborting anticipation - receiver {arrival_gap:.2f}s behind (jammed/delayed)")
+
+                # Project receiver position at ball arrival (on stem, not at break)
+                dist_to_receiver = qb_pos.distance_to(receiver.position)
+                ball_speed = base_ball_speed * (0.8 if dist_to_receiver < 10 else 0.9 if dist_to_receiver < 20 else 1.0)
+                flight_time = min(dist_to_receiver / ball_speed, 0.8)
+
+                # Lead based on current velocity (they're still on the stem)
+                lead_distance = receiver_speed * flight_time
+                lead_dir = receiver.velocity.normalized() if receiver.velocity.length() > 0.5 else Vec2(0, 1)
+                target = receiver.position + lead_dir * lead_distance
+            else:
+                # Receiver is close enough - this is a valid anticipation throw
+                # Throw to break point with YAC lead, receiver will catch in stride
+                _trace(f"[THROW_LEAD] Anticipation throw - receiver {arrival_gap:.2f}s behind")
+                yac_buffer = 1.0
+                target = break_point + post_break_dir * yac_buffer
 
     else:
         # No break point - use ACTUAL VELOCITY for continuing routes (like GO)
         # This is common for vertical routes that just keep running
+        # OR: Phase mismatch (pre_break=False but route_phase != "post_break")
+        _trace(f"[THROW_LEAD] Using fallback (no break_point or phase mismatch)")
 
         actual_speed = receiver.velocity.length()
 
@@ -1210,6 +1366,7 @@ def _calculate_throw_lead(
             # Receiver is moving - use their actual velocity direction
             lead_dir = receiver.velocity.normalized()
             receiver_speed = actual_speed
+            _trace(f"[THROW_LEAD] Using velocity for lead: {lead_dir}")
         else:
             # Receiver barely moving - fall back to route_direction
             receiver_speed = 6.5  # Assume they'll get up to speed
@@ -1529,6 +1686,30 @@ def qb_brain(world: QBContext) -> BrainDecision:
             reasoning="Run play - holding for handoff",
         )
 
+    # =========================================================================
+    # DEPTH CAP CHECK - Force throw-away if retreated too far
+    # =========================================================================
+    # Prevents infinite retreat spiral where QB keeps backing up
+    los_y = getattr(world, 'los_y', 0.0)
+    MAX_RETREAT_DEPTH = 12.0  # Same as in _find_escape_lane
+    depth_behind_los = los_y - world.me.pos.y
+
+    if depth_behind_los > MAX_RETREAT_DEPTH:
+        # QB has retreated too far - must throw away or take sack
+        if _should_throw_away(world):
+            return BrainDecision(
+                action="throw",
+                action_target=_get_throw_away_target(world),
+                intent="throw_away",
+                reasoning=f"Retreated {depth_behind_los:.0f}yds behind LOS - throwing away",
+            )
+        else:
+            # Inside tackle box, can't throw away legally - accept sack
+            return BrainDecision(
+                intent="protect_ball",
+                reasoning=f"Retreated {depth_behind_los:.0f}yds, inside tackle box - protecting ball",
+            )
+
     state = _get_state(world.me.id)
 
     # Reset state at start of play
@@ -1540,8 +1721,8 @@ def qb_brain(world: QBContext) -> BrainDecision:
     if not world.me.has_ball:
         return BrainDecision.hold("No longer have ball")
 
-    # Calculate pressure
-    actual_pressure, threats = _calculate_pressure(world)
+    # Get pressure from pre-computed PressureSystem state (no redundant calculation)
+    actual_pressure = _get_perceived_pressure_from_state(world)
 
     # Apply poise to determine how QB perceives pressure
     # Low poise: feels more pressure than exists (panics early)
@@ -1785,8 +1966,37 @@ def qb_brain(world: QBContext) -> BrainDecision:
         )
 
     # =========================================================================
-    # Read Progression with Dwell Time
+    # Read System - Concept-Based Target Selection
     # =========================================================================
+    # Try the read system FIRST - this makes QB throw based on play design
+    # rather than just separation. The read system uses declarative data
+    # to determine targets based on what key defenders are doing.
+    #
+    # If read system doesn't apply (no concept info, no matching reads,
+    # or read conditions not met), fall back to separation-based logic.
+
+    play_concept = getattr(world, 'play_concept', '') or ''
+    detected_coverage = getattr(world, 'detected_coverage', '') or ''
+
+    if play_concept and state.current_read <= 2:  # Only on early reads
+        read_target, read_reasoning = _select_target_with_reads(
+            world, receivers, play_concept, detected_coverage, pressure
+        )
+
+        if read_target:
+            lead_pos = _calculate_throw_lead(world.me.pos, read_target, throw_power)
+            _trace(f"[READ SYSTEM] {read_reasoning}")
+            return BrainDecision(
+                action="throw",
+                target_id=read_target.player_id,
+                action_target=lead_pos,
+                reasoning=read_reasoning,
+            )
+
+    # =========================================================================
+    # Read Progression with Dwell Time (Fallback)
+    # =========================================================================
+    # If read system didn't find a target, use separation-based logic.
     # QB goes through reads in order (mechanical reality of scanning)
     # At each read, evaluates: "If I throw NOW, will it be open when ball arrives?"
     # Dwells on each read for ~0.3-0.5s before moving on

@@ -17,6 +17,7 @@ Phases: PRE_SNAP → ATTACK → MAKE_PLAY
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, Tuple
@@ -27,6 +28,12 @@ from ..core.vec2 import Vec2
 from ..core.entities import Position, Team
 from ..core.trace import get_trace_system, TraceCategory
 from ..core.variance import pursuit_angle_accuracy
+from ..core.reads import (
+    BrainType,
+    get_awareness_accuracy,
+    get_decision_making_accuracy,
+)
+from ..core.read_registry import get_read_registry
 
 
 # =============================================================================
@@ -380,11 +387,29 @@ def _read_run_direction(world: WorldState) -> str:
 
 
 def _find_my_gap(world: WorldState) -> GapResponsibility:
-    """Determine assigned gap based on position and alignment."""
+    """Determine assigned gap - use PlayConfig if available, else position-based.
+
+    Hybrid gap assignment system:
+    1. First check explicit assignment from PlayConfig (world.me.assignment)
+    2. Fall back to position-based heuristics if no explicit assignment
+    """
+    # Check for explicit gap assignment from PlayConfig
+    assignment = getattr(world.me, 'assignment', "") or ""
+    if assignment and "gap:" in assignment:
+        gap_name = assignment.split(":")[-1].upper()
+        # Handle variations like "A_GAP", "A-GAP", "A GAP", "AGAP"
+        gap_name = gap_name.replace("-", "_").replace(" ", "_")
+        if not gap_name.endswith("_GAP"):
+            gap_name = gap_name + "_GAP"
+        try:
+            return GapResponsibility[gap_name]
+        except KeyError:
+            pass  # Fall through to position-based
+
+    # Fallback: Position-based gap assignment
     my_pos = world.me.pos
     position = world.me.position
 
-    # Simplified assignment based on position
     if position == Position.MLB:
         return GapResponsibility.A_GAP
     elif position == Position.OLB:
@@ -400,20 +425,53 @@ def _calculate_pursuit_angle(
 ) -> Vec2:
     """Calculate optimal angle to make the tackle - cut off the ballcarrier.
 
+    NGS Physics Integration:
+    - Accounts for LB's current velocity and turn radius
+    - Defenders going the wrong way can't instantly redirect
+    - Sharp pursuit angles require deceleration, adding time penalty
+
     Applies pursuit_angle_accuracy variance - lower awareness/tackle
     LB take worse angles (overpursue), creating cutback opportunities.
     """
     if bc_vel.length() < 0.5:
         return bc_pos
 
-    # Calculate optimal intercept point
+    # Get LB's current velocity for turn penalty calculation
+    my_vel = world.me.velocity
+
+    # Calculate optimal intercept point with turn penalty
     optimal_intercept = bc_pos
     time_estimates = [0.5, 1.0, 1.5, 2.0]
 
     for t in time_estimates:
         predicted = bc_pos + bc_vel * t
         my_dist = my_pos.distance_to(predicted)
-        my_time = my_dist / my_speed if my_speed > 0 else 10.0
+
+        # Base time to reach point
+        base_time = my_dist / my_speed if my_speed > 0 else 10.0
+
+        # =================================================================
+        # NGS Curvature Penalty: Turning adds time
+        # =================================================================
+        turn_penalty = 0.0
+        if my_vel.length() > 2.0:  # If moving at decent speed
+            # Calculate angle between current velocity and direction to target
+            to_target = (predicted - my_pos).normalized()
+            current_dir = my_vel.normalized()
+
+            # Calculate turn angle (in radians)
+            dot = max(-1.0, min(1.0, current_dir.dot(to_target)))
+            turn_angle = abs(math.acos(dot))
+
+            # Add penalty for sharp turns
+            # At 90 degrees, add ~0.3s; at 180 degrees (wrong way), add ~0.6s
+            if turn_angle > 0.3:  # >17 degrees
+                # Penalty increases with angle and current speed
+                # Faster defender going wrong way = more time to redirect
+                speed_factor = my_vel.length() / 6.0  # Normalized to typical speed
+                turn_penalty = (turn_angle / 3.14) * 0.6 * speed_factor
+
+        my_time = base_time + turn_penalty
 
         if my_time <= t + 0.2:  # Can intercept
             optimal_intercept = predicted
@@ -551,6 +609,110 @@ def _can_lb_track_ball_yet(world: WorldState, state: 'LBState') -> bool:
         return True
 
     return False
+
+
+# =============================================================================
+# Read System Integration - Run Fit Reads
+# =============================================================================
+
+def _detect_blocking_scheme(world: WorldState) -> str:
+    """Detect the offensive blocking scheme from OL movement.
+
+    Returns: "zone", "gap", "pull", or "unknown"
+    """
+    pulling = False
+    zone_steps = 0
+    down_blocks = 0
+
+    for opp in world.opponents:
+        if opp.position in (Position.LG, Position.RG):
+            # Guard pulling is strong indicator
+            if abs(opp.velocity.x) > 3.0:
+                pulling = True
+        if opp.position in (Position.LT, Position.LG, Position.C, Position.RG, Position.RT):
+            # Zone blocking = lateral movement
+            if abs(opp.velocity.x) > 1.5 and opp.velocity.y > 0:
+                zone_steps += 1
+            # Down blocking = more vertical
+            elif opp.velocity.y > 2.0 and abs(opp.velocity.x) < 1.0:
+                down_blocks += 1
+
+    if pulling:
+        return "pull"
+    if zone_steps >= 3:
+        return "zone"
+    if down_blocks >= 2:
+        return "gap"
+    return "unknown"
+
+
+def _apply_run_fit_read(
+    world: WorldState,
+    state: 'LBState',
+    run_direction: str,
+) -> Optional[tuple[str, str]]:
+    """Apply read system for run fit decisions.
+
+    Uses LB's play_recognition and awareness to diagnose blocking
+    schemes and fit the correct gap.
+
+    Returns:
+        (adjustment, reasoning) if read applies, None otherwise
+    """
+    # Get LB attributes
+    awareness = getattr(world.me.attributes, 'awareness', 70)
+    play_rec = getattr(world.me.attributes, 'play_recognition', 70)
+
+    # Check if LB meets minimum for read system
+    awareness_acc, awareness_time = get_awareness_accuracy(awareness)
+    if awareness_acc == 0.0:
+        return None  # Read system disabled
+
+    # Too early for reads
+    if world.time_since_snap < awareness_time:
+        return None
+
+    # Get reads for run defense
+    registry = get_read_registry()
+    reads = registry.get_reads_for_concept("run_defense", "any", BrainType.LB)
+    if not reads:
+        return None
+
+    # Detect blocking scheme
+    scheme = _detect_blocking_scheme(world)
+
+    # Find matching read based on scheme
+    for read in reads:
+        if read.min_awareness > awareness:
+            continue
+        if read.min_decision_making > play_rec:
+            continue
+
+        for trigger in read.triggers:
+            trigger_val = trigger.trigger_type.value
+
+            # Match zone blocking reads
+            if scheme == "zone" and trigger_val == "zone_block":
+                primary = read.get_primary_outcome()
+                if primary:
+                    _trace(world, f"[READ] {read.name}: {primary.reasoning}")
+                    return (primary.adjustment or "fast_flow", primary.reasoning)
+
+            # Match gap/power blocking reads
+            elif scheme == "gap" and trigger_val == "gap_block":
+                primary = read.get_primary_outcome()
+                if primary:
+                    _trace(world, f"[READ] {read.name}: {primary.reasoning}")
+                    return (primary.adjustment or "attack_downhill", primary.reasoning)
+
+            # Match pull reads (power/counter)
+            elif scheme == "pull" and trigger_val == "guard_pull":
+                primary = read.get_primary_outcome()
+                if primary:
+                    _trace(world, f"[READ] {read.name}: {primary.reasoning}")
+                    return (primary.adjustment or "attack_downhill", primary.reasoning)
+
+    return None
 
 
 # =============================================================================
@@ -716,6 +878,53 @@ def lb_brain(world: LBContext) -> BrainDecision:
         run_to_me = run_direction == my_side
 
         gap_pos = _get_gap_position(world, state.gap_assignment)
+
+        # =================================================================
+        # Read System - Run Fit Reads (elite LBs diagnose scheme faster)
+        # =================================================================
+        read_result = _apply_run_fit_read(world, state, run_direction)
+        if read_result:
+            adjustment, read_reasoning = read_result
+            # Apply adjustment based on blocking scheme read
+            if adjustment == "fast_flow":
+                # Zone blocking - flow fast, stay square
+                flow_x = gap_pos.x + (2 if run_direction == "right" else -2)
+                target = Vec2(flow_x, world.los_y + 1)
+                return BrainDecision(
+                    move_target=target,
+                    move_type="sprint",
+                    intent="zone_fit",
+                    reasoning=f"[READ] {read_reasoning}",
+                )
+            elif adjustment == "attack_downhill":
+                # Gap/power blocking - attack downhill through gap
+                target = Vec2(gap_pos.x, world.los_y)
+                return BrainDecision(
+                    move_target=target,
+                    move_type="sprint",
+                    action="attack_gap",
+                    intent="gap_fit",
+                    reasoning=f"[READ] {read_reasoning}",
+                )
+            elif adjustment == "read_and_react":
+                # Counter/misdirection - stay patient, don't overcommit
+                target = Vec2(gap_pos.x, world.los_y + 2)
+                return BrainDecision(
+                    move_target=target,
+                    move_type="run",
+                    intent="read_counter",
+                    reasoning=f"[READ] {read_reasoning}",
+                )
+            elif adjustment == "spill_outside":
+                # Trap - spill to outside
+                spill_x = gap_pos.x + (3 if gap_pos.x > 0 else -3)
+                target = Vec2(spill_x, world.los_y)
+                return BrainDecision(
+                    move_target=target,
+                    move_type="sprint",
+                    intent="spill",
+                    reasoning=f"[READ] {read_reasoning}",
+                )
 
         # Ballcarrier location for fill decisions
         ballcarrier = _find_ballcarrier(world)

@@ -488,6 +488,20 @@ class BlockResolver:
         # Get or create engagement state
         key = self.get_engagement_key(ol.id, dl.id)
         if key not in self._engagements:
+            # "Engagement Trap" fix: EVASION CHECK before creating engagement
+            # DL attempting speed rush can try to avoid engagement entirely
+            # This allows true "whiffs" where OL doesn't even touch the rusher
+            if dl_action in ("speed_rush", "spin", "ghost"):
+                evasion_success = self._attempt_evasion(ol, dl, dl_action)
+                if evasion_success:
+                    # DL slipped past! No engagement created
+                    return BlockResult(
+                        outcome=BlockOutcome.DISENGAGED,
+                        ol_new_pos=ol.pos,
+                        dl_new_pos=dl.pos,
+                        shed_progress=0.0,
+                        reasoning=f"DL evaded with {dl_action} (whiff)",
+                    )
             # Initial leverage based on block type
             # Calibrated to NFL win rates:
             # - Pass blocking: OL wins 90%+ (PBWR 92-99%)
@@ -729,6 +743,74 @@ class BlockResolver:
             return BlockOutcome.DL_WINNING
         else:
             return BlockOutcome.DL_DOMINANT
+
+    def _attempt_evasion(
+        self,
+        ol: Player,
+        dl: Player,
+        dl_action: str,
+    ) -> bool:
+        """Determine if DL can evade the blocker entirely (no engagement created).
+
+        This enables true "whiffs" where the OL doesn't even touch the rusher.
+        Elite speed rushers and spin artists can slip past slower blockers.
+
+        Returns True if DL successfully evades, False if OL makes contact.
+        """
+        # Get relevant attributes
+        dl_agility = dl.attributes.get("agility", 70)
+        dl_speed = dl.attributes.get("speed", 70)
+        dl_finesse = dl.attributes.get("finesse_moves", 70)
+
+        ol_agility = ol.attributes.get("agility", 70)
+        ol_awareness = ol.attributes.get("awareness", 70)
+
+        # Base evasion chance depends on move type
+        if dl_action == "speed_rush":
+            # Speed rush evasion: DL speed vs OL agility
+            # Elite speed (90+) vs average OL agility (70) = 30% base chance
+            speed_diff = dl_speed - ol_agility
+            base_chance = 0.10 + (speed_diff / 100.0)  # 10% base + differential
+        elif dl_action == "spin":
+            # Spin move: DL finesse + agility vs OL awareness
+            # Elite finesse (90+) vs average awareness (70) = 25% base chance
+            finesse_diff = ((dl_finesse + dl_agility) / 2) - ol_awareness
+            base_chance = 0.08 + (finesse_diff / 100.0)  # 8% base + differential
+        elif dl_action == "ghost":
+            # Ghost/dip: Pure agility battle
+            # Elite agility (90+) vs average (70) = 28% base chance
+            agility_diff = dl_agility - ol_agility
+            base_chance = 0.08 + (agility_diff / 80.0)  # 8% base + differential
+        else:
+            return False  # Other actions don't evade
+
+        # Clamp to reasonable range (5% floor, 40% ceiling)
+        # Even elite rushers don't whiff blockers most of the time
+        evasion_chance = max(0.05, min(0.40, base_chance))
+
+        # Check if DL is moving fast enough to even attempt evasion
+        dl_velocity = dl.velocity if hasattr(dl, "velocity") else None
+        if dl_velocity and dl_velocity.magnitude() < 3.0:
+            # Too slow to evade - need to be at speed
+            evasion_chance *= 0.3
+
+        # Roll the dice
+        import random
+
+        success = random.random() < evasion_chance
+
+        if success:
+            _trace(
+                f"[EVASION] {dl.id} evaded {ol.id} with {dl_action} "
+                f"(chance={evasion_chance:.1%}, DL agi={dl_agility} spd={dl_speed})"
+            )
+        else:
+            _trace(
+                f"[EVASION] {dl.id} failed to evade {ol.id} with {dl_action} "
+                f"(chance={evasion_chance:.1%})"
+            )
+
+        return success
 
     def _calculate_win_probability(
         self,
@@ -1026,11 +1108,76 @@ class BlockResolver:
 # Convenience Functions
 # =============================================================================
 
+def _is_blocker_in_path(ol: Player, dl: Player) -> bool:
+    """Check if the OL is actually in the DL's path or can intercept.
+
+    "Whiff" prevention: OL moving the wrong direction shouldn't magically
+    engage with DL running past them.
+
+    Args:
+        ol: Offensive lineman
+        dl: Defensive lineman
+
+    Returns:
+        True if OL can realistically engage DL
+    """
+    # Get DL's velocity - if moving, check if OL is in their path
+    dl_speed = dl.velocity.length()
+    ol_speed = ol.velocity.length()
+
+    # Very close = always can engage (already touching)
+    dist = ol.pos.distance_to(dl.pos)
+    if dist < ENGAGEMENT_RANGE:
+        return True
+
+    # If DL is moving fast, check if OL is in their path
+    if dl_speed > 2.0:
+        dl_dir = dl.velocity.normalized()
+        to_ol = (ol.pos - dl.pos).normalized()
+
+        # Dot product: 1.0 = OL directly ahead, 0.0 = perpendicular, -1.0 = behind
+        alignment = dl_dir.dot(to_ol)
+
+        # If OL is behind or perpendicular to DL's movement, low chance of engagement
+        if alignment < 0.3:
+            # OL is not in DL's path - can only engage if OL is moving to intercept
+            if ol_speed > 1.0:
+                ol_dir = ol.velocity.normalized()
+                to_dl = (dl.pos - ol.pos).normalized()
+
+                # Is OL moving toward DL?
+                intercept_alignment = ol_dir.dot(to_dl)
+                if intercept_alignment < 0.5:
+                    # OL isn't moving toward DL either - no engagement
+                    return False
+            else:
+                # OL stationary, not in DL's path - no engagement
+                return False
+
+    # If OL is moving fast (pulling), check they're moving toward the DL
+    if ol_speed > 3.0:
+        ol_dir = ol.velocity.normalized()
+        to_dl = (dl.pos - ol.pos).normalized()
+
+        # Dot product: 1.0 = moving toward DL, -1.0 = moving away
+        alignment = ol_dir.dot(to_dl)
+
+        # If OL is pulling away from DL, can't engage
+        if alignment < 0.0:
+            return False
+
+    return True
+
+
 def find_blocking_matchups(
     offense: List[Player],
     defense: List[Player],
 ) -> List[Tuple[Player, Player]]:
     """Find OL/DL pairs that are engaged or should engage.
+
+    "Whiff" prevention: Uses greedy optimal matching but checks that
+    OL and DL are actually in each other's paths. A fast DL sprinting
+    past an OL's shoulder won't get sucked into a block.
 
     Uses greedy optimal matching: closest pairs matched first,
     regardless of player list order.
@@ -1050,6 +1197,9 @@ def find_blocking_matchups(
                 continue
             dist = ol.pos.distance_to(dl.pos)
             if dist < 5.0:  # Max 5 yards to consider
+                # "Whiff" check: Is OL actually in DL's path?
+                if not _is_blocker_in_path(ol, dl):
+                    continue  # DL can slip past this OL
                 candidates.append((dist, ol, dl))
 
     # Sort by distance (closest first)

@@ -21,6 +21,12 @@ Play Lifecycle:
 
     From RUN_ACTIVE:
         → POST_PLAY (tackle/touchdown/fumble/out of bounds)
+
+Between-Play Lifecycle (for continuous game simulation):
+    POST_PLAY → HUDDLE → FORMATION_MOVE → PRE_SNAP → ...
+
+    HUDDLE: Players jog from play-end positions to huddle formation
+    FORMATION_MOVE: Players break huddle and move to pre-snap positions
 """
 
 from __future__ import annotations
@@ -41,6 +47,9 @@ class PlayPhase(str, Enum):
     RUN_ACTIVE = "run_active"    # Ballcarrier has ball, running
     RESOLUTION = "resolution"    # Play resolving (legacy, not currently used)
     POST_PLAY = "post_play"      # Play complete, compiling results
+    # Between-play phases
+    HUDDLE = "huddle"            # Players jogging to huddle formation
+    FORMATION_MOVE = "formation_move"  # Players breaking huddle to pre-snap positions
 
 
 # Valid phase transitions
@@ -66,7 +75,10 @@ VALID_TRANSITIONS: Dict[PlayPhase, Set[PlayPhase]] = {
     PlayPhase.RESOLUTION: {
         PlayPhase.POST_PLAY,    # Legacy
     },
-    PlayPhase.POST_PLAY: set(),  # Terminal state
+    PlayPhase.POST_PLAY: {PlayPhase.HUDDLE},  # Can transition to huddle for next play
+    # Between-play phase transitions
+    PlayPhase.HUDDLE: {PlayPhase.FORMATION_MOVE},  # Huddle complete, break to formation
+    PlayPhase.FORMATION_MOVE: {PlayPhase.PRE_SNAP},  # Formation set, ready for snap
 }
 
 
@@ -190,8 +202,13 @@ class PhaseStateMachine:
 
     @property
     def is_terminal(self) -> bool:
-        """True if play has ended."""
+        """True if play has ended (POST_PLAY with no next play pending)."""
         return self._phase == PlayPhase.POST_PLAY
+
+    @property
+    def is_between_plays(self) -> bool:
+        """True if in between-play transition (HUDDLE or FORMATION_MOVE)."""
+        return self._phase in (PlayPhase.HUDDLE, PlayPhase.FORMATION_MOVE)
 
     @property
     def ball_is_live(self) -> bool:
