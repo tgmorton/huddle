@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional
 from huddle.core.models.game import GameState, DownState
 from huddle.core.models.field import FieldPosition
 from huddle.simulation.v2.orchestrator import Orchestrator, PlayConfig, PlayResult
+from huddle.simulation.v2.core.huddle_positions import HuddleConfig, DEFAULT_HUDDLE_CONFIG
 from huddle.game.penalties import check_for_penalty, PenaltyResult
 
 if TYPE_CHECKING:
@@ -132,22 +133,30 @@ class DriveManager:
     offense: List["V2Player"]
     defense: List["V2Player"]
     play_caller: Optional[Callable[["DriveManager"], PlayConfig]] = None
+    huddle_config: Optional[HuddleConfig] = None  # If set, enables between-play animation
 
     # Internal state
     _plays: List[PlayLog] = field(default_factory=list)
     _drive_start_los: float = 25.0
     _current_los: float = 25.0
     _total_time: float = 0.0
+    _first_play_of_drive: bool = True  # Skip huddle on first play
 
     def __post_init__(self):
         self._plays = []
         # line_of_scrimmage is in "own yard line" format (25 = own 25)
         # V2 uses y=0 at own endzone, y=100 at opponent endzone
         # So own 25 → y=25 in V2 coordinates
-        self._drive_start_los = self.game_state.down_state.line_of_scrimmage
+        los = self.game_state.down_state.line_of_scrimmage
+        # Handle both FieldPosition objects and raw floats/ints
+        if hasattr(los, 'yard_line'):
+            self._drive_start_los = float(los.yard_line)
+        else:
+            self._drive_start_los = float(los)
         self._current_los = self._drive_start_los
         self._total_time = 0.0
         self._forced_end_reason: Optional[DriveEndReason] = None
+        self._first_play_of_drive = True  # Skip huddle on first play (already in formation)
 
     def run_drive(self) -> DriveResult:
         """Execute the drive to completion.
@@ -197,10 +206,17 @@ class DriveManager:
             # Default: simple run/pass based on situation
             config = self._default_play_call()
 
-        # Reposition players at current LOS
-        # Players have formation-relative positions that need translation
         los_y = self._current_los
-        self._reposition_players(los_y)
+        ball_x = self.game_state.down_state.ball_x
+
+        # Run huddle transition if enabled and not first play
+        if self.huddle_config and not self._first_play_of_drive:
+            self._run_huddle_transition(los_y, ball_x)
+        else:
+            # Standard repositioning (teleport to formation)
+            self._reposition_players(los_y)
+
+        self._first_play_of_drive = False
 
         # Set up the play
         self.orchestrator.setup_play(
@@ -222,24 +238,55 @@ class DriveManager:
         """Reposition players to their formation alignments at the current LOS.
 
         Players store their formation-relative positions in position_slot.
-        We translate these to field coordinates based on current LOS.
+        We translate these to field coordinates based on current LOS and ball_x.
         """
         from huddle.game.roster_bridge import OFFENSIVE_ALIGNMENTS, DEFENSIVE_ALIGNMENTS
         from huddle.simulation.v2.core.vec2 import Vec2
 
-        # Reposition offense
+        # Get ball_x for hash-relative positioning
+        ball_x = self.game_state.down_state.ball_x
+
+        # Reposition offense (offset by ball_x for hash-relative positioning)
         for player in self.offense:
             if player.position_slot in OFFENSIVE_ALIGNMENTS:
                 alignment = OFFENSIVE_ALIGNMENTS[player.position_slot]
-                player.pos = Vec2(alignment.x, alignment.y + los_y)
+                player.pos = Vec2(alignment.x + ball_x, alignment.y + los_y)
                 player.velocity = Vec2.zero()
 
-        # Reposition defense
+        # Reposition defense (offset by ball_x for hash-relative positioning)
         for player in self.defense:
             if player.position_slot in DEFENSIVE_ALIGNMENTS:
                 alignment = DEFENSIVE_ALIGNMENTS[player.position_slot]
-                player.pos = Vec2(alignment.x, alignment.y + los_y)
+                player.pos = Vec2(alignment.x + ball_x, alignment.y + los_y)
                 player.velocity = Vec2.zero()
+
+    def _run_huddle_transition(self, los_y: float, ball_x: float) -> None:
+        """Run the huddle-to-formation animation.
+
+        This animates players moving from their current positions (post-play)
+        to their huddle positions, then breaking to their pre-snap formation.
+
+        Args:
+            los_y: Line of scrimmage for the next play
+            ball_x: X coordinate of the ball (hash position)
+        """
+        from huddle.simulation.v2.core.phases import PlayPhase
+
+        # Ensure orchestrator is in POST_PLAY phase
+        # (it should be after the previous play completed)
+        if self.orchestrator.phase != PlayPhase.POST_PLAY:
+            # Force transition to POST_PLAY if needed
+            self.orchestrator._phase_machine.reset(PlayPhase.POST_PLAY)
+
+        # Run the huddle transition through the orchestrator
+        self.orchestrator.run_huddle_transition(
+            next_los_y=los_y,
+            ball_x=ball_x,
+            config=self.huddle_config,
+        )
+
+        # Players should now be in formation (PRE_SNAP phase)
+        # The orchestrator.setup_play() will reset to SETUP and reconfigure
 
     def _default_play_call(self) -> PlayConfig:
         """Generate a default play call based on situation."""

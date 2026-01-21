@@ -276,6 +276,12 @@ class SpecialTeamsResolver:
         Returns:
             Outcome with new line of scrimmage
         """
+        # Handle FieldPosition objects
+        if hasattr(los, 'yard_line'):
+            los = float(los.yard_line)
+        else:
+            los = float(los)
+
         # Calculate punt distance
         punt_power = 75
         if punter:

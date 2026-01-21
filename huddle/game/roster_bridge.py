@@ -67,13 +67,15 @@ POSITION_MAP: Dict[CorePosition, V2Position] = {
 
 # Standard offensive alignments (x, y) where y=0 is LOS
 # Coordinates in yards from center
+# OL spacing: ~1.2 yards center-to-center (realistic NFL spacing)
+# Total OL width: ~4.8 yards (LT to RT), not 12 yards
 OFFENSIVE_ALIGNMENTS: Dict[str, Vec2] = {
-    # Offensive line
-    "LT1": Vec2(-6.0, 0.0),
-    "LG1": Vec2(-3.0, 0.0),
+    # Offensive line - realistic 1.2 yard spacing
+    "LT1": Vec2(-2.4, 0.0),
+    "LG1": Vec2(-1.2, 0.0),
     "C1": Vec2(0.0, 0.0),
-    "RG1": Vec2(3.0, 0.0),
-    "RT1": Vec2(6.0, 0.0),
+    "RG1": Vec2(1.2, 0.0),
+    "RT1": Vec2(2.4, 0.0),
     # Skill positions - Singleback base
     "QB1": Vec2(0.0, -5.0),  # Under center would be -1, shotgun is -5
     "RB1": Vec2(0.0, -7.0),  # Behind QB
@@ -81,25 +83,26 @@ OFFENSIVE_ALIGNMENTS: Dict[str, Vec2] = {
     "WR1": Vec2(-25.0, 0.0),  # X receiver (split end)
     "WR2": Vec2(22.0, -1.0),  # Z receiver (flanker, off line)
     "WR3": Vec2(-8.0, -1.0),  # Slot left
-    "TE1": Vec2(8.0, 0.0),  # Tight end (on line)
+    "TE1": Vec2(3.2, 0.0),  # Tight end (just outside RT)
 }
 
 # Standard defensive alignments (vs 11 personnel)
+# DL aligned to new realistic OL gaps
 DEFENSIVE_ALIGNMENTS: Dict[str, Vec2] = {
-    # Defensive line (4-3 base)
-    "DE1": Vec2(-7.0, 1.0),  # Left DE
-    "DE2": Vec2(7.0, 1.0),   # Right DE
-    "DT1": Vec2(-2.0, 1.0),  # Left DT / 1-tech
-    "DT2": Vec2(2.0, 1.0),   # Right DT / 3-tech
+    # Defensive line (4-3 base) - aligned to realistic OL gaps
+    "DE1": Vec2(-3.0, 1.0),   # Left DE (outside LT shoulder)
+    "DE2": Vec2(3.6, 1.0),    # Right DE (outside TE/RT)
+    "DT1": Vec2(-0.6, 1.0),   # Left DT / 1-tech (A gap)
+    "DT2": Vec2(1.8, 1.0),    # Right DT / 3-tech (outside RG shoulder)
     # Linebackers
-    "MLB1": Vec2(0.0, 5.0),  # Mike
-    "OLB1": Vec2(-10.0, 5.0),  # Will (weak side)
-    "OLB2": Vec2(10.0, 5.0),   # Sam (strong side)
+    "MLB1": Vec2(0.0, 5.0),   # Mike
+    "OLB1": Vec2(-6.0, 5.0),  # Will (weak side)
+    "OLB2": Vec2(6.0, 5.0),   # Sam (strong side)
     # Secondary
     "CB1": Vec2(-24.0, 7.0),  # Left CB (press alignment)
     "CB2": Vec2(21.0, 7.0),   # Right CB
     "FS1": Vec2(0.0, 15.0),   # Free safety (center field)
-    "SS1": Vec2(8.0, 10.0),   # Strong safety
+    "SS1": Vec2(5.0, 10.0),   # Strong safety (adjusted for tighter formation)
 }
 
 
@@ -157,6 +160,7 @@ def convert_player(
     alignment: Vec2,
     team: V2Team,
     los_y: float = 0.0,
+    ball_x: float = 0.0,
 ) -> V2Player:
     """Convert a core Player to a V2 simulation Player.
 
@@ -166,6 +170,7 @@ def convert_player(
         alignment: Pre-snap position (formation-relative, LOS at y=0)
         team: V2 team enum (OFFENSE or DEFENSE)
         los_y: Line of scrimmage Y position in field coordinates
+        ball_x: Ball lateral position for hash-relative alignment
 
     Returns:
         V2 Player ready for simulation
@@ -180,9 +185,9 @@ def convert_player(
     name = core_player.display_name or f"#{core_player.jersey_number}"
 
     # Translate alignment to field coordinates
-    # Formation alignment is relative to LOS at y=0
-    # Add los_y to get actual field position
-    field_pos = Vec2(alignment.x, alignment.y + los_y)
+    # Formation alignment is relative to ball position
+    # Add ball_x for lateral offset and los_y for vertical offset
+    field_pos = Vec2(alignment.x + ball_x, alignment.y + los_y)
 
     return V2Player(
         id=player_id,
@@ -221,7 +226,7 @@ class RosterBridge:
     def __post_init__(self):
         self._player_cache = {}
 
-    def get_offensive_11(self, formation: str = "singleback", los_y: float = 0.0) -> List[V2Player]:
+    def get_offensive_11(self, formation: str = "singleback", los_y: float = 0.0, ball_x: float = 0.0) -> List[V2Player]:
         """Get 11 offensive players for simulation.
 
         Extracts starters from depth chart, converts to V2 players,
@@ -230,6 +235,7 @@ class RosterBridge:
         Args:
             formation: Formation name (affects alignments)
             los_y: Line of scrimmage Y position in field coordinates
+            ball_x: Ball lateral position for hash-relative alignment
 
         Returns:
             List of 11 V2 Players ready for setup_play()
@@ -248,19 +254,20 @@ class RosterBridge:
                 core_player = starters[slot]
                 alignment = OFFENSIVE_ALIGNMENTS.get(slot, Vec2.zero())
                 v2_player = convert_player(
-                    core_player, slot, alignment, V2Team.OFFENSE, los_y
+                    core_player, slot, alignment, V2Team.OFFENSE, los_y, ball_x
                 )
                 players.append(v2_player)
                 self._player_cache[slot] = v2_player
 
         return players[:11]  # Ensure max 11
 
-    def get_defensive_11(self, scheme: str = "4-3", los_y: float = 0.0) -> List[V2Player]:
+    def get_defensive_11(self, scheme: str = "4-3", los_y: float = 0.0, ball_x: float = 0.0) -> List[V2Player]:
         """Get 11 defensive players for simulation.
 
         Args:
             scheme: Defensive scheme (affects alignments)
             los_y: Line of scrimmage Y position in field coordinates
+            ball_x: Ball lateral position for hash-relative alignment
 
         Returns:
             List of 11 V2 Players ready for setup_play()
@@ -274,7 +281,7 @@ class RosterBridge:
         for slot, core_player in starters.items():
             alignment = DEFENSIVE_ALIGNMENTS.get(slot, Vec2.zero())
             v2_player = convert_player(
-                core_player, slot, alignment, V2Team.DEFENSE, los_y
+                core_player, slot, alignment, V2Team.DEFENSE, los_y, ball_x
             )
             players.append(v2_player)
             self._player_cache[slot] = v2_player
@@ -302,7 +309,7 @@ class RosterBridge:
 # Convenience Functions
 # =============================================================================
 
-def get_offensive_11(team: "Team", formation: str = "singleback", los_y: float = 0.0) -> List[V2Player]:
+def get_offensive_11(team: "Team", formation: str = "singleback", los_y: float = 0.0, ball_x: float = 0.0) -> List[V2Player]:
     """Get 11 offensive players for a team.
 
     Convenience function that creates a RosterBridge and extracts players.
@@ -311,24 +318,26 @@ def get_offensive_11(team: "Team", formation: str = "singleback", los_y: float =
         team: Management-layer Team
         formation: Formation name
         los_y: Line of scrimmage Y position in field coordinates
+        ball_x: Ball lateral position for hash-relative alignment
 
     Returns:
         List of 11 V2 Players
     """
     bridge = RosterBridge(team)
-    return bridge.get_offensive_11(formation, los_y)
+    return bridge.get_offensive_11(formation, los_y, ball_x)
 
 
-def get_defensive_11(team: "Team", scheme: str = "4-3", los_y: float = 0.0) -> List[V2Player]:
+def get_defensive_11(team: "Team", scheme: str = "4-3", los_y: float = 0.0, ball_x: float = 0.0) -> List[V2Player]:
     """Get 11 defensive players for a team.
 
     Args:
         team: Management-layer Team
         scheme: Defensive scheme
         los_y: Line of scrimmage Y position in field coordinates
+        ball_x: Ball lateral position for hash-relative alignment
 
     Returns:
         List of 11 V2 Players
     """
     bridge = RosterBridge(team)
-    return bridge.get_defensive_11(scheme, los_y)
+    return bridge.get_defensive_11(scheme, los_y, ball_x)

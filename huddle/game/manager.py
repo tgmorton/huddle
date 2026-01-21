@@ -372,13 +372,20 @@ class GameManager:
 
         self._set_possession(self._possession_home, new_los)
 
-    def _set_possession(self, is_home: bool, los: float) -> None:
-        """Set possession and initial downs."""
+    def _set_possession(self, is_home: bool, los: float, ball_x: float = 0.0) -> None:
+        """Set possession and initial downs.
+
+        Args:
+            is_home: True if home team has possession
+            los: Line of scrimmage (0-100)
+            ball_x: Ball lateral position (will be snapped to hash if outside)
+        """
         self._possession_home = is_home
         self._game_state.down_state = DownState(
             down=1,
             yards_to_go=10,
             line_of_scrimmage=los,
+            ball_x=ball_x,  # DownState.__post_init__ applies hash snap
         )
 
     def _update_clock(self, time_used: float) -> None:
@@ -464,6 +471,15 @@ class GameManager:
     def away_timeouts(self) -> int:
         return self._away_timeouts
 
+    @property
+    def possession_home(self) -> bool:
+        """True if home team has possession."""
+        return self._possession_home
+
+    def get_players_for_drive(self):
+        """Get offensive and defensive players for current drive."""
+        return self._get_players_for_drive()
+
     # =========================================================================
     # Timeout Management
     # =========================================================================
@@ -537,6 +553,9 @@ class GameManager:
     def get_situation(self) -> dict:
         """Get current game situation for coach mode UI."""
         down_state = self._game_state.down_state
+        # Extract numeric yard line (FieldPosition has .yard_line property)
+        los = down_state.line_of_scrimmage
+        los_value = los.yard_line if hasattr(los, 'yard_line') else los
         return {
             "quarter": self.quarter,
             "time": self._format_time(self.time_remaining),
@@ -545,9 +564,9 @@ class GameManager:
             "possession_home": self._possession_home,
             "down": down_state.down,
             "distance": down_state.yards_to_go,
-            "los": down_state.line_of_scrimmage,
-            "yard_line": self._format_yard_line(down_state.line_of_scrimmage),
-            "is_red_zone": down_state.line_of_scrimmage >= 80,
+            "los": los_value,
+            "yard_line": self._format_yard_line(los_value),
+            "is_red_zone": los_value >= 80,
             "home_timeouts": self._home_timeouts,
             "away_timeouts": self._away_timeouts,
         }
@@ -576,6 +595,626 @@ class GameManager:
             end_reason=DriveEndReason.PUNT,  # Placeholder
             total_yards=result.yards_gained,
         )
+
+    # =========================================================================
+    # Coach Mode Public API - Play Execution
+    # =========================================================================
+
+    def execute_play_by_code(
+        self,
+        play_code: str,
+        shotgun: bool = True,
+        defensive_call: Optional[str] = None,
+    ) -> dict:
+        """Execute a play by code in coach mode.
+
+        This is the main public API for executing plays. It handles:
+        - Building the play configuration from the code
+        - Getting AI defensive call if not provided
+        - Running the simulation
+        - Updating down/distance, field position, scoring
+        - Consuming clock time
+
+        Args:
+            play_code: Offensive play code (e.g., "PASS_SLANT", "RUN_POWER")
+            shotgun: Whether QB is in shotgun formation
+            defensive_call: Optional defensive play code (AI calls if None)
+
+        Returns:
+            Dict with play result suitable for API response:
+            {
+                "outcome": str,  # "complete", "incomplete", "run", etc.
+                "yards_gained": float,
+                "is_touchdown": bool,
+                "is_turnover": bool,
+                "is_safety": bool,
+                "is_first_down": bool,
+                "is_drive_over": bool,
+                "drive_end_reason": Optional[str],
+                "new_down": int,
+                "new_distance": int,
+                "new_los": float,
+                "passer_id": Optional[str],
+                "receiver_id": Optional[str],
+                "tackler_id": Optional[str],
+                "time_elapsed": float,
+                "play_duration": float,
+            }
+        """
+        from huddle.game.play_adapter import PlayAdapter
+        from huddle.game.coordinator import DefensiveCoordinator, SituationContext
+
+        # Get players
+        offense, defense = self._get_players_for_drive()
+
+        # Build play config
+        adapter = PlayAdapter(offense, defense)
+        config = adapter.build_offensive_config(play_code, shotgun)
+
+        # Get AI defensive call if not provided
+        if defensive_call is None:
+            down_state = self._game_state.down_state
+            los_value = self._extract_los_value(down_state.line_of_scrimmage)
+            context = SituationContext(
+                down=down_state.down,
+                distance=down_state.yards_to_go,
+                los=los_value,
+                quarter=self.quarter,
+                time_remaining=self.time_remaining,
+                score_diff=self.home_score - self.away_score if self._possession_home else self.away_score - self.home_score,
+                timeouts=self._home_timeouts if self._possession_home else self._away_timeouts,
+            )
+            dc = DefensiveCoordinator()
+            defensive_call = dc.call_coverage(context)
+
+        # Add defensive assignments
+        man_assign, zone_assign = adapter.build_defensive_config(defensive_call)
+        config.man_assignments = man_assign
+        config.zone_assignments = zone_assign
+
+        # Execute play
+        down_state = self._game_state.down_state
+        los_value = self._extract_los_value(down_state.line_of_scrimmage)
+
+        # Reposition players to current LOS (critical for correct dropback targeting)
+        self._reposition_players(offense, defense, los_value)
+
+        self._orchestrator.setup_play(offense, defense, config, los_value)
+        self._orchestrator.register_default_brains()
+        result = self._orchestrator.run()
+
+        # Process result and update state
+        return self._process_play_result(result, offense, defense)
+
+    def execute_play_by_code_with_frames(
+        self,
+        play_code: str,
+        shotgun: bool = True,
+        defensive_call: Optional[str] = None,
+    ) -> tuple:
+        """Execute a play and collect frames for visualization.
+
+        Same as execute_play_by_code but also returns frames for animation.
+        Frame collection is handled by the caller (coach_mode.py) since it's
+        visualization-specific.
+
+        Args:
+            play_code: Offensive play code
+            shotgun: Whether QB is in shotgun
+            defensive_call: Optional defensive play code
+
+        Returns:
+            Tuple of (result_dict, orchestrator, offense, defense)
+            Caller can collect frames using the orchestrator.
+        """
+        from huddle.game.play_adapter import PlayAdapter
+        from huddle.game.coordinator import DefensiveCoordinator, SituationContext
+
+        # Get players
+        offense, defense = self._get_players_for_drive()
+
+        # Build play config
+        adapter = PlayAdapter(offense, defense)
+        config = adapter.build_offensive_config(play_code, shotgun)
+
+        # Get AI defensive call if not provided
+        if defensive_call is None:
+            down_state = self._game_state.down_state
+            los_value = self._extract_los_value(down_state.line_of_scrimmage)
+            context = SituationContext(
+                down=down_state.down,
+                distance=down_state.yards_to_go,
+                los=los_value,
+                quarter=self.quarter,
+                time_remaining=self.time_remaining,
+                score_diff=self.home_score - self.away_score if self._possession_home else self.away_score - self.home_score,
+                timeouts=self._home_timeouts if self._possession_home else self._away_timeouts,
+            )
+            dc = DefensiveCoordinator()
+            defensive_call = dc.call_coverage(context)
+
+        # Add defensive assignments
+        man_assign, zone_assign = adapter.build_defensive_config(defensive_call)
+        config.man_assignments = man_assign
+        config.zone_assignments = zone_assign
+
+        # Set up play (don't run yet - caller will collect frames)
+        down_state = self._game_state.down_state
+        los_value = self._extract_los_value(down_state.line_of_scrimmage)
+
+        # Reposition players to current LOS (critical for correct dropback targeting)
+        self._reposition_players(offense, defense, los_value)
+
+        self._orchestrator.setup_play(offense, defense, config, los_value)
+        self._orchestrator.register_default_brains()
+
+        return self._orchestrator, offense, defense
+
+    def finalize_play_result(self, result) -> dict:
+        """Process a play result after running the orchestrator.
+
+        Used when caller runs the orchestrator manually (e.g., for frame collection).
+
+        Args:
+            result: PlayResult from orchestrator.run()
+
+        Returns:
+            Dict with play result (same format as execute_play_by_code)
+        """
+        offense, defense = self._get_players_for_drive()
+        return self._process_play_result(result, offense, defense)
+
+    def _process_play_result(self, result, offense, defense) -> dict:
+        """Process play result and update game state.
+
+        Internal method that handles:
+        - TD/turnover/safety detection
+        - Down/distance updates
+        - Field position updates
+        - Clock consumption
+        - Scoring
+
+        Args:
+            result: PlayResult from orchestrator
+            offense: Offensive players
+            defense: Defensive players
+
+        Returns:
+            Dict with processed result
+        """
+        import random
+
+        down_state = self._game_state.down_state
+        los_value = self._extract_los_value(down_state.line_of_scrimmage)
+
+        old_down = down_state.down
+        old_distance = down_state.yards_to_go
+        yards = result.yards_gained
+
+        # Check for touchdown
+        is_touchdown = los_value + yards >= 100
+
+        # Check for safety (ball carrier tackled behind own goal line)
+        is_safety = los_value + yards <= 0
+
+        # Check for turnover
+        is_turnover = result.outcome in ("interception", "fumble", "fumble_lost")
+
+        # Determine drive end conditions
+        drive_over = False
+        drive_reason = None
+
+        if is_touchdown:
+            drive_over = True
+            drive_reason = "touchdown"
+            self._add_score(6)
+        elif is_safety:
+            drive_over = True
+            drive_reason = "safety"
+            # Safety gives 2 points to defense
+            self._add_score(-2)
+        elif is_turnover:
+            drive_over = True
+            drive_reason = "turnover"
+        else:
+            # Update down/distance
+            if yards >= old_distance:
+                # First down
+                is_first_down = True
+                new_los = los_value + yards
+                new_los = min(99, new_los)  # Clamp to field
+                down_state.down = 1
+                down_state.yards_to_go = min(10, int(100 - new_los))
+                down_state.line_of_scrimmage = new_los
+            else:
+                # No first down
+                is_first_down = False
+                new_los = los_value + yards
+                new_los = max(1, min(99, new_los))
+                down_state.down += 1
+                down_state.yards_to_go = max(1, old_distance - int(yards))
+                down_state.line_of_scrimmage = new_los
+
+            # Check for turnover on downs
+            if down_state.down > 4:
+                drive_over = True
+                drive_reason = "turnover_on_downs"
+
+        # Consume clock time
+        play_time = result.duration + random.uniform(20.0, 35.0)
+        self._consume_play_time(play_time)
+
+        # Build result dict
+        result_dict = {
+            "outcome": result.outcome,
+            "yards_gained": yards,
+            "is_touchdown": is_touchdown,
+            "is_turnover": is_turnover,
+            "is_safety": is_safety,
+            "is_first_down": not drive_over and yards >= old_distance,
+            "is_drive_over": drive_over,
+            "drive_end_reason": drive_reason,
+            "new_down": down_state.down,
+            "new_distance": down_state.yards_to_go,
+            "new_los": self._extract_los_value(down_state.line_of_scrimmage),
+            "passer_id": result.passer_id,
+            "receiver_id": result.receiver_id,
+            "tackler_id": result.tackler_id,
+            "time_elapsed": play_time,
+            "play_duration": result.duration,
+        }
+
+        return result_dict
+
+    def execute_special_teams(
+        self,
+        play_type: str,
+        go_for_two: bool = False,
+        onside: bool = False,
+    ) -> dict:
+        """Execute a special teams play.
+
+        Args:
+            play_type: "punt", "field_goal", "pat", "kickoff"
+            go_for_two: For PAT, whether to go for 2-point conversion
+            onside: For kickoff, whether to attempt onside kick
+
+        Returns:
+            Dict with result:
+            {
+                "play_type": str,
+                "result": str,
+                "new_los": float,
+                "points_scored": int,
+                "description": str,
+                "kicking_team_ball": bool,  # For onside kicks
+            }
+        """
+        down_state = self._game_state.down_state
+        los_value = self._extract_los_value(down_state.line_of_scrimmage)
+
+        if play_type == "punt":
+            result = self._handle_punt()
+            # Punt result.new_los is from receiving team's perspective
+            description = f"Punt from the {los_value:.0f}"
+            if result.result == "touchback":
+                description += " - Touchback"
+            elif result.result == "fair_catch":
+                description += f" - Fair catch at the {result.new_los:.0f}"
+            else:
+                description += f" - Returned to the {result.new_los:.0f}"
+
+            # Store the new LOS so handle_drive_end can use it
+            # This is already in receiving team's perspective
+            down_state.line_of_scrimmage = result.new_los
+
+            return {
+                "play_type": "punt",
+                "result": result.result,
+                "new_los": result.new_los,
+                "points_scored": 0,
+                "description": description,
+                "kicking_team_ball": False,
+            }
+
+        elif play_type == "field_goal":
+            fg_distance = (100 - los_value) + 17
+            result = self._handle_field_goal(fg_distance)
+
+            if result.points > 0:
+                self._add_score(3)
+                description = f"{fg_distance:.0f}-yard field goal is GOOD"
+            else:
+                description = f"{fg_distance:.0f}-yard field goal is NO GOOD"
+
+            return {
+                "play_type": "field_goal",
+                "result": result.result,
+                "new_los": result.new_los,
+                "points_scored": result.points,
+                "description": description,
+                "kicking_team_ball": False,
+            }
+
+        elif play_type == "pat":
+            result = self._handle_pat(go_for_two=go_for_two)
+
+            if go_for_two:
+                description = "Two-point conversion " + ("GOOD" if result.points > 0 else "FAILED")
+            else:
+                description = "Extra point is " + ("GOOD" if result.points > 0 else "NO GOOD")
+
+            if result.points > 0:
+                self._add_score(result.points)
+
+            return {
+                "play_type": "pat" if not go_for_two else "two_point",
+                "result": result.result,
+                "new_los": 25.0,
+                "points_scored": result.points,
+                "description": description,
+                "kicking_team_ball": False,
+            }
+
+        elif play_type == "kickoff":
+            result = self._handle_kickoff(onside=onside)
+
+            if onside:
+                description = "Onside kick " + ("RECOVERED" if result.kicking_team_ball else "FAILED")
+            elif result.result == "touchback":
+                description = "Kickoff - Touchback"
+            else:
+                description = f"Kickoff returned to the {result.new_los:.0f}"
+
+            return {
+                "play_type": "kickoff",
+                "result": result.result,
+                "new_los": result.new_los,
+                "points_scored": 0,
+                "description": description,
+                "kicking_team_ball": result.kicking_team_ball,
+            }
+
+        else:
+            raise ValueError(f"Unknown special teams play type: {play_type}")
+
+    def step_auto_play(self) -> dict:
+        """Execute one AI-controlled play (for spectator mode).
+
+        AI controls both offense and defense. Handles:
+        - 4th down decisions (punt/FG/go for it)
+        - Play calling
+        - Play execution
+        - State updates
+
+        Returns:
+            Dict with result:
+            {
+                "type": "play" | "special_teams",
+                "play_code": Optional[str],  # For regular plays
+                "result": dict,  # Play or special teams result
+                "is_drive_over": bool,
+                "drive_end_reason": Optional[str],
+            }
+        """
+        from huddle.game.coordinator import OffensiveCoordinator, SituationContext
+        from huddle.game.decision_logic import fourth_down_decision, FourthDownDecision
+
+        down_state = self._game_state.down_state
+        los_value = self._extract_los_value(down_state.line_of_scrimmage)
+
+        # Build situation context
+        context = SituationContext(
+            down=down_state.down,
+            distance=down_state.yards_to_go,
+            los=los_value,
+            quarter=self.quarter,
+            time_remaining=self.time_remaining,
+            score_diff=self.home_score - self.away_score if self._possession_home else self.away_score - self.home_score,
+            timeouts=self._home_timeouts if self._possession_home else self._away_timeouts,
+        )
+
+        # Check for 4th down decisions
+        if down_state.down == 4:
+            decision = fourth_down_decision(
+                yard_line=int(los_value),
+                yards_to_go=int(down_state.yards_to_go),
+                score_diff=context.score_diff,
+                time_remaining=int(self.time_remaining),
+            )
+
+            if decision == FourthDownDecision.PUNT:
+                result = self.execute_special_teams("punt")
+                return {
+                    "type": "special_teams",
+                    "play_code": None,
+                    "result": result,
+                    "is_drive_over": True,
+                    "drive_end_reason": "punt",
+                }
+
+            elif decision == FourthDownDecision.FIELD_GOAL:
+                result = self.execute_special_teams("field_goal")
+                drive_reason = "field_goal_made" if result["points_scored"] > 0 else "field_goal_missed"
+                return {
+                    "type": "special_teams",
+                    "play_code": None,
+                    "result": result,
+                    "is_drive_over": True,
+                    "drive_end_reason": drive_reason,
+                }
+
+        # AI calls the play
+        offense_team = self.home_team if self._possession_home else self.away_team
+        oc = OffensiveCoordinator(team=offense_team)
+        play_code = oc.call_play(context)
+
+        # Execute play
+        result = self.execute_play_by_code(play_code, shotgun=True)
+
+        return {
+            "type": "play",
+            "play_code": play_code,
+            "result": result,
+            "is_drive_over": result["is_drive_over"],
+            "drive_end_reason": result["drive_end_reason"],
+        }
+
+    def handle_drive_end(self, reason: str) -> dict:
+        """Handle end of drive and possession change.
+
+        Called after a drive ends to set up the next possession.
+
+        Args:
+            reason: Drive end reason ("touchdown", "field_goal_made",
+                    "field_goal_missed", "punt", "turnover", "turnover_on_downs", "safety")
+
+        Returns:
+            Dict with new possession info:
+            {
+                "possession_home": bool,
+                "new_los": float,
+                "kickoff_result": Optional[dict],  # If there was a kickoff
+            }
+        """
+        down_state = self._game_state.down_state
+
+        if reason in ("touchdown", "field_goal_made"):
+            # Scoring team kicks off
+            kickoff_result = self.execute_special_teams("kickoff")
+            # Flip possession to receiving team
+            self._possession_home = not self._possession_home
+            new_los = kickoff_result["new_los"]
+            self._set_possession(self._possession_home, new_los)
+
+            return {
+                "possession_home": self._possession_home,
+                "new_los": new_los,
+                "kickoff_result": kickoff_result,
+            }
+
+        elif reason == "safety":
+            # Team that gave up safety kicks from their own 20
+            # This is a free kick, not a regular kickoff
+            self._possession_home = not self._possession_home
+            new_los = 25.0  # Simplified - actual free kick return
+            self._set_possession(self._possession_home, new_los)
+
+            return {
+                "possession_home": self._possession_home,
+                "new_los": new_los,
+                "kickoff_result": None,
+            }
+
+        elif reason == "punt":
+            # Punt was already resolved, possession flips
+            # The punt result new_los is from receiving team's perspective
+            self._possession_home = not self._possession_home
+            # Note: new_los should have been set by execute_special_teams
+            # which returns receiving team's starting position
+            self._set_possession(self._possession_home, down_state.line_of_scrimmage)
+
+            return {
+                "possession_home": self._possession_home,
+                "new_los": down_state.line_of_scrimmage,
+                "kickoff_result": None,
+            }
+
+        elif reason in ("turnover", "turnover_on_downs", "field_goal_missed"):
+            # Ball goes to other team at current spot (or 20 for missed FG)
+            self._possession_home = not self._possession_home
+            current_los = self._extract_los_value(down_state.line_of_scrimmage)
+
+            if reason == "field_goal_missed":
+                # Ball at spot of kick or 20, whichever is farther from own goal
+                new_los = max(100 - current_los, 20.0)
+            else:
+                # Flip field position for other team
+                new_los = 100 - current_los
+
+            self._set_possession(self._possession_home, new_los)
+
+            return {
+                "possession_home": self._possession_home,
+                "new_los": new_los,
+                "kickoff_result": None,
+            }
+
+        else:
+            # Unknown reason, default handling
+            self._possession_home = not self._possession_home
+            self._set_possession(self._possession_home, 25.0)
+
+            return {
+                "possession_home": self._possession_home,
+                "new_los": 25.0,
+                "kickoff_result": None,
+            }
+
+    def _extract_los_value(self, los) -> float:
+        """Extract numeric yard line from FieldPosition or float.
+
+        Args:
+            los: Either a FieldPosition object or numeric value
+
+        Returns:
+            Numeric yard line (0-100)
+        """
+        if hasattr(los, 'yard_line'):
+            return float(los.yard_line)
+        return float(los)
+
+    def _reposition_players(
+        self,
+        offense: List["V2Player"],
+        defense: List["V2Player"],
+        los_y: float,
+        ball_x: float = None,
+    ) -> None:
+        """Reposition players to their formation alignments at the current LOS.
+
+        Players from RosterBridge are created with los_y=0 by default.
+        This method translates their positions to the actual field LOS.
+
+        Args:
+            offense: Offensive players to reposition
+            defense: Defensive players to reposition
+            los_y: Line of scrimmage Y position in field coordinates
+            ball_x: Ball lateral position (if None, uses down_state.ball_x)
+        """
+        from huddle.game.roster_bridge import OFFENSIVE_ALIGNMENTS, DEFENSIVE_ALIGNMENTS
+        from huddle.simulation.v2.core.vec2 import Vec2
+
+        # Get ball_x from down_state if not provided
+        if ball_x is None:
+            ball_x = self._game_state.down_state.ball_x
+
+        # Reposition offense (offset by ball_x for hash-relative positioning)
+        for player in offense:
+            if player.position_slot in OFFENSIVE_ALIGNMENTS:
+                alignment = OFFENSIVE_ALIGNMENTS[player.position_slot]
+                player.pos = Vec2(alignment.x + ball_x, alignment.y + los_y)
+                player.velocity = Vec2.zero()
+
+        # Reposition defense (offset by ball_x for hash-relative positioning)
+        for player in defense:
+            if player.position_slot in DEFENSIVE_ALIGNMENTS:
+                alignment = DEFENSIVE_ALIGNMENTS[player.position_slot]
+                player.pos = Vec2(alignment.x + ball_x, alignment.y + los_y)
+                player.velocity = Vec2.zero()
+
+    def _consume_play_time(self, seconds: float) -> None:
+        """Decrement game clock after a play.
+
+        Args:
+            seconds: Seconds to consume
+        """
+        clock = self._game_state.clock
+        clock.time_remaining_seconds = max(0, clock.time_remaining_seconds - int(seconds))
+
+        # Check for quarter change
+        if clock.time_remaining_seconds <= 0:
+            self._advance_quarter()
 
     def _format_time(self, seconds: float) -> str:
         """Format time as MM:SS."""
