@@ -18,3 +18,4 @@ export { PlayerView } from './PlayerView';
 export type { PlayerViewProps } from './PlayerView';
 export { DeskDrawer } from './DeskDrawer';
 export { StatsTable, LeagueLeadersTable } from './StatsTable';
+export { HistoricalLeagueSelector } from './HistoricalLeagueSelector';

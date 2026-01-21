@@ -1,0 +1,213 @@
+/**
+ * StadiumFlyover.css - Styles for the Stadium Flyover prototype
+ */
+
+.stadium-flyover {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0a0a0a;
+}
+
+.flyover-canvas {
+  flex: 1;
+  position: relative;
+  min-height: 400px;
+}
+
+.flyover-canvas canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Control Panel */
+.flyover-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 16px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+}
+
+.control-section {
+  flex: 1;
+  min-width: 200px;
+}
+
+.control-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #888;
+  letter-spacing: 1px;
+}
+
+/* Team Selectors */
+.team-selectors {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-selectors .selector {
+  flex: 1;
+}
+
+.team-selectors label {
+  display: block;
+  font-size: 10px;
+  color: #666;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.team-selectors select {
+  width: 100%;
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.team-selectors select:hover:not(:disabled) {
+  border-color: #666;
+}
+
+.team-selectors select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.at-symbol {
+  color: #666;
+  font-size: 16px;
+  margin-top: 16px;
+}
+
+/* Button Groups */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.button-group button {
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.button-group button:hover:not(:disabled) {
+  background: #3a3a3a;
+  border-color: #555;
+}
+
+.button-group button.active {
+  background: #0066cc;
+  border-color: #0077ee;
+  color: #fff;
+}
+
+.button-group button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Playback Controls */
+.control-section.playback {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 250px;
+}
+
+.play-button {
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.play-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.4);
+}
+
+.play-button:active {
+  transform: translateY(0);
+}
+
+/* Phase Indicator */
+.phase-indicator {
+  display: flex;
+  gap: 4px;
+}
+
+.phase-indicator span {
+  flex: 1;
+  padding: 6px 8px;
+  background: #2a2a2a;
+  border-radius: 3px;
+  font-size: 11px;
+  text-align: center;
+  color: #666;
+  transition: all 0.3s;
+}
+
+.phase-indicator span.active {
+  background: #0066cc;
+  color: #fff;
+}
+
+/* Quality Indicator */
+.quality-indicator {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+}
+
+/* Loading State */
+.flyover-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #666;
+  font-size: 14px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .flyover-controls {
+    flex-direction: column;
+  }
+
+  .control-section {
+    min-width: 100%;
+  }
+
+  .team-selectors {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .at-symbol {
+    text-align: center;
+    margin: 8px 0;
+  }
+}

@@ -19,6 +19,7 @@ import { SimAnalyzer } from './components/SimAnalyzer/SimAnalyzer'
 import { Sim3D } from './components/Sim3D'
 import { ArmsPrototype } from './components/ArmsPrototype'
 import SimExplorer from './components/SimExplorer/SimExplorer'
+import { BroadcastLab } from './components/BroadcastLab'
 import './App.css'
 
 // Theme management at app level
@@ -64,6 +65,7 @@ const NAV_ITEMS = [
   { path: '/admin', label: 'Admin' },
   { path: '/agentmail', label: 'AgentMail' },
   { path: '/player-card', label: 'Player Card' },
+  { path: '/broadcast-lab', label: 'Broadcast Lab' },
 ];
 
 function AppHeader() {
@@ -130,6 +132,8 @@ function App() {
         <Route path="/agentmail" element={<AgentMailScreen />} />
         {/* Player Card prototype - standalone demo */}
         <Route path="/player-card" element={<PlayerCardDemo />} />
+        {/* Broadcast Lab - TV graphics prototypes (standalone, no header) */}
+        <Route path="/broadcast-lab" element={<BroadcastLab />} />
       </Routes>
     </BrowserRouter>
   )

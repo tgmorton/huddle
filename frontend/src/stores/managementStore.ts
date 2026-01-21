@@ -32,6 +32,7 @@ interface ManagementStore {
 
   // Session state
   franchiseId: string | null;
+  simId: string | null;  // Historical simulation ID (if started from simulation)
   state: LeagueState | null;
 
   // Derived state (for easy access)
@@ -59,6 +60,7 @@ interface ManagementStore {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setFranchiseId: (id: string | null) => void;
+  setSimId: (id: string | null) => void;
 
   // Actions - State updates
   setFullState: (state: LeagueState) => void;
@@ -95,6 +97,7 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
   error: null,
 
   franchiseId: null,
+  simId: null,
   state: null,
 
   calendar: null,
@@ -119,6 +122,7 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
   setFranchiseId: (franchiseId) => set({ franchiseId }),
+  setSimId: (simId) => set({ simId }),
 
   // Actions - State updates
   setFullState: (state) => {
@@ -312,6 +316,7 @@ export const useManagementStore = create<ManagementStore>((set, get) => ({
   clearSession: () =>
     set({
       franchiseId: null,
+      simId: null,
       state: null,
       calendar: null,
       events: null,
@@ -366,6 +371,9 @@ export const selectLeagueId = (state: ManagementStore) =>
 
 export const selectFranchiseId = (state: ManagementStore) =>
   state.franchiseId;
+
+export const selectSimId = (state: ManagementStore) =>
+  state.simId;
 
 export const selectJournalVersion = (state: ManagementStore) =>
   state.journalVersion;

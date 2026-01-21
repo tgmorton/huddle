@@ -1,0 +1,114 @@
+/**
+ * Design Tokens - Shared CSS variables across the application
+ *
+ * This file defines the core design system tokens used throughout
+ * GameView, ManagementV2, and other components. Import this file
+ * to ensure consistent styling.
+ *
+ * Usage: @import '../../../styles/design-tokens.css';
+ */
+
+:root {
+  /* ==================== UNIT SYSTEM ==================== */
+  /* Base unit for consistent spacing (48px = 3rem at 16px base) */
+  --unit: 48px;
+  --unit-half: 24px;
+  --unit-quarter: 12px;
+  --unit-eighth: 6px;
+
+  /* ==================== COLOR PALETTE (DARK MODE) ==================== */
+  /* Backgrounds - from darkest to lightest */
+  --bg-base: #09090b;
+  --bg-surface: #0f0f12;
+  --bg-elevated: #16161a;
+  --bg-hover: #1e1e24;
+  --bg-recessed: #050506;
+
+  /* Borders */
+  --border: #2a2a32;
+  --border-light: #3a3a44;
+  --border-dim: #1a1a22;
+  --border-subtle: #222228;
+
+  /* Text */
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  /* Accent (amber/gold) */
+  --accent: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-dim: rgba(245, 158, 11, 0.15);
+
+  /* Semantic colors */
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+
+  /* ==================== TYPOGRAPHY ==================== */
+  --font-mono: 'Berkeley Mono', 'SF Mono', 'Consolas', monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Font sizes */
+  --text-xxs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+
+  /* ==================== LAYOUT ==================== */
+  --nav-w: 72px;           /* 48px button + 24px padding */
+  --nav-w-expanded: 144px; /* 96px buttons + 48px padding */
+  --context-h: 48px;
+  --panel-w: 280px;
+
+  /* ==================== DECORATIVE ==================== */
+  /* Corner brackets */
+  --bracket-size: 12px;
+  --bracket-color: var(--accent);
+
+  /* Border radius */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+
+  /* ==================== TRANSITIONS ==================== */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.15s ease;
+  --transition-slow: 0.3s ease;
+}
+
+/* ==================== LIGHT MODE (SEPIA) ==================== */
+:root.sepia-mode {
+  /* Backgrounds */
+  --bg-base: #f5f0e6;
+  --bg-surface: #ebe6dc;
+  --bg-elevated: #e1dcd2;
+  --bg-hover: #d7d2c8;
+  --bg-recessed: #cfc9bc;
+
+  /* Borders */
+  --border: #c5bfb2;
+  --border-light: #b5afa2;
+  --border-dim: #d5cfbf;
+  --border-subtle: #dad4c7;
+
+  /* Text */
+  --text-primary: #1a1814;
+  --text-secondary: #4a4640;
+  --text-muted: #7a7670;
+
+  /* Accent - slightly darker for light mode */
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-dim: rgba(217, 119, 6, 0.15);
+}

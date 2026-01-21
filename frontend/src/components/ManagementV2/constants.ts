@@ -91,6 +91,7 @@ export const PANEL_WIDTHS: Record<string, number> = {
   week: 320,
   league: 640, // Wider for stats tables
   settings: 300, // Compact settings panel
+  history: 480, // Historical simulation browser
 };
 
 // === Player Stats Column Definitions ===

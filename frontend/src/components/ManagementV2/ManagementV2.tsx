@@ -46,7 +46,7 @@ import type { PaneSize } from './types';
 import { DEMO_EVENTS, INITIAL_WORKSPACE_ITEMS, DEMO_NEWS } from './data/demo';
 // TimeControls removed - using day-based progression now
 import { EventModal } from './components/EventModal';
-import { AdminSidebar, SettingsPanel, WorkshopPanel, DeskDrawer, ManagementEventModal } from './components';
+import { AdminSidebar, SettingsPanel, WorkshopPanel, DeskDrawer, ManagementEventModal, HistoricalLeagueSelector } from './components';
 import type { LogEntry } from './components';
 import { ReferencePanel } from './panels/ReferencePanel';
 import { WorkspaceItemComponent } from './workspace';
@@ -863,6 +863,16 @@ export const ManagementV2: React.FC = () => {
             <Calendar size={18} />
             {sidebarExpanded && <span className="mgmt2__nav-label">Season</span>}
           </button>
+
+          {/* History: Historical simulation data (standings, drafts, transactions) */}
+          <button
+            className={`mgmt2__nav-btn ${leftPanel === 'history' ? 'active' : ''}`}
+            onClick={() => togglePanel('history')}
+            title="History"
+          >
+            <Archive size={18} />
+            {sidebarExpanded && <span className="mgmt2__nav-label">History</span>}
+          </button>
         </div>
 
         <div className="mgmt2__nav-bottom">
@@ -1079,20 +1089,17 @@ export const ManagementV2: React.FC = () => {
                     }}
                   />
                 ))
-              ) : !franchiseId && savedLeagues.length > 0 ? (
-                <div className="workspace__empty workspace__empty--load">
-                  <p>No franchise loaded</p>
-                  <button
-                    className="workspace__load-btn"
-                    onClick={() => handleLoadLeague(savedLeagues[0].id)}
-                    disabled={loadingLeague}
-                  >
-                    {loadingLeague ? 'Loading...' : `Load ${savedLeagues[0].name} (${savedLeagues[0].season})`}
-                  </button>
-                  {savedLeagues.length > 1 && (
-                    <p className="workspace__load-hint">{savedLeagues.length - 1} other saved league{savedLeagues.length > 2 ? 's' : ''} available</p>
-                  )}
-                </div>
+              ) : !franchiseId ? (
+                <HistoricalLeagueSelector
+                  onFranchiseCreated={(newFranchiseId) => {
+                    setFranchiseId(newFranchiseId);
+                    addLog({
+                      timestamp: new Date().toLocaleTimeString(),
+                      level: 'info',
+                      message: `Franchise created: ${newFranchiseId}`,
+                    });
+                  }}
+                />
               ) : null}
             </div>
           </main>

@@ -37,6 +37,58 @@ const formatSalary = (salary: number | undefined): string => {
   return `$${salary}K`;
 };
 
+// Archetype display formatting
+const ARCHETYPE_LABELS: Record<string, { label: string; color: string }> = {
+  // QB
+  strong_arm: { label: 'ARM', color: '#ef4444' },
+  pure_passer: { label: 'PASS', color: '#3b82f6' },
+  field_general: { label: 'IQ', color: '#8b5cf6' },
+  dual_threat: { label: 'DUAL', color: '#22c55e' },
+  scrambler: { label: 'SCRAM', color: '#f59e0b' },
+  // RB
+  power: { label: 'PWR', color: '#ef4444' },
+  speed: { label: 'SPD', color: '#22c55e' },
+  elusive: { label: 'ELUS', color: '#f59e0b' },
+  all_purpose: { label: 'AP', color: '#8b5cf6' },
+  receiving: { label: 'RCV', color: '#3b82f6' },
+  // WR
+  deep_threat: { label: 'DEEP', color: '#22c55e' },
+  possession: { label: 'POSS', color: '#3b82f6' },
+  slot: { label: 'SLOT', color: '#f59e0b' },
+  yac: { label: 'YAC', color: '#ef4444' },
+  // TE
+  receiving_te: { label: 'RCV', color: '#3b82f6' },
+  blocking_te: { label: 'BLK', color: '#ef4444' },
+  hybrid_te: { label: 'HYBD', color: '#8b5cf6' },
+  // OL
+  pass_protector: { label: 'PASS', color: '#3b82f6' },
+  road_grader: { label: 'RUN', color: '#ef4444' },
+  athletic: { label: 'ATH', color: '#22c55e' },
+  technician: { label: 'TECH', color: '#8b5cf6' },
+  // DL
+  run_stuffer: { label: 'RUN', color: '#ef4444' },
+  pass_rusher: { label: 'RUSH', color: '#22c55e' },
+  interior_disruptor: { label: 'DISR', color: '#f59e0b' },
+  // LB
+  run_stopper: { label: 'RUN', color: '#ef4444' },
+  coverage_lb: { label: 'COV', color: '#3b82f6' },
+  blitzer: { label: 'BLTZ', color: '#22c55e' },
+  // CB
+  shutdown: { label: 'LOCK', color: '#ef4444' },
+  ball_hawk: { label: 'HAWK', color: '#22c55e' },
+  zone_cb: { label: 'ZONE', color: '#3b82f6' },
+  // S
+  center_fielder: { label: 'CF', color: '#3b82f6' },
+  box_safety: { label: 'BOX', color: '#ef4444' },
+  hybrid_safety: { label: 'HYBD', color: '#8b5cf6' },
+  enforcer: { label: 'ENF', color: '#ef4444' },
+};
+
+const formatArchetype = (archetype: string | null | undefined): { label: string; color: string } | null => {
+  if (!archetype) return null;
+  return ARCHETYPE_LABELS[archetype] || { label: archetype.slice(0, 4).toUpperCase(), color: 'var(--text-muted)' };
+};
+
 // === RosterContent ===
 
 interface RosterContentProps {
@@ -139,7 +191,20 @@ export const RosterContent: React.FC<RosterContentProps> = ({ onAddPlayerToWorks
                         size="roster"
                       />
                     </td>
-                    <td className="roster-table__name">{player.full_name}</td>
+                    <td className="roster-table__name">
+                      {player.full_name}
+                      {player.player_archetype && (() => {
+                        const arch = formatArchetype(player.player_archetype);
+                        return arch ? (
+                          <span
+                            className="roster-table__archetype"
+                            style={{ color: arch.color, borderColor: arch.color }}
+                          >
+                            {arch.label}
+                          </span>
+                        ) : null;
+                      })()}
+                    </td>
                     <td style={{ color: getOvrColor(player.overall) }}>{player.overall}</td>
                     <td style={{ color: player.potential > player.overall ? 'var(--success)' : 'var(--text-muted)' }}>{player.potential}</td>
                     <td style={{ color: getAgeColor(player.age) }}>{player.age}</td>

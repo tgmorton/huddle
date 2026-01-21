@@ -10,6 +10,7 @@ import { SeasonPanel } from './SeasonPanel';
 import { TeamPanel } from './TeamPanel';
 import { WeekPanel } from './WeekPanel';
 import { LeagueStatsPanel } from './LeagueStatsPanel';
+import { HistoryPanel } from './HistoryPanel';
 
 interface ReferencePanelProps {
   type: Exclude<LeftPanelView, 'queue'>;
@@ -33,6 +34,7 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ type, onAddPlaye
       {type === 'team' && <TeamPanel />}
       {type === 'league' && <LeagueStatsPanel onAddPlayerToWorkspace={onAddPlayerToWorkspace} />}
       {type === 'week' && <WeekPanel franchiseId={franchiseId} />}
+      {type === 'history' && <HistoryPanel />}
     </div>
   );
 };

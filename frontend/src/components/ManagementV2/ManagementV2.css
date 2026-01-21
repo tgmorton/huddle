@@ -5369,6 +5369,100 @@ button.stat-table__row {
   color: var(--text-muted);
 }
 
+.admin-sidebar__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.admin-sidebar__progress-icon {
+  color: var(--accent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.admin-sidebar__progress-text {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.admin-sidebar__historical-start {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.admin-sidebar__historical-start h4 {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.admin-sidebar__historical-start .admin-sidebar__select {
+  margin-bottom: var(--space-xs);
+}
+
+.admin-sidebar__historical-start .admin-sidebar__btn {
+  margin-top: var(--space-xs);
+  width: 100%;
+}
+
+.admin-sidebar__sim-select-row {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.admin-sidebar__sim-select-row .admin-sidebar__select {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.admin-sidebar__saved-sims {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.admin-sidebar__saved-sims h4 {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.admin-sidebar__saved-sim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs);
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.admin-sidebar__saved-sim:last-child {
+  margin-bottom: 0;
+}
+
+.admin-sidebar__saved-sim-info {
+  font-size: var(--text-xs);
+  color: var(--text);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 /* === Settings Content (Left Sideview) === */
 
 .settings-content {
@@ -7628,6 +7722,19 @@ button.stat-table__row {
 
 .roster-table__name--nowrap {
   white-space: nowrap;
+}
+
+.roster-table__archetype {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 4px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid;
+  border-radius: 2px;
+  vertical-align: middle;
 }
 
 .roster-table__action {
@@ -12375,4 +12482,452 @@ button.stat-table__row {
 :root.sepia-mode .mgmt2 *:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* =============================================================================
+   Historical League Selector
+   ============================================================================= */
+
+.historical-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.historical-selector__header {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.historical-selector__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-xs);
+}
+
+.historical-selector__title h2 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.historical-selector__subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.historical-selector__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.historical-selector__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.historical-selector__section-header h3 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Buttons */
+.historical-selector__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.historical-selector__btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.historical-selector__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.historical-selector__btn--generate {
+  background: var(--bg-elevated);
+}
+
+.historical-selector__btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-base);
+}
+
+.historical-selector__btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.historical-selector__btn--start {
+  width: 100%;
+  justify-content: center;
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.historical-selector__btn--start:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg-base);
+}
+
+/* Progress */
+.historical-selector__progress {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: var(--space-sm);
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.historical-selector__progress-line {
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.historical-selector__progress-line:last-child {
+  color: var(--accent);
+}
+
+/* Loading & Empty states */
+.historical-selector__loading,
+.historical-selector__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  color: var(--text-muted);
+}
+
+.historical-selector__loading svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Simulation List */
+.historical-selector__sim-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.historical-selector__sim-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.historical-selector__sim-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+.historical-selector__sim-card--selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.historical-selector__sim-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.historical-selector__sim-years {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.historical-selector__sim-teams,
+.historical-selector__sim-txns {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Team Grid */
+.historical-selector__team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-md);
+}
+
+.historical-selector__team-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+
+.historical-selector__team-card:hover {
+  border-color: var(--text-muted);
+}
+
+.historical-selector__team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.historical-selector__team-name {
+  font-weight: 600;
+  font-size: var(--text-base);
+}
+
+.historical-selector__team-status {
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  color: var(--bg-base);
+}
+
+.historical-selector__team-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.historical-selector__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-xs);
+}
+
+.historical-selector__stat svg {
+  color: var(--text-muted);
+}
+
+.historical-selector__stat-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.historical-selector__gm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  border: 1px solid;
+  border-radius: 2px;
+  width: fit-content;
+}
+
+/* Error */
+.historical-selector__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+/* =============================================================================
+   History Panel
+   ============================================================================= */
+
+.history-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.history-panel--empty {
+  align-items: center;
+  justify-content: center;
+}
+
+.history-panel__no-sim {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.history-panel__no-sim h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.history-panel__no-sim p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.history-panel__loading,
+.history-panel__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.history-panel__loading svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.history-panel__standings,
+.history-panel__drafts,
+.history-panel__transactions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  overflow-y: auto;
+}
+
+.history-panel__season-select,
+.history-panel__type-select {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+.history-panel__season-select label,
+.history-panel__type-select label {
+  color: var(--text-muted);
+}
+
+.history-panel__season-select select,
+.history-panel__type-select select {
+  padding: 2px 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+}
+
+.history-panel__filters {
+  display: flex;
+  gap: var(--space-md);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border);
+}
+
+.history-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+}
+
+.history-panel__table th,
+.history-panel__table td {
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-panel__table th {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+.history-panel__table tr:hover {
+  background: var(--bg-hover);
+}
+
+.history-panel__status {
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.history-panel__tx-type {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.history-panel__tx-type--draft {
+  color: #3b82f6;
+}
+
+.history-panel__tx-type--signing {
+  color: #22c55e;
+}
+
+.history-panel__tx-type--cut {
+  color: #ef4444;
+}
+
+.history-panel__tx-type--trade {
+  color: #f59e0b;
+}
+
+.history-panel__count {
+  padding: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
 }

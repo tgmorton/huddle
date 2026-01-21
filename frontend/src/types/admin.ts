@@ -71,6 +71,8 @@ export interface PlayerSummary {
   // Contract fields for roster display
   salary: number | null;
   contract_year_remaining: number | null;
+  // Player archetype (e.g., "power", "speed", "possession")
+  player_archetype: string | null;
 }
 
 // Personality types

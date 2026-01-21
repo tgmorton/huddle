@@ -16,6 +16,7 @@ export type LeftPanelView =
   | 'drawer'         // Archived workspace items
   | 'week'           // Weekly gameplay loop view
   | 'settings'       // Appearance and preferences
+  | 'history'        // Historical simulation data (standings, drafts, transactions)
   | null;
 
 export type WorkspaceItemStatus = 'active' | 'pinned' | 'archived';

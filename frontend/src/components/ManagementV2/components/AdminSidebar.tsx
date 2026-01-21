@@ -8,9 +8,20 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Play, FastForward, Zap, RefreshCw, Plus, Trash2, Link2, Download } from 'lucide-react';
+import { X, Play, FastForward, Zap, RefreshCw, Plus, Trash2, Link2, Download, History, Clock } from 'lucide-react';
 import { adminApi, type SavedLeague } from '../../../api/adminClient';
 import { managementApi } from '../../../api/managementClient';
+import {
+  listSimulations,
+  runSimulationWithProgress,
+  startFranchiseFromSimulation,
+  saveSimulation,
+  loadSavedSimulation,
+  listSavedSimulations,
+  type SimulationSummary,
+  type SavedSimulationInfo,
+  type ProgressEvent,
+} from '../../../api/historyClient';
 import { useManagementStore } from '../../../stores/managementStore';
 import type { LeagueSummary, TeamSummary } from '../../../types/admin';
 
@@ -45,13 +56,45 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const [isSimulating, setIsSimulating] = useState(false);
   const [isLoadingLeague, setIsLoadingLeague] = useState(false);
 
+  // Historical simulation state
+  const [historicalSims, setHistoricalSims] = useState<SimulationSummary[]>([]);
+  const [savedSims, setSavedSims] = useState<SavedSimulationInfo[]>([]);
+  const [isGeneratingHistorical, setIsGeneratingHistorical] = useState(false);
+  const [historicalProgress, setHistoricalProgress] = useState<string>('');
+  const [selectedHistoricalSim, setSelectedHistoricalSim] = useState<string>('');
+  const [selectedHistoricalTeam, setSelectedHistoricalTeam] = useState<string>('');
+  const [isStartingFromHistorical, setIsStartingFromHistorical] = useState(false);
+  const [isSavingSimulation, setIsSavingSimulation] = useState(false);
+  const [isLoadingSimulation, setIsLoadingSimulation] = useState(false);
+
   // Load league info on mount
   useEffect(() => {
     if (isOpen) {
       loadLeagueInfo();
       loadSessions();
+      loadHistoricalSimulations();
     }
   }, [isOpen]);
+
+  const loadHistoricalSimulations = async () => {
+    try {
+      const sims = await listSimulations();
+      setHistoricalSims(sims);
+      if (sims.length > 0 && !selectedHistoricalSim) {
+        setSelectedHistoricalSim(sims[0].sim_id);
+      }
+    } catch {
+      setHistoricalSims([]);
+    }
+
+    // Also load saved simulations
+    try {
+      const saved = await listSavedSimulations();
+      setSavedSims(saved);
+    } catch {
+      setSavedSims([]);
+    }
+  };
 
   const loadLeagueInfo = async () => {
     try {
@@ -269,7 +312,100 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  // Historical Simulation Handlers
+  const handleGenerateHistorical = async () => {
+    setIsGeneratingHistorical(true);
+    setHistoricalProgress('Starting simulation...');
+    onLog('Generating historical simulation (3 years)...', 'info');
+
+    try {
+      const summary = await runSimulationWithProgress(
+        { years_to_simulate: 3, start_year: 2021 },
+        (event: ProgressEvent) => {
+          if (event.type === 'progress' && event.message) {
+            setHistoricalProgress(event.message);
+            onLog(event.message, 'info');
+          }
+        }
+      );
+      setHistoricalProgress('');
+      onLog(`Historical simulation complete: ${summary.seasons_simulated} seasons`, 'success');
+      await loadHistoricalSimulations();
+      setSelectedHistoricalSim(summary.sim_id);
+    } catch (err) {
+      setHistoricalProgress('');
+      onLog(`Historical simulation failed: ${err}`, 'error');
+    } finally {
+      setIsGeneratingHistorical(false);
+    }
+  };
+
+  const handleStartFromHistorical = async () => {
+    if (!selectedHistoricalSim || !selectedHistoricalTeam) {
+      onLog('Select a simulation and team first', 'warning');
+      return;
+    }
+
+    setIsStartingFromHistorical(true);
+    onLog(`Starting franchise from historical sim: ${selectedHistoricalTeam}...`, 'info');
+
+    try {
+      const result = await startFranchiseFromSimulation(selectedHistoricalSim, selectedHistoricalTeam);
+      onFranchiseChange(result.franchise_id);
+      await loadSessions();
+      await loadLeagueInfo();
+      onLog(`Franchise created: ${result.team_name} (${result.season})`, 'success');
+
+      // Start portrait generation polling
+      if (result.league_id) {
+        onLog('Portrait generation started...', 'info');
+        pollPortraitStatus(result.league_id);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      onLog(`Failed to start from historical: ${errorMsg}`, 'error');
+    } finally {
+      setIsStartingFromHistorical(false);
+    }
+  };
+
+  const handleSaveSimulation = async (simId: string) => {
+    setIsSavingSimulation(true);
+    onLog(`Saving simulation ${simId}...`, 'info');
+
+    try {
+      await saveSimulation(simId);
+      onLog(`Simulation saved: ${simId}`, 'success');
+      await loadHistoricalSimulations(); // Refresh saved list
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      onLog(`Failed to save simulation: ${errorMsg}`, 'error');
+    } finally {
+      setIsSavingSimulation(false);
+    }
+  };
+
+  const handleLoadSavedSimulation = async (simId: string) => {
+    setIsLoadingSimulation(true);
+    onLog(`Loading saved simulation ${simId}...`, 'info');
+
+    try {
+      const summary = await loadSavedSimulation(simId);
+      onLog(`Simulation loaded: ${summary.start_year}-${summary.end_year}`, 'success');
+      await loadHistoricalSimulations(); // Refresh in-memory list
+      setSelectedHistoricalSim(simId);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      onLog(`Failed to load simulation: ${errorMsg}`, 'error');
+    } finally {
+      setIsLoadingSimulation(false);
+    }
+  };
+
+  // Get team options from selected historical simulation
+  const selectedSim = historicalSims.find(s => s.sim_id === selectedHistoricalSim);
+
+  if (!isOpen) return null
 
   return (
     <aside className="admin-sidebar">
@@ -440,6 +576,116 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           </div>
         </section>
 
+        {/* Historical Simulation Section */}
+        <section className="admin-sidebar__section">
+          <h3>
+            <History size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+            Historical League
+          </h3>
+          {historicalSims.length > 0 ? (
+            <div className="admin-sidebar__info">
+              <div className="admin-sidebar__stat">
+                <span className="admin-sidebar__stat-label">Available</span>
+                <span className="admin-sidebar__stat-value">{historicalSims.length} sim(s)</span>
+              </div>
+            </div>
+          ) : (
+            <p className="admin-sidebar__empty">No historical simulations</p>
+          )}
+
+          {isGeneratingHistorical && historicalProgress && (
+            <div className="admin-sidebar__progress">
+              <Clock size={12} className="admin-sidebar__progress-icon" />
+              <span className="admin-sidebar__progress-text">{historicalProgress}</span>
+            </div>
+          )}
+
+          <div className="admin-sidebar__actions">
+            <button
+              className="admin-sidebar__btn admin-sidebar__btn--primary"
+              onClick={handleGenerateHistorical}
+              disabled={isGeneratingHistorical}
+            >
+              <History size={14} />
+              <span>{isGeneratingHistorical ? 'Generating...' : 'Generate Historical'}</span>
+            </button>
+          </div>
+
+          {historicalSims.length > 0 && (
+            <div className="admin-sidebar__historical-start">
+              <h4>Start from Simulation</h4>
+              <div className="admin-sidebar__sim-select-row">
+                <select
+                  className="admin-sidebar__select"
+                  value={selectedHistoricalSim}
+                  onChange={(e) => {
+                    setSelectedHistoricalSim(e.target.value);
+                    setSelectedHistoricalTeam(''); // Reset team when sim changes
+                  }}
+                >
+                  {historicalSims.map(sim => (
+                    <option key={sim.sim_id} value={sim.sim_id}>
+                      {sim.start_year}-{sim.end_year} ({sim.seasons_simulated}yr)
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="admin-sidebar__btn admin-sidebar__btn--icon admin-sidebar__btn--small"
+                  onClick={() => selectedHistoricalSim && handleSaveSimulation(selectedHistoricalSim)}
+                  disabled={isSavingSimulation || !selectedHistoricalSim}
+                  title="Save simulation to disk"
+                >
+                  <Download size={12} />
+                </button>
+              </div>
+              <select
+                className="admin-sidebar__select"
+                value={selectedHistoricalTeam}
+                onChange={(e) => setSelectedHistoricalTeam(e.target.value)}
+                disabled={!selectedHistoricalSim}
+              >
+                <option value="">Select team...</option>
+                {/* Common NFL team abbreviations */}
+                {['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
+                  'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC',
+                  'LAC', 'LAR', 'LV', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
+                  'NYJ', 'PHI', 'PIT', 'SEA', 'SF', 'TB', 'TEN', 'WAS'].map(abbr => (
+                  <option key={abbr} value={abbr}>{abbr}</option>
+                ))}
+              </select>
+              <button
+                className="admin-sidebar__btn admin-sidebar__btn--primary"
+                onClick={handleStartFromHistorical}
+                disabled={isStartingFromHistorical || !selectedHistoricalSim || !selectedHistoricalTeam}
+              >
+                <Play size={14} />
+                <span>{isStartingFromHistorical ? 'Starting...' : 'Start Franchise'}</span>
+              </button>
+            </div>
+          )}
+
+          {savedSims.length > 0 && (
+            <div className="admin-sidebar__saved-sims">
+              <h4>Saved Simulations</h4>
+              {savedSims.map(sim => (
+                <div key={sim.sim_id} className="admin-sidebar__saved-sim">
+                  <span className="admin-sidebar__saved-sim-info">
+                    {sim.start_year}-{sim.end_year}
+                  </span>
+                  <button
+                    className="admin-sidebar__btn admin-sidebar__btn--icon admin-sidebar__btn--small"
+                    onClick={() => handleLoadSavedSimulation(sim.sim_id)}
+                    disabled={isLoadingSimulation || historicalSims.some(s => s.sim_id === sim.sim_id)}
+                    title={historicalSims.some(s => s.sim_id === sim.sim_id) ? 'Already loaded' : 'Load into memory'}
+                  >
+                    <Play size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* Debug Section */}
         <section className="admin-sidebar__section">
           <h3>Debug</h3>
@@ -449,6 +695,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               onClick={() => {
                 loadLeagueInfo();
                 loadSessions();
+                loadHistoricalSimulations();
                 onLog('Refreshed all data', 'info');
               }}
             >
