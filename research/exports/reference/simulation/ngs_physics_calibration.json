@@ -1,0 +1,445 @@
+{
+  "meta": {
+    "source": "ngs_highlights physics analysis",
+    "plays_analyzed": 561,
+    "frame_rate_fps": 10
+  },
+  "curvature_by_position": {
+    "TE": {
+      "sample_size": 59405,
+      "curvature_mean_inv_yds": 0.0539,
+      "curvature_p90_inv_yds": 0.1317,
+      "turn_radius_mean_yds": 18.5,
+      "turn_radius_min_p90_yds": 7.6,
+      "turn_rate_mean_deg_sec": 15.0,
+      "turn_rate_max_mean_deg_sec": 64.6,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.2944,
+        "medium_4-6": 0.1756,
+        "fast_6-8": 0.0947,
+        "sprint_8+": 0.0457
+      }
+    },
+    "OL": {
+      "sample_size": 147471,
+      "curvature_mean_inv_yds": 0.042,
+      "curvature_p90_inv_yds": 0.1038,
+      "turn_radius_mean_yds": 23.8,
+      "turn_radius_min_p90_yds": 9.6,
+      "turn_rate_mean_deg_sec": 10.1,
+      "turn_rate_max_mean_deg_sec": 38.2,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.2033,
+        "medium_4-6": 0.0998,
+        "fast_6-8": 0.0529,
+        "sprint_8+": 0.0293
+      }
+    },
+    "QB": {
+      "sample_size": 42011,
+      "curvature_mean_inv_yds": 0.0515,
+      "curvature_p90_inv_yds": 0.1285,
+      "turn_radius_mean_yds": 19.4,
+      "turn_radius_min_p90_yds": 7.8,
+      "turn_rate_mean_deg_sec": 13.5,
+      "turn_rate_max_mean_deg_sec": 62.6,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.2342,
+        "medium_4-6": 0.1736,
+        "fast_6-8": 0.0879,
+        "sprint_8+": 0.0467
+      }
+    },
+    "WR": {
+      "sample_size": 131613,
+      "curvature_mean_inv_yds": 0.0517,
+      "curvature_p90_inv_yds": 0.1213,
+      "turn_radius_mean_yds": 19.4,
+      "turn_radius_min_p90_yds": 8.2,
+      "turn_rate_mean_deg_sec": 15.2,
+      "turn_rate_max_mean_deg_sec": 73.2,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.2989,
+        "medium_4-6": 0.185,
+        "fast_6-8": 0.103,
+        "sprint_8+": 0.0525
+      }
+    },
+    "RB": {
+      "sample_size": 58766,
+      "curvature_mean_inv_yds": 0.0537,
+      "curvature_p90_inv_yds": 0.132,
+      "turn_radius_mean_yds": 18.6,
+      "turn_radius_min_p90_yds": 7.6,
+      "turn_rate_mean_deg_sec": 15.3,
+      "turn_rate_max_mean_deg_sec": 67.4,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.3137,
+        "medium_4-6": 0.1836,
+        "fast_6-8": 0.0908,
+        "sprint_8+": 0.052
+      }
+    },
+    "DL": {
+      "sample_size": 99631,
+      "curvature_mean_inv_yds": 0.0555,
+      "curvature_p90_inv_yds": 0.1441,
+      "turn_radius_mean_yds": 18.0,
+      "turn_radius_min_p90_yds": 6.9,
+      "turn_rate_mean_deg_sec": 13.4,
+      "turn_rate_max_mean_deg_sec": 50.3,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.2641,
+        "medium_4-6": 0.1646,
+        "fast_6-8": 0.0704,
+        "sprint_8+": 0.0332
+      }
+    },
+    "S": {
+      "sample_size": 78334,
+      "curvature_mean_inv_yds": 0.0611,
+      "curvature_p90_inv_yds": 0.1515,
+      "turn_radius_mean_yds": 16.4,
+      "turn_radius_min_p90_yds": 6.6,
+      "turn_rate_mean_deg_sec": 16.9,
+      "turn_rate_max_mean_deg_sec": 71.9,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.3727,
+        "medium_4-6": 0.2046,
+        "fast_6-8": 0.0947,
+        "sprint_8+": 0.0468
+      }
+    },
+    "LB": {
+      "sample_size": 114573,
+      "curvature_mean_inv_yds": 0.0575,
+      "curvature_p90_inv_yds": 0.1464,
+      "turn_radius_mean_yds": 17.4,
+      "turn_radius_min_p90_yds": 6.8,
+      "turn_rate_mean_deg_sec": 15.6,
+      "turn_rate_max_mean_deg_sec": 64.1,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.3191,
+        "medium_4-6": 0.1888,
+        "fast_6-8": 0.0865,
+        "sprint_8+": 0.0399
+      }
+    },
+    "CB": {
+      "sample_size": 107812,
+      "curvature_mean_inv_yds": 0.0554,
+      "curvature_p90_inv_yds": 0.14,
+      "turn_radius_mean_yds": 18.0,
+      "turn_radius_min_p90_yds": 7.1,
+      "turn_rate_mean_deg_sec": 15.6,
+      "turn_rate_max_mean_deg_sec": 64.8,
+      "max_curvature_by_speed": {
+        "slow_0-4": 0.3462,
+        "medium_4-6": 0.1914,
+        "fast_6-8": 0.0901,
+        "sprint_8+": 0.0429
+      }
+    }
+  },
+  "jukes_by_position": {
+    "WR": {
+      "total_jukes": 641,
+      "jukes_per_play": 0.46,
+      "avg_direction_change_deg": 66.3,
+      "avg_speed_before_yps": 5.47,
+      "avg_speed_during_yps": 4.51,
+      "avg_speed_retention": 0.92,
+      "avg_recovery_time_sec": 0.6,
+      "avg_lateral_displacement_yds": 2.74,
+      "small_cuts_30_60": {
+        "count": 373,
+        "avg_speed_retention": 0.907,
+        "avg_speed_drop": 0.197,
+        "avg_recovery_sec": 0.66
+      },
+      "medium_cuts_60_90": {
+        "count": 20,
+        "avg_speed_retention": 0.839,
+        "avg_speed_drop": 0.362,
+        "avg_recovery_sec": 0.62
+      },
+      "hard_cuts_90_plus": {
+        "count": 248,
+        "avg_speed_retention": 0.947,
+        "avg_speed_drop": 0.101,
+        "avg_recovery_sec": 0.51
+      }
+    },
+    "TE": {
+      "total_jukes": 252,
+      "jukes_per_play": 0.37,
+      "avg_direction_change_deg": 71.1,
+      "avg_speed_before_yps": 4.98,
+      "avg_speed_during_yps": 4.27,
+      "avg_speed_retention": 0.958,
+      "avg_recovery_time_sec": 0.56,
+      "avg_lateral_displacement_yds": 2.52,
+      "small_cuts_30_60": {
+        "count": 136,
+        "avg_speed_retention": 0.917,
+        "avg_speed_drop": 0.169,
+        "avg_recovery_sec": 0.64
+      },
+      "medium_cuts_60_90": {
+        "count": 3,
+        "avg_speed_retention": 0.669,
+        "avg_speed_drop": 0.401,
+        "avg_recovery_sec": 0.77
+      },
+      "hard_cuts_90_plus": {
+        "count": 113,
+        "avg_speed_retention": 1.015,
+        "avg_speed_drop": 0.08,
+        "avg_recovery_sec": 0.47
+      }
+    },
+    "CB": {
+      "total_jukes": 583,
+      "jukes_per_play": 0.41,
+      "avg_direction_change_deg": 69.2,
+      "avg_speed_before_yps": 5.02,
+      "avg_speed_during_yps": 4.1,
+      "avg_speed_retention": 0.975,
+      "avg_recovery_time_sec": 0.6,
+      "avg_lateral_displacement_yds": 2.62,
+      "small_cuts_30_60": {
+        "count": 322,
+        "avg_speed_retention": 0.962,
+        "avg_speed_drop": 0.192,
+        "avg_recovery_sec": 0.63
+      },
+      "medium_cuts_60_90": {
+        "count": 11,
+        "avg_speed_retention": 0.538,
+        "avg_speed_drop": 0.572,
+        "avg_recovery_sec": 0.93
+      },
+      "hard_cuts_90_plus": {
+        "count": 250,
+        "avg_speed_retention": 1.011,
+        "avg_speed_drop": 0.104,
+        "avg_recovery_sec": 0.53
+      }
+    },
+    "S": {
+      "total_jukes": 555,
+      "jukes_per_play": 0.53,
+      "avg_direction_change_deg": 68.5,
+      "avg_speed_before_yps": 4.86,
+      "avg_speed_during_yps": 4.08,
+      "avg_speed_retention": 1.038,
+      "avg_recovery_time_sec": 0.55,
+      "avg_lateral_displacement_yds": 2.6,
+      "small_cuts_30_60": {
+        "count": 309,
+        "avg_speed_retention": 1.017,
+        "avg_speed_drop": 0.166,
+        "avg_recovery_sec": 0.59
+      },
+      "medium_cuts_60_90": {
+        "count": 21,
+        "avg_speed_retention": 0.876,
+        "avg_speed_drop": 0.307,
+        "avg_recovery_sec": 0.6
+      },
+      "hard_cuts_90_plus": {
+        "count": 225,
+        "avg_speed_retention": 1.08,
+        "avg_speed_drop": 0.085,
+        "avg_recovery_sec": 0.48
+      }
+    },
+    "DL": {
+      "total_jukes": 281,
+      "jukes_per_play": 0.16,
+      "avg_direction_change_deg": 75.6,
+      "avg_speed_before_yps": 4.59,
+      "avg_speed_during_yps": 4.18,
+      "avg_speed_retention": 1.005,
+      "avg_recovery_time_sec": 0.49,
+      "avg_lateral_displacement_yds": 2.73,
+      "small_cuts_30_60": {
+        "count": 131,
+        "avg_speed_retention": 0.972,
+        "avg_speed_drop": 0.103,
+        "avg_recovery_sec": 0.54
+      },
+      "medium_cuts_60_90": {
+        "count": 3,
+        "avg_speed_retention": 0.89,
+        "avg_speed_drop": 0.217,
+        "avg_recovery_sec": 0.53
+      },
+      "hard_cuts_90_plus": {
+        "count": 147,
+        "avg_speed_retention": 1.037,
+        "avg_speed_drop": 0.061,
+        "avg_recovery_sec": 0.45
+      }
+    },
+    "LB": {
+      "total_jukes": 574,
+      "jukes_per_play": 0.36,
+      "avg_direction_change_deg": 70.1,
+      "avg_speed_before_yps": 4.75,
+      "avg_speed_during_yps": 4.14,
+      "avg_speed_retention": 1.026,
+      "avg_recovery_time_sec": 0.54,
+      "avg_lateral_displacement_yds": 2.61,
+      "small_cuts_30_60": {
+        "count": 312,
+        "avg_speed_retention": 0.99,
+        "avg_speed_drop": 0.142,
+        "avg_recovery_sec": 0.59
+      },
+      "medium_cuts_60_90": {
+        "count": 18,
+        "avg_speed_retention": 0.895,
+        "avg_speed_drop": 0.247,
+        "avg_recovery_sec": 0.53
+      },
+      "hard_cuts_90_plus": {
+        "count": 244,
+        "avg_speed_retention": 1.08,
+        "avg_speed_drop": 0.067,
+        "avg_recovery_sec": 0.46
+      }
+    },
+    "RB": {
+      "total_jukes": 268,
+      "jukes_per_play": 0.42,
+      "avg_direction_change_deg": 66.6,
+      "avg_speed_before_yps": 4.93,
+      "avg_speed_during_yps": 4.21,
+      "avg_speed_retention": 1.013,
+      "avg_recovery_time_sec": 0.57,
+      "avg_lateral_displacement_yds": 2.47,
+      "small_cuts_30_60": {
+        "count": 160,
+        "avg_speed_retention": 1.015,
+        "avg_speed_drop": 0.143,
+        "avg_recovery_sec": 0.57
+      },
+      "medium_cuts_60_90": {
+        "count": 4,
+        "avg_speed_retention": 1.096,
+        "avg_speed_drop": 0.159,
+        "avg_recovery_sec": 0.48
+      },
+      "hard_cuts_90_plus": {
+        "count": 104,
+        "avg_speed_retention": 1.007,
+        "avg_speed_drop": 0.1,
+        "avg_recovery_sec": 0.57
+      }
+    },
+    "OL": {
+      "total_jukes": 153,
+      "jukes_per_play": 0.06,
+      "avg_direction_change_deg": 102.2,
+      "avg_speed_before_yps": 4.5,
+      "avg_speed_during_yps": 4.08,
+      "avg_speed_retention": 1.029,
+      "avg_recovery_time_sec": 0.45,
+      "avg_lateral_displacement_yds": 3.11,
+      "small_cuts_30_60": {
+        "count": 24,
+        "avg_speed_retention": 0.868,
+        "avg_speed_drop": 0.21,
+        "avg_recovery_sec": 0.65
+      },
+      "medium_cuts_60_90": {
+        "count": 2,
+        "avg_speed_retention": 0.407,
+        "avg_speed_drop": 0.646,
+        "avg_recovery_sec": 1.0
+      },
+      "hard_cuts_90_plus": {
+        "count": 127,
+        "avg_speed_retention": 1.069,
+        "avg_speed_drop": 0.046,
+        "avg_recovery_sec": 0.4
+      }
+    },
+    "QB": {
+      "total_jukes": 166,
+      "jukes_per_play": 0.31,
+      "avg_direction_change_deg": 67.4,
+      "avg_speed_before_yps": 4.85,
+      "avg_speed_during_yps": 4.22,
+      "avg_speed_retention": 0.967,
+      "avg_recovery_time_sec": 0.49,
+      "avg_lateral_displacement_yds": 2.34,
+      "small_cuts_30_60": {
+        "count": 99,
+        "avg_speed_retention": 0.951,
+        "avg_speed_drop": 0.12,
+        "avg_recovery_sec": 0.5
+      },
+      "medium_cuts_60_90": {
+        "count": 1,
+        "avg_speed_retention": 0.438,
+        "avg_speed_drop": 0.579,
+        "avg_recovery_sec": 1.0
+      },
+      "hard_cuts_90_plus": {
+        "count": 66,
+        "avg_speed_retention": 0.998,
+        "avg_speed_drop": 0.094,
+        "avg_recovery_sec": 0.47
+      }
+    }
+  },
+  "ol_dl_physics": {
+    "sample_size": 528,
+    "avg_closing_speed_yps": 0.19,
+    "avg_dl_momentum_at_contact": 610.0,
+    "avg_ol_momentum_at_contact": 555.0,
+    "avg_ol_displacement_1sec_yds": 0.8,
+    "avg_dl_penetration_1sec_yds": -1.56,
+    "ol_win_rate": 0.824,
+    "avg_velocity_while_engaged": {
+      "ol_yps": 2.26,
+      "dl_yps": 2.32
+    },
+    "interior_matchups": {
+      "count": 243,
+      "avg_ol_displacement": 0.66,
+      "avg_dl_penetration": -1.29,
+      "ol_win_rate": 0.811
+    },
+    "edge_matchups": {
+      "count": 75,
+      "avg_ol_displacement": 0.75,
+      "avg_dl_penetration": -2.1,
+      "ol_win_rate": 0.827
+    }
+  },
+  "post_catch_movement": {
+    "sample_size": 932,
+    "avg_speed_at_catch_yps": 5.24,
+    "avg_speed_1sec_after_yps": 4.8,
+    "avg_max_speed_after_yps": 6.23,
+    "avg_direction_changes_after": 1,
+    "avg_yac_yards": 10.8,
+    "avg_momentum_at_catch": 1100.0,
+    "momentum_retention_1sec": 0.951
+  },
+  "implementation_notes": {
+    "curvature": "Inverse of turn radius in yards. Higher = tighter turns. Use max_curvature_by_speed to limit turn sharpness at high speeds.",
+    "turn_rate": "Degrees per second of direction change. Limit this based on speed for realistic movement.",
+    "jukes": "Sudden direction changes. Speed drops during juke, recovers in 0.5-1.0 sec. Heavier players have lower speed retention.",
+    "ol_dl": "Contact physics. DL penetration vs OL displacement determines run lane. Momentum at contact matters.",
+    "post_catch": "Receivers maintain ~90% momentum after catch. Average 1-2 direction changes during YAC.",
+    "calibration_formula": {
+      "max_turn_rate": "base_turn_rate * (1 - speed/max_speed)^0.5",
+      "speed_during_cut": "speed_before * (1 - cut_angle/180 * 0.3)",
+      "momentum_effect": "heavier players: slower cuts, harder to redirect"
+    }
+  }
+}

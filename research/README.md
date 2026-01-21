@@ -9,49 +9,140 @@
 
 ```
 research/
-├── scripts/                    # Analysis scripts
-│   ├── download_all_data.py    # Cache NFL datasets
-│   ├── nfl_pass_game_analysis.py
-│   ├── nfl_play_calling_analysis.py
-│   ├── nfl_combine_analysis.py
-│   ├── nfl_contract_analysis.py
-│   └── nfl_draft_analysis.py
+├── scripts/                          # All Python analysis scripts (49 total)
+│   ├── game_layer/                   # Game mechanics analysis (6 scripts)
+│   ├── simulation/                   # Play outcome models (13 scripts)
+│   ├── player_attributes/            # Player ratings & profiles (12 scripts)
+│   ├── ai_decisions/                 # AI decision-making (7 scripts)
+│   ├── management/                   # Contracts & roster (10 scripts)
+│   └── download_all_data.py          # Data download utility
 │
-├── reports/
-│   ├── simulation/             # Pass game, run game, play calling
-│   ├── player_generation/      # Combine, physical profiles
-│   ├── management/             # Contracts, draft
-│   └── methodology/            # Statistical approach, deep dives
+├── exports/                          # JSON model outputs (42 total)
+│   ├── active/                       # 6 models loaded by game code
+│   │   ├── physical_profile_model.json   # calibration.py
+│   │   ├── contract_model.json           # calibration.py
+│   │   ├── draft_model.json              # calibration.py
+│   │   ├── position_value_model.json     # calibration.py
+│   │   ├── injury_model.json             # health.py
+│   │   └── fatigue_model.json            # health.py
+│   └── reference/                    # 36 research-only exports (not imported)
+│       ├── game_layer/
+│       ├── simulation/
+│       ├── player_attributes/
+│       ├── ai_decisions/
+│       └── management/
 │
-├── data/
-│   ├── cached/                 # Parquet files from nfl_data_py
-│   └── figures/                # Visualizations by topic
+├── reports/                          # Analysis reports (by topic)
+│   ├── simulation/
+│   ├── player_generation/
+│   ├── management/
+│   └── methodology/
 │
-└── models/                     # (Future) Statistical models
+├── sources/                          # Reference materials
+│   ├── books/                        # Football coaching books
+│   └── papers/                       # Academic papers
+│
+└── data/                             # Raw data
+    ├── cached/                       # Parquet files from nfl_data_py (~127MB)
+    └── figures/                      # Generated visualizations
 ```
 
 ---
 
-## Completed Analyses
+## Domain Descriptions
 
-| Topic | Report | Script | Key Findings |
-|-------|--------|--------|--------------|
-| Pass Game | `simulation/pass_game_analysis.md` | `nfl_pass_game_analysis.py` | 60.5% completion, 2.79s avg time-to-throw |
-| Run Game | `simulation/run_game_analysis.md` | `nfl_run_game_analysis.py` | Median 3 yds, 17% stuffed, 12% explosive |
-| Play Calling | `simulation/play_calling_analysis.md` | `nfl_play_calling_analysis.py` | 58% pass rate, situational tables |
-| Combine | `player_generation/combine_analysis.md` | `nfl_combine_analysis.py` | Position profiles, correlations |
-| Contracts | `management/contract_analysis.md` | `nfl_contract_analysis.py` | APY by tier, age curves |
-| Draft | `management/draft_analysis.md` | `nfl_draft_analysis.py` | R1: 3% bust, R7: 72% bust |
+### game_layer/
+Scripts analyzing in-game decision mechanics and outcomes:
+- **special_teams_analysis.py** - Kickoffs, punts, field goals
+- **fourth_down_analysis.py** - Go-for-it vs punt/FG decisions
+- **game_flow_analysis.py** - Score differentials, game state
+- **drive_outcome_analysis.py** - Drive results by field position
+- **two_point_analysis.py** - 2-point conversion success rates
+- **clock_analysis.py** - Clock management strategies
+
+### simulation/
+Play-by-play outcome models for the tick simulation:
+- **nfl_pass_game_analysis.py** - Passing outcomes analysis
+- **nfl_run_game_analysis.py** - Rushing outcomes analysis
+- **nfl_play_calling_analysis.py** - Play selection patterns
+- **completion_model.py** - Pass completion probability
+- **interception_model.py** - Interception risk factors
+- **yac_model.py** - Yards after catch
+- **run_yards_model.py** - Rush yard distributions
+- **playcalling_model.py** - Situational play calling
+- **blocking_model.py** / **blocking_model_deep.py** - Blocking effectiveness
+- **playbook_catalogue.py** - Play type categorization
+- **qb_variance_analysis.py** - QB performance variance
+- **rating_impact_model.py** - Rating-to-outcome mappings
+
+### player_attributes/
+Player generation and attribute calibration:
+- **nfl_combine_analysis.py** - Combine measurement distributions
+- **college_production_analysis.py** - College stats to NFL projection
+- **position_value_analysis.py** - Position value (WAR) analysis
+- **physical_profile_model.py** - Height/weight/speed by position
+- **attribute_projection_*.py** - Attribute projections by skill category
+- **attribute_calibration_summary.py** - Overall calibration targets
+- **qb_intangibles_analysis.py** - QB non-physical traits
+
+### ai_decisions/
+AI agent decision-making models:
+- **nfl_draft_analysis.py** - Draft pick value analysis
+- **draft_value_analysis.py** - Pick value curves
+- **trade_value_analysis.py** - Trade value calculations
+- **trade_value_empirical.py** - Historical trade data
+- **fa_valuation_analysis.py** - Free agent market values
+- **injury_risk_analysis.py** - Injury probability factors
+- **draft_model.py** - Draft AI decision model
+
+### management/
+Contract, roster, and development systems:
+- **nfl_contract_analysis.py** - Contract structure analysis
+- **contract_timing_analysis.py** - Extension timing patterns
+- **player_development_curves.py** - Age-performance curves
+- **compute_defensive_value.py** - Defensive player valuation
+- **calvetti_allocation_analysis.py** - Cap allocation strategy
+- **generate_ai_lookup_tables.py** - Pre-computed AI tables
+- **contract_model.py** / **contract_analysis.py** - Contract generation
+- **injury_model.py** - Injury occurrence model
+- **fatigue_model.py** - In-game fatigue system
 
 ---
 
-## Methodology Documents
+## Active vs Reference Exports
 
-| Document | Purpose |
-|----------|---------|
-| `methodology/STATISTICAL_METHODOLOGY.md` | Mixed effects, GAM, factor mapping approach |
-| `methodology/DEEP_DIVE_PROPOSAL.md` | Plans for comprehensive analysis |
-| `methodology/CALIBRATION_RECOMMENDATIONS.md` | Summary of all calibration targets |
+### Active Exports (`exports/active/`)
+These 6 JSON files are **loaded by the game** at runtime:
+
+| File | Loaded By | Purpose |
+|------|-----------|---------|
+| `physical_profile_model.json` | `calibration.py` | Height/weight/speed distributions by position |
+| `contract_model.json` | `calibration.py` | APY tiers and structure by position |
+| `draft_model.json` | `calibration.py` | Pick value, success rates by round |
+| `position_value_model.json` | `calibration.py` | WAR estimates, market efficiency |
+| `injury_model.json` | `health.py` | Injury rates by position, type probabilities, durations |
+| `fatigue_model.json` | `health.py` | In-game fatigue accumulation and recovery |
+
+### Reference Exports (`exports/reference/`)
+These 36 files are **research outputs only** - they document findings but are not imported into the game code. They serve as reference material for:
+- Validating simulation outputs
+- Future feature implementation
+- Game balance decisions
+
+---
+
+## Running Scripts
+
+```bash
+# First time: download all data
+python scripts/download_all_data.py
+
+# Run scripts by domain
+python scripts/simulation/completion_model.py
+python scripts/player_attributes/nfl_combine_analysis.py
+python scripts/management/contract_model.py
+# etc.
+```
 
 ---
 
@@ -66,29 +157,6 @@ All data via `nfl_data_py`:
 - Injuries, snap counts, depth charts
 
 **Cached data location:** `data/cached/*.parquet` (~127MB)
-
----
-
-## Running Analyses
-
-```bash
-# First time: download all data
-python scripts/download_all_data.py
-
-# Run individual analyses
-python scripts/nfl_pass_game_analysis.py
-python scripts/nfl_combine_analysis.py
-# etc.
-```
-
----
-
-## Next Steps
-
-1. **Audit Huddle simulation factors** → Create `HUDDLE_FACTOR_INVENTORY.md`
-2. **Build statistical models** with factor mapping (mixed effects, GAM)
-3. **Deep dive analyses** - completion probability model, player archetypes
-4. **Export calibration data** for game integration
 
 ---
 

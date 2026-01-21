@@ -1,0 +1,310 @@
+{
+  "meta": {
+    "source": "ngs_highlights final extraction",
+    "plays_analyzed": 561
+  },
+  "speed_curvature_constraints": {
+    "0-2": {
+      "avg_turn_rate": 55.6,
+      "max_turn_rate": 217.4,
+      "p99_turn_rate": 389.0,
+      "sample_size": 2974934
+    },
+    "2-4": {
+      "avg_turn_rate": 19.0,
+      "max_turn_rate": 63.9,
+      "p99_turn_rate": 106.4,
+      "sample_size": 662749
+    },
+    "4-6": {
+      "avg_turn_rate": 14.6,
+      "max_turn_rate": 48.4,
+      "p99_turn_rate": 71.9,
+      "sample_size": 365597
+    },
+    "6-8": {
+      "avg_turn_rate": 11.7,
+      "max_turn_rate": 36.0,
+      "p99_turn_rate": 51.2,
+      "sample_size": 198842
+    },
+    "8-10": {
+      "avg_turn_rate": 8.3,
+      "max_turn_rate": 24.4,
+      "p99_turn_rate": 35.4,
+      "sample_size": 81376
+    },
+    "10-12": {
+      "avg_turn_rate": 5.8,
+      "max_turn_rate": 15.5,
+      "p99_turn_rate": 21.7,
+      "sample_size": 5920
+    }
+  },
+  "route_timing": {
+    "5_yards": {
+      "avg_time_sec": 10.58,
+      "fast_time_p10": 2.6,
+      "slow_time_p90": 21.3,
+      "sample_size": 20163
+    },
+    "10_yards": {
+      "avg_time_sec": 13.56,
+      "fast_time_p10": 4.0,
+      "slow_time_p90": 25.6,
+      "sample_size": 14999
+    },
+    "15_yards": {
+      "avg_time_sec": 14.06,
+      "fast_time_p10": 4.9,
+      "slow_time_p90": 25.4,
+      "sample_size": 11457
+    },
+    "20_yards": {
+      "avg_time_sec": 15.6,
+      "fast_time_p10": 5.9,
+      "slow_time_p90": 27.0,
+      "sample_size": 8141
+    }
+  },
+  "block_duration": {
+    "avg_block_duration_sec": 2.61,
+    "short_block_p10_sec": 0.8,
+    "long_block_p90_sec": 4.3,
+    "max_block_sec": 4.9,
+    "sample_size": 1978
+  },
+  "catch_mechanics": {
+    "speed_at_catch": {
+      "avg_yps": 4.06,
+      "p10_yps": 0.84,
+      "p90_yps": 7.69,
+      "sample_size": 1983
+    },
+    "body_alignment_at_catch": {
+      "avg_diff_deg": 50.4,
+      "well_aligned_pct": 44.7,
+      "sample_size": 1983
+    }
+  },
+  "route_phase_speeds": {
+    "stem": {
+      "avg_speed_yps": 3.46,
+      "p90_speed_yps": 7.14,
+      "sample_size": 142894
+    },
+    "break": {
+      "avg_speed_yps": 3.48,
+      "p90_speed_yps": 7.43,
+      "sample_size": 87286
+    },
+    "post_break": {
+      "avg_speed_yps": 3.19,
+      "p90_speed_yps": 7.29,
+      "sample_size": 191180
+    }
+  },
+  "pursuit_vectors": {
+    "avg_pursuit_adjustment_deg": 59.6,
+    "aggressive_pursuit_pct": 67.5,
+    "sample_size": 11869
+  },
+  "position_momentum": {
+    "QB": {
+      "estimated_weight_lbs": 220,
+      "avg_speed_yps": 1.83,
+      "max_speed_yps": 7.98,
+      "avg_momentum": 402.0,
+      "max_momentum_p99": 1756.0,
+      "sample_size": 175146
+    },
+    "RB": {
+      "estimated_weight_lbs": 215,
+      "avg_speed_yps": 2.35,
+      "max_speed_yps": 9.69,
+      "avg_momentum": 506.0,
+      "max_momentum_p99": 2083.0,
+      "sample_size": 199267
+    },
+    "WR": {
+      "estimated_weight_lbs": 195,
+      "avg_speed_yps": 2.61,
+      "max_speed_yps": 9.53,
+      "avg_momentum": 508.0,
+      "max_momentum_p99": 1858.0,
+      "sample_size": 460856
+    },
+    "TE": {
+      "estimated_weight_lbs": 250,
+      "avg_speed_yps": 2.24,
+      "max_speed_yps": 8.58,
+      "avg_momentum": 561.0,
+      "max_momentum_p99": 2145.0,
+      "sample_size": 232962
+    },
+    "C": {
+      "estimated_weight_lbs": 305,
+      "avg_speed_yps": 1.65,
+      "max_speed_yps": 6.59,
+      "avg_momentum": 503.0,
+      "max_momentum_p99": 2010.0,
+      "sample_size": 170323
+    },
+    "G": {
+      "estimated_weight_lbs": 315,
+      "avg_speed_yps": 1.58,
+      "max_speed_yps": 6.47,
+      "avg_momentum": 498.0,
+      "max_momentum_p99": 2038.0,
+      "sample_size": 258946
+    },
+    "T": {
+      "estimated_weight_lbs": 315,
+      "avg_speed_yps": 1.59,
+      "max_speed_yps": 6.71,
+      "avg_momentum": 500.0,
+      "max_momentum_p99": 2114.0,
+      "sample_size": 305075
+    },
+    "DE": {
+      "estimated_weight_lbs": 270,
+      "avg_speed_yps": 1.63,
+      "max_speed_yps": 7.46,
+      "avg_momentum": 440.0,
+      "max_momentum_p99": 2014.0,
+      "sample_size": 306659
+    },
+    "DT": {
+      "estimated_weight_lbs": 305,
+      "avg_speed_yps": 1.46,
+      "max_speed_yps": 6.68,
+      "avg_momentum": 447.0,
+      "max_momentum_p99": 2037.0,
+      "sample_size": 228313
+    },
+    "OLB": {
+      "estimated_weight_lbs": 245,
+      "avg_speed_yps": 1.81,
+      "max_speed_yps": 8.43,
+      "avg_momentum": 443.0,
+      "max_momentum_p99": 2065.0,
+      "sample_size": 241048
+    },
+    "ILB": {
+      "estimated_weight_lbs": 240,
+      "avg_speed_yps": 1.91,
+      "max_speed_yps": 8.49,
+      "avg_momentum": 459.0,
+      "max_momentum_p99": 2038.0,
+      "sample_size": 122502
+    },
+    "CB": {
+      "estimated_weight_lbs": 195,
+      "avg_speed_yps": 2.14,
+      "max_speed_yps": 9.41,
+      "avg_momentum": 417.0,
+      "max_momentum_p99": 1835.0,
+      "sample_size": 504664
+    },
+    "FS": {
+      "estimated_weight_lbs": 205,
+      "avg_speed_yps": 2.08,
+      "max_speed_yps": 9.09,
+      "avg_momentum": 427.0,
+      "max_momentum_p99": 1863.0,
+      "sample_size": 208029
+    },
+    "LB": {
+      "estimated_weight_lbs": 242,
+      "avg_speed_yps": 2.11,
+      "max_speed_yps": 8.86,
+      "avg_momentum": 510.0,
+      "max_momentum_p99": 2144.0,
+      "sample_size": 131792
+    },
+    "OT": {
+      "estimated_weight_lbs": 315,
+      "avg_speed_yps": 1.67,
+      "max_speed_yps": 6.75,
+      "avg_momentum": 526.0,
+      "max_momentum_p99": 2126.0,
+      "sample_size": 60445
+    },
+    "NT": {
+      "estimated_weight_lbs": 325,
+      "avg_speed_yps": 1.43,
+      "max_speed_yps": 6.15,
+      "avg_momentum": 465.0,
+      "max_momentum_p99": 1999.0,
+      "sample_size": 40017
+    },
+    "MLB": {
+      "estimated_weight_lbs": 245,
+      "avg_speed_yps": 1.87,
+      "max_speed_yps": 8.39,
+      "avg_momentum": 457.0,
+      "max_momentum_p99": 2056.0,
+      "sample_size": 71226
+    },
+    "SS": {
+      "estimated_weight_lbs": 210,
+      "avg_speed_yps": 2.04,
+      "max_speed_yps": 9.21,
+      "avg_momentum": 428.0,
+      "max_momentum_p99": 1934.0,
+      "sample_size": 149211
+    },
+    "S": {
+      "estimated_weight_lbs": 207,
+      "avg_speed_yps": 2.28,
+      "max_speed_yps": 9.61,
+      "avg_momentum": 473.0,
+      "max_momentum_p99": 1990.0,
+      "sample_size": 19770
+    },
+    "FB": {
+      "estimated_weight_lbs": 245,
+      "avg_speed_yps": 2.31,
+      "max_speed_yps": 8.27,
+      "avg_momentum": 567.0,
+      "max_momentum_p99": 2026.0,
+      "sample_size": 19173
+    },
+    "DB": {
+      "estimated_weight_lbs": 200,
+      "avg_speed_yps": 2.36,
+      "max_speed_yps": 9.63,
+      "avg_momentum": 472.0,
+      "max_momentum_p99": 1926.0,
+      "sample_size": 101063
+    },
+    "OG": {
+      "estimated_weight_lbs": 315,
+      "avg_speed_yps": 1.54,
+      "max_speed_yps": 6.31,
+      "avg_momentum": 484.0,
+      "max_momentum_p99": 1988.0,
+      "sample_size": 28703
+    }
+  },
+  "gap_exploitation": {
+    "avg_lateral_movement_yds": 2.89,
+    "patient_runs_pct": 70.0,
+    "downhill_runs_pct": 14.5,
+    "sample_size": 110
+  },
+  "qb_pocket_movement": {
+    "avg_dropback_depth_yds": 0.97,
+    "deep_dropback_pct": 0.0,
+    "avg_lateral_movement_yds": 3.61,
+    "mobile_qb_threshold_yds": 4.8,
+    "sample_size": 536
+  },
+  "coverage_shell_adjustments": {
+    "avg_forward_movement_yds": -0.02,
+    "run_support_pct": 1.2,
+    "avg_lateral_movement_yds": 0.98,
+    "rotation_pct": 0.1,
+    "sample_size": 1051
+  }
+}

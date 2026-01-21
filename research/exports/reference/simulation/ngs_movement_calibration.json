@@ -1,0 +1,259 @@
+{
+  "meta": {
+    "source": "ngs_highlights (github.com/asonty/ngs_highlights)",
+    "plays_analyzed": 561,
+    "seasons": "2017-2019",
+    "frame_rate": 10,
+    "description": "NFL Next Gen Stats tracking data analysis for movement calibration"
+  },
+  "speed_by_position": {
+    "QB": {
+      "sample_size": 538,
+      "max_speed_mean_yps": 5.58,
+      "max_speed_mean_mph": 11.4,
+      "max_speed_std": 1.69,
+      "max_speed_p50_yps": 5.27,
+      "max_speed_p90_yps": 8.1,
+      "max_speed_p99_yps": 9.55,
+      "cruise_speed_mean_yps": 3.14,
+      "acceleration_mean_yps2": 4.01
+    },
+    "RB": {
+      "sample_size": 671,
+      "max_speed_mean_yps": 7.05,
+      "max_speed_mean_mph": 14.4,
+      "max_speed_std": 1.93,
+      "max_speed_p50_yps": 7.05,
+      "max_speed_p90_yps": 9.77,
+      "max_speed_p99_yps": 10.7,
+      "cruise_speed_mean_yps": 3.79,
+      "acceleration_mean_yps2": 4.9
+    },
+    "WR": {
+      "sample_size": 1438,
+      "max_speed_mean_yps": 7.75,
+      "max_speed_mean_mph": 15.8,
+      "max_speed_std": 1.6,
+      "max_speed_p50_yps": 7.84,
+      "max_speed_p90_yps": 9.75,
+      "max_speed_p99_yps": 10.62,
+      "cruise_speed_mean_yps": 3.89,
+      "acceleration_mean_yps2": 5.22
+    },
+    "TE": {
+      "sample_size": 711,
+      "max_speed_mean_yps": 6.63,
+      "max_speed_mean_mph": 13.6,
+      "max_speed_std": 1.61,
+      "max_speed_p50_yps": 6.73,
+      "max_speed_p90_yps": 8.74,
+      "max_speed_p99_yps": 9.93,
+      "cruise_speed_mean_yps": 3.44,
+      "acceleration_mean_yps2": 4.74
+    },
+    "OL": {
+      "sample_size": 2696,
+      "max_speed_mean_yps": 4.48,
+      "max_speed_mean_mph": 9.2,
+      "max_speed_std": 1.47,
+      "max_speed_p50_yps": 4.29,
+      "max_speed_p90_yps": 6.59,
+      "max_speed_p99_yps": 8.18,
+      "cruise_speed_mean_yps": 2.52,
+      "acceleration_mean_yps2": 2.83
+    },
+    "DL": {
+      "sample_size": 1762,
+      "max_speed_mean_yps": 5.0,
+      "max_speed_mean_mph": 10.2,
+      "max_speed_std": 1.56,
+      "max_speed_p50_yps": 4.81,
+      "max_speed_p90_yps": 7.16,
+      "max_speed_p99_yps": 8.86,
+      "cruise_speed_mean_yps": 2.66,
+      "acceleration_mean_yps2": 3.62
+    },
+    "LB": {
+      "sample_size": 1646,
+      "max_speed_mean_yps": 6.33,
+      "max_speed_mean_mph": 12.9,
+      "max_speed_std": 1.78,
+      "max_speed_p50_yps": 6.14,
+      "max_speed_p90_yps": 8.78,
+      "max_speed_p99_yps": 9.9,
+      "cruise_speed_mean_yps": 3.13,
+      "acceleration_mean_yps2": 4.28
+    },
+    "CB": {
+      "sample_size": 1449,
+      "max_speed_mean_yps": 7.33,
+      "max_speed_mean_mph": 15.0,
+      "max_speed_std": 1.86,
+      "max_speed_p50_yps": 7.47,
+      "max_speed_p90_yps": 9.79,
+      "max_speed_p99_yps": 10.64,
+      "cruise_speed_mean_yps": 3.22,
+      "acceleration_mean_yps2": 4.1
+    },
+    "S": {
+      "sample_size": 1089,
+      "max_speed_mean_yps": 7.24,
+      "max_speed_mean_mph": 14.8,
+      "max_speed_std": 1.78,
+      "max_speed_p50_yps": 7.37,
+      "max_speed_p90_yps": 9.5,
+      "max_speed_p99_yps": 10.41,
+      "cruise_speed_mean_yps": 3.19,
+      "acceleration_mean_yps2": 3.87
+    }
+  },
+  "direction_change_by_position": {
+    "QB": {
+      "sample_size": 238,
+      "cut_angle_mean_deg": 148.8,
+      "cut_angle_p90_deg": 177.0,
+      "speed_retention_ratio": 0.984,
+      "frames_to_recover_speed": 3.3,
+      "seconds_to_recover_speed": 0.33
+    },
+    "RB": {
+      "sample_size": 486,
+      "cut_angle_mean_deg": 133.7,
+      "cut_angle_p90_deg": 177.1,
+      "speed_retention_ratio": 0.994,
+      "frames_to_recover_speed": 3.3,
+      "seconds_to_recover_speed": 0.33
+    },
+    "WR": {
+      "sample_size": 1258,
+      "cut_angle_mean_deg": 142.7,
+      "cut_angle_p90_deg": 178.4,
+      "speed_retention_ratio": 0.983,
+      "frames_to_recover_speed": 3.6,
+      "seconds_to_recover_speed": 0.36
+    },
+    "TE": {
+      "sample_size": 546,
+      "cut_angle_mean_deg": 146.8,
+      "cut_angle_p90_deg": 177.9,
+      "speed_retention_ratio": 0.99,
+      "frames_to_recover_speed": 3.4,
+      "seconds_to_recover_speed": 0.34
+    },
+    "OL": {
+      "sample_size": 502,
+      "cut_angle_mean_deg": 167.6,
+      "cut_angle_p90_deg": 177.6,
+      "speed_retention_ratio": 1.005,
+      "frames_to_recover_speed": 3.2,
+      "seconds_to_recover_speed": 0.32
+    },
+    "DL": {
+      "sample_size": 637,
+      "cut_angle_mean_deg": 153.1,
+      "cut_angle_p90_deg": 176.5,
+      "speed_retention_ratio": 1.009,
+      "frames_to_recover_speed": 2.9,
+      "seconds_to_recover_speed": 0.29
+    },
+    "LB": {
+      "sample_size": 1057,
+      "cut_angle_mean_deg": 140.7,
+      "cut_angle_p90_deg": 177.1,
+      "speed_retention_ratio": 1.01,
+      "frames_to_recover_speed": 3.1,
+      "seconds_to_recover_speed": 0.31
+    },
+    "CB": {
+      "sample_size": 1280,
+      "cut_angle_mean_deg": 134.3,
+      "cut_angle_p90_deg": 178.3,
+      "speed_retention_ratio": 0.996,
+      "frames_to_recover_speed": 3.3,
+      "seconds_to_recover_speed": 0.33
+    },
+    "S": {
+      "sample_size": 1010,
+      "cut_angle_mean_deg": 126.9,
+      "cut_angle_p90_deg": 176.7,
+      "speed_retention_ratio": 1.009,
+      "frames_to_recover_speed": 2.9,
+      "seconds_to_recover_speed": 0.29
+    }
+  },
+  "play_duration_by_type": {
+    "play_type_pass": {
+      "sample_size": 287,
+      "snap_to_end_mean_sec": 9.26,
+      "snap_to_end_std_sec": 2.95,
+      "snap_to_end_p50_sec": 8.7,
+      "snap_to_end_p90_sec": 12.74
+    },
+    "play_type_rush": {
+      "sample_size": 109,
+      "snap_to_end_mean_sec": 9.16,
+      "snap_to_end_std_sec": 2.84,
+      "snap_to_end_p50_sec": 9.3,
+      "snap_to_end_p90_sec": 12.84
+    },
+    "play_type_punt": {
+      "sample_size": 13,
+      "snap_to_end_mean_sec": 17.32,
+      "snap_to_end_std_sec": 4.37,
+      "snap_to_end_p50_sec": 18.0,
+      "snap_to_end_p90_sec": 21.72
+    },
+    "play_type_sack": {
+      "sample_size": 8,
+      "snap_to_end_mean_sec": 10.53,
+      "snap_to_end_std_sec": 2.26,
+      "snap_to_end_p50_sec": 10.15,
+      "snap_to_end_p90_sec": 13.78
+    }
+  },
+  "route_timing": {
+    "sample_size": 413,
+    "snap_to_5yds_mean_sec": 2.23,
+    "snap_to_10yds_mean_sec": 3.6,
+    "snap_to_15yds_mean_sec": 4.69,
+    "snap_to_break_mean_sec": 7.25,
+    "break_depth_mean_yds": 26.5
+  },
+  "pursuit_by_position": {
+    "LB": {
+      "sample_size": 310,
+      "pursuit_speed_mean_yps": 4.81,
+      "pursuit_speed_mean_mph": 9.8,
+      "closing_speed_mean_yps": -1.02
+    },
+    "CB": {
+      "sample_size": 265,
+      "pursuit_speed_mean_yps": 5.31,
+      "pursuit_speed_mean_mph": 10.9,
+      "closing_speed_mean_yps": -0.48
+    },
+    "S": {
+      "sample_size": 190,
+      "pursuit_speed_mean_yps": 5.22,
+      "pursuit_speed_mean_mph": 10.7,
+      "closing_speed_mean_yps": -0.23
+    },
+    "DL": {
+      "sample_size": 352,
+      "pursuit_speed_mean_yps": 4.12,
+      "pursuit_speed_mean_mph": 8.4,
+      "closing_speed_mean_yps": -1.43
+    }
+  },
+  "implementation_notes": {
+    "speed_units": "Speeds in yards/second (multiply by 2.045 for mph)",
+    "frame_rate": "Data captured at 10 FPS, so 1 frame = 0.1 seconds",
+    "direction": "0 degrees = upfield, increases clockwise",
+    "calibration_targets": [
+      "V2 simulation should match position max speeds within 5%",
+      "Route timing should match snap_to_Xyds benchmarks",
+      "Cut speed retention should be ~70-80% immediately after cut",
+      "Pursuit closing speed indicates tackle likelihood"
+    ]
+  }
+}
