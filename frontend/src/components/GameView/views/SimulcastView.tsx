@@ -66,6 +66,15 @@ export const SimulcastView: React.FC<SimulcastViewProps> = ({
     firstDowns: currentDrive.filter(p => p.isFirstDown).length,
   };
 
+  // Determine field direction based on possession and half
+  // In 1st half (Q1-Q2): Home team drives right, Away drives left
+  // In 2nd half (Q3-Q4): Teams switch ends, so directions flip
+  const isSecondHalf = (situation.quarter || 1) >= 3;
+  const homeDirection: 'right' | 'left' = isSecondHalf ? 'left' : 'right';
+  const fieldDirection: 'right' | 'left' = possessionHome
+    ? homeDirection
+    : (homeDirection === 'right' ? 'left' : 'right');
+
   return (
     <div className="simulcast-view">
       {/* TOP: Large field visualization */}
@@ -83,12 +92,12 @@ export const SimulcastView: React.FC<SimulcastViewProps> = ({
         <DriveFieldView
           los={situation.los}
           driveStartLos={effectiveDriveStart}
-          firstDownLine={situation.los + situation.distance}
+          firstDownLine={Math.min(100, situation.los + situation.distance)}
           currentDrive={currentDrive}
           isRedZone={situation.isRedZone}
-          direction="right"
-          homeTeamColor={homeTeamColor}
-          awayTeamColor={awayTeamColor}
+          direction={fieldDirection}
+          offenseTeamColor={possessionHome ? homeTeamColor : awayTeamColor}
+          defenseTeamColor={possessionHome ? awayTeamColor : homeTeamColor}
           homeTeamLogo={homeTeamLogo}
           offenseTeam={possessionHome ? homeTeam : awayTeam}
           defenseTeam={possessionHome ? awayTeam : homeTeam}

@@ -3,4 +3,5 @@
  */
 
 export { SimulcastView } from './SimulcastView';
-// FullFieldView will be added in Phase 5
+export { CoachModeView } from './CoachModeView';
+export { SpectatorModeView } from './SpectatorModeView';

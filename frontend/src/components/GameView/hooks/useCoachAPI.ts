@@ -15,10 +15,18 @@ import type {
   PlayResult,
   PlayOption,
   BoxScore,
-  DriveResult,
 } from '../types';
+import type { PlayFrame } from '../components/PlayCanvas';
 
 const API_BASE = '/api/v1/coach';
+
+export interface StartGameParams {
+  homeTeamId: string;
+  awayTeamId: string;
+  homeTeamAbbr: string;
+  awayTeamAbbr: string;
+  userControlsHome?: boolean;
+}
 
 interface UseCoachAPIResult {
   // State
@@ -30,8 +38,17 @@ interface UseCoachAPIResult {
   loading: boolean;
   error: string | null;
 
+  // Play visualization
+  playFrames: PlayFrame[];
+  currentPlayTick: number;
+  isPlayAnimating: boolean;
+  playbackSpeed: number;
+  setCurrentPlayTick: (tick: number) => void;
+  setIsPlayAnimating: (animating: boolean) => void;
+  setPlaybackSpeed: (speed: number) => void;
+
   // Actions
-  startGame: (homeTeam: string, awayTeam: string) => Promise<void>;
+  startGame: (params: StartGameParams) => Promise<void>;
   endGame: () => Promise<void>;
   fetchSituation: () => Promise<void>;
   fetchPlays: () => Promise<void>;
@@ -50,36 +67,52 @@ export function useCoachAPI(): UseCoachAPIResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Start a new game
-  // Note: The API currently requires team UUIDs from a loaded league.
-  // For demo/development, we operate in mock mode without the API.
-  const startGame = useCallback(async (homeTeam: string, awayTeam: string) => {
+  // Play visualization state
+  const [playFrames, setPlayFrames] = useState<PlayFrame[]>([]);
+  const [currentPlayTick, setCurrentPlayTick] = useState(0);
+  const [isPlayAnimating, setIsPlayAnimating] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+  // Start a new game with team UUIDs from the loaded league
+  const startGame = useCallback(async (params: StartGameParams) => {
+    const { homeTeamId, awayTeamId, homeTeamAbbr, awayTeamAbbr, userControlsHome = true } = params;
+
     setLoading(true);
     setError(null);
     try {
-      // For now, skip the API call since it requires UUIDs from a loaded league
-      // The GameView operates in mock mode for demo purposes
-      // TODO: Wire up to real API when league selection is integrated
-      console.log(`Starting game: ${homeTeam} vs ${awayTeam} (mock mode)`);
+      console.log(`[Coach] Starting game: ${homeTeamAbbr} vs ${awayTeamAbbr}`);
 
-      // Set a mock game ID to indicate we're "in a game" even without API
-      setGameId(`mock_${Date.now()}`);
+      const response = await fetch(`${API_BASE}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          home_team_id: homeTeamId,
+          away_team_id: awayTeamId,
+          user_controls_home: userControlsHome,
+        }),
+      });
 
-      // In real implementation with a league loaded:
-      // const response = await fetch(`${API_BASE}/start`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     home_team_id: homeTeamUUID,
-      //     away_team_id: awayTeamUUID,
-      //     user_controls_home: true
-      //   }),
-      // });
-      // const data = await response.json();
-      // setGameId(data.game_id);
-      // await fetchSituationInternal(data.game_id);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to start game: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const newGameId = data.game_id;
+
+      if (!newGameId) {
+        throw new Error('No game ID returned from server');
+      }
+
+      console.log(`[Coach] Game created: ${newGameId}`);
+      setGameId(newGameId);
+
+      // Fetch initial situation
+      await fetchSituationInternal(newGameId);
     } catch (err) {
+      console.error('[Coach] Failed to start game:', err);
       setError(err instanceof Error ? err.message : 'Failed to start game');
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -172,6 +205,13 @@ export function useCoachAPI(): UseCoachAPIResult {
       const data = await response.json();
       const result = mapResultFromAPI(data);
       setLastResult(result);
+
+      // Set play frames for visualization
+      if (data.frames && Array.isArray(data.frames)) {
+        setPlayFrames(data.frames);
+        setCurrentPlayTick(0);
+        setIsPlayAnimating(true);  // Auto-start playback
+      }
 
       // Update situation
       setSituation(prev => prev ? {
@@ -294,6 +334,15 @@ export function useCoachAPI(): UseCoachAPIResult {
     boxScore,
     loading,
     error,
+    // Play visualization
+    playFrames,
+    currentPlayTick,
+    isPlayAnimating,
+    playbackSpeed,
+    setCurrentPlayTick,
+    setIsPlayAnimating,
+    setPlaybackSpeed,
+    // Actions
     startGame,
     endGame,
     fetchSituation,

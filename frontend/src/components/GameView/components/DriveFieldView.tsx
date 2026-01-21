@@ -14,14 +14,14 @@ import React from 'react';
 import type { DrivePlay } from '../types';
 
 interface DriveFieldViewProps {
-  los: number; // Current line of scrimmage (0-100)
-  driveStartLos: number; // Where drive started
-  firstDownLine: number; // First down marker
+  los: number; // Current line of scrimmage (0-100, offense perspective: 0=own goal, 100=opponent goal)
+  driveStartLos: number; // Where drive started (same 0-100 scale)
+  firstDownLine: number; // First down marker (0-100)
   currentDrive: DrivePlay[];
   isRedZone?: boolean;
-  direction?: 'right' | 'left'; // Which way offense is going
-  homeTeamColor?: string; // Home team primary color
-  awayTeamColor?: string; // Away team primary color
+  direction?: 'right' | 'left'; // Which way offense is going (right = toward 100%)
+  offenseTeamColor?: string; // Offense team primary color (for their end zone at 0%)
+  defenseTeamColor?: string; // Defense team primary color (for their end zone at 100%)
   homeTeamLogo?: string; // Home team logo filename for midfield
   offenseTeam?: string; // Team abbreviation on offense
   defenseTeam?: string; // Team abbreviation on defense
@@ -34,8 +34,8 @@ export const DriveFieldView: React.FC<DriveFieldViewProps> = ({
   currentDrive,
   isRedZone = false,
   direction = 'right',
-  homeTeamColor = '#8b2020',
-  awayTeamColor = '#002244',
+  offenseTeamColor = '#8b2020',
+  defenseTeamColor = '#002244',
   homeTeamLogo,
   offenseTeam,
   defenseTeam,
@@ -120,16 +120,16 @@ export const DriveFieldView: React.FC<DriveFieldViewProps> = ({
         <div className="drive-field__hashes drive-field__hashes--top" />
         <div className="drive-field__hashes drive-field__hashes--bottom" />
 
-        {/* End zones with team colors - offense goes right toward defense's end zone */}
+        {/* End zones with team colors - left is offense's end zone (0%), right is opponent's (100%) */}
         <div
           className="drive-field__endzone drive-field__endzone--left"
-          style={{ '--endzone-color': homeTeamColor } as React.CSSProperties}
+          style={{ '--endzone-color': offenseTeamColor } as React.CSSProperties}
         >
           <span>{offenseTeam || 'OFF'}</span>
         </div>
         <div
           className="drive-field__endzone drive-field__endzone--right drive-field__endzone--target"
-          style={{ '--endzone-color': awayTeamColor } as React.CSSProperties}
+          style={{ '--endzone-color': defenseTeamColor } as React.CSSProperties}
         >
           <span>{defenseTeam || 'DEF'}</span>
           <span className="drive-field__endzone-goal">GOAL →</span>
@@ -192,13 +192,13 @@ export const DriveFieldView: React.FC<DriveFieldViewProps> = ({
       {/* Field info bar below */}
       <div className="drive-field__info">
         <span className="drive-field__info-start">
-          Started: OWN {driveStartLos}
+          Started: {driveStartLos <= 50 ? `OWN ${driveStartLos}` : `OPP ${100 - driveStartLos}`}
         </span>
         <span className="drive-field__info-progress">
           {currentDrive.length} plays | {currentDrive.reduce((sum, p) => sum + p.yardsGained, 0)} yards
         </span>
         <span className="drive-field__info-current">
-          Current: {los <= 50 ? `OWN ${los}` : `OPP ${100 - los}`}
+          Current: {los <= 50 ? `OWN ${Math.round(los)}` : `OPP ${100 - Math.round(los)}`}
         </span>
       </div>
     </div>

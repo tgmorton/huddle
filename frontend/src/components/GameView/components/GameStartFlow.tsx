@@ -65,8 +65,17 @@ interface SavedLeague {
 
 export type GameMode = 'coach' | 'spectator';
 
+export interface GameStartParams {
+  homeTeamAbbr: string;
+  awayTeamAbbr: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  userIsHome: boolean;
+  mode: GameMode;
+}
+
 interface GameStartFlowProps {
-  onStartGame: (homeTeam: string, awayTeam: string, userIsHome: boolean, mode: GameMode) => void;
+  onStartGame: (params: GameStartParams) => void;
   loading?: boolean;
 }
 
@@ -239,9 +248,24 @@ export const GameStartFlow: React.FC<GameStartFlowProps> = ({
 
   const handleStartGame = useCallback(() => {
     if (homeTeam && awayTeam && homeTeam !== awayTeam) {
-      onStartGame(homeTeam, awayTeam, userIsHome, gameMode);
+      const homeTeamData = teams.find(t => t.abbreviation === homeTeam);
+      const awayTeamData = teams.find(t => t.abbreviation === awayTeam);
+
+      if (!homeTeamData || !awayTeamData) {
+        console.error('Team data not found for selected teams');
+        return;
+      }
+
+      onStartGame({
+        homeTeamAbbr: homeTeam,
+        awayTeamAbbr: awayTeam,
+        homeTeamId: homeTeamData.id,
+        awayTeamId: awayTeamData.id,
+        userIsHome,
+        mode: gameMode,
+      });
     }
-  }, [homeTeam, awayTeam, userIsHome, gameMode, onStartGame]);
+  }, [homeTeam, awayTeam, userIsHome, gameMode, onStartGame, teams]);
 
   const filteredTeams = filterConference === 'ALL'
     ? teams

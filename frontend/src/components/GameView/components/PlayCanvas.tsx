@@ -25,7 +25,7 @@ export type BallStateType = 'dead' | 'held' | 'in_flight' | 'loose';
 export interface PlayerFrame {
   id: string;
   name: string;
-  team: string;
+  team: 'offense' | 'defense';
   position: string;
   player_type: PlayerType;
   x: number;

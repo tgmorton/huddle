@@ -10,6 +10,7 @@ export { ResultOverlay } from './ResultOverlay';
 export { FormationDiagram } from './FormationDiagram';
 export { SpecialTeamsModal } from './SpecialTeamsModal';
 export { GameStartFlow } from './GameStartFlow';
+export { GameViewErrorBoundary } from './GameViewErrorBoundary';
 
 // Re-export offense and defense components
 export * from './offense';

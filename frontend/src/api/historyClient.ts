@@ -446,3 +446,126 @@ export async function getRosterPlan(simId: string, teamId: string, season: numbe
   if (!response.ok) throw new Error(`Failed to get roster plan: ${response.statusText}`);
   return response.json();
 }
+
+// =============================================================================
+// Franchise Creation from Simulation
+// =============================================================================
+
+export interface StartFranchiseResponse {
+  franchise_id: string;
+  team_id: string;
+  team_name: string;
+  league_id: string;
+  season: number;
+  message: string;
+}
+
+export interface PlayerDevelopmentEntry {
+  season: number;
+  age: number;
+  overall: number;
+  change: number;
+}
+
+export interface PlayerDevelopmentResponse {
+  player_id: string;
+  player_name: string;
+  position: string;
+  career_arc: PlayerDevelopmentEntry[];
+}
+
+/**
+ * Start a franchise from a historical simulation.
+ *
+ * Converts the simulation to a playable league and creates a franchise
+ * for the specified team.
+ */
+export async function startFranchiseFromSimulation(
+  simId: string,
+  teamId: string
+): Promise<StartFranchiseResponse> {
+  const response = await fetch(
+    `${API_BASE}/simulations/${simId}/start-franchise?team_id=${teamId}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(error.detail || `Failed to start franchise: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get player development history across simulated seasons.
+ */
+export async function getPlayerDevelopment(
+  simId: string,
+  playerId: string
+): Promise<PlayerDevelopmentResponse> {
+  const response = await fetch(
+    `${API_BASE}/simulations/${simId}/players/${playerId}/development`
+  );
+  if (!response.ok) throw new Error(`Failed to get player development: ${response.statusText}`);
+  return response.json();
+}
+
+// =============================================================================
+// Save/Load API Functions
+// =============================================================================
+
+export interface SavedSimulationInfo {
+  sim_id: string;
+  start_year: number;
+  end_year: number;
+  seasons_simulated: number;
+  num_teams: number;
+  total_transactions: number;
+  saved_at: string;
+}
+
+/**
+ * Save a simulation to disk.
+ *
+ * Persists the simulation data so it can be loaded later.
+ */
+export async function saveSimulation(simId: string): Promise<{ status: string; sim_id: string }> {
+  const response = await fetch(`${API_BASE}/simulations/${simId}/save`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error(`Failed to save simulation: ${response.statusText}`);
+  return response.json();
+}
+
+/**
+ * Load a saved simulation from disk into memory.
+ */
+export async function loadSavedSimulation(simId: string): Promise<SimulationSummary> {
+  const response = await fetch(`${API_BASE}/simulations/${simId}/load`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error(`Failed to load simulation: ${response.statusText}`);
+  return response.json();
+}
+
+/**
+ * List all saved simulations on disk.
+ */
+export async function listSavedSimulations(): Promise<SavedSimulationInfo[]> {
+  const response = await fetch(`${API_BASE}/saved-simulations`);
+  if (!response.ok) throw new Error(`Failed to list saved simulations: ${response.statusText}`);
+  return response.json();
+}
+
+/**
+ * Delete a saved simulation from disk.
+ */
+export async function deleteSavedSimulation(simId: string): Promise<{ status: string; sim_id: string }> {
+  const response = await fetch(`${API_BASE}/saved-simulations/${simId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error(`Failed to delete saved simulation: ${response.statusText}`);
+  return response.json();
+}

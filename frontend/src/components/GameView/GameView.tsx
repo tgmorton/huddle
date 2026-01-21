@@ -36,11 +36,12 @@ import { SimulcastView } from './views/SimulcastView';
 import { PlayCaller } from './components/offense/PlayCaller';
 import { DefenseCaller } from './components/defense/DefenseCaller';
 import { GameStartFlow, TEAM_COLORS } from './components/GameStartFlow';
-import type { GameMode } from './components/GameStartFlow';
+import type { GameMode, GameStartParams } from './components/GameStartFlow';
 import { SpecialTeamsModal } from './components/SpecialTeamsModal';
 import { SpectatorControls } from './components/SpectatorControls';
-import { PlayCanvas } from './components/PlayCanvas';
 import { PlaybackControls } from './components/PlaybackControls';
+import { GameViewErrorBoundary } from './components/GameViewErrorBoundary';
+import { BroadcastCanvas, Scoreboard } from '../BroadcastCanvas';
 
 // Panels
 import { DriveSummary } from './panels/DriveSummary';
@@ -55,64 +56,24 @@ import { useGameWebSocket } from './hooks/useGameWebSocket';
 import type {
   GamePhase,
   ViewMode,
-  GameSituation,
   PlayResult,
   DrivePlay,
   Formation,
   PersonnelGroup,
-  PlayOption,
   CoverageScheme,
   BlitzPackage,
 } from './types';
 
+// Constants - mock data moved here for explicit dev-only mode
+import {
+  USE_MOCK_DATA,
+  MOCK_SITUATION,
+  MOCK_PLAYS,
+  MOCK_TICKER_EVENTS,
+} from './constants';
+
 // Panel views for left sidebar
 type GamePanelView = 'drive' | 'scout' | 'stats' | 'settings' | null;
-
-// Mock ticker events for game
-const MOCK_TICKER_EVENTS = [
-  { type: 'play', text: 'DAL ball at own 25 after touchback' },
-  { type: 'score', text: 'TOUCHDOWN - NYG leads 7-0' },
-  { type: 'injury', text: 'DAL WR questionable to return (hamstring)' },
-  { type: 'play', text: 'NYG: 8 plays, 75 yards, 4:32 TOP' },
-  { type: 'league', text: 'PHI 14, WAS 10 - 3rd Quarter' },
-];
-
-// Mock initial situation for development
-const MOCK_SITUATION: GameSituation = {
-  quarter: 2,
-  timeRemaining: '5:42',
-  down: 2,
-  distance: 7,
-  los: 65,
-  yardLineDisplay: 'OPP 35',
-  homeScore: 21,
-  awayScore: 14,
-  possessionHome: true,
-  isRedZone: false,
-  isGoalToGo: false,
-  userOnOffense: true,
-  homeTimeouts: 3,
-  awayTimeouts: 2,
-};
-
-// Mock available plays
-const MOCK_PLAYS: PlayOption[] = [
-  { code: 'INSIDE_ZONE', name: 'Inside Zone', category: 'run', isRecommended: true },
-  { code: 'POWER', name: 'Power', category: 'run' },
-  { code: 'COUNTER', name: 'Counter', category: 'run' },
-  { code: 'DRAW', name: 'Draw', category: 'run' },
-  { code: 'STRETCH', name: 'Stretch', category: 'run' },
-  { code: 'SLANT', name: 'Slant', category: 'quick' },
-  { code: 'HITCH', name: 'Hitch', category: 'quick' },
-  { code: 'OUT', name: 'Out', category: 'quick' },
-  { code: 'CURL', name: 'Curl', category: 'intermediate' },
-  { code: 'DIG', name: 'Dig', category: 'intermediate' },
-  { code: 'POST', name: 'Post', category: 'deep' },
-  { code: 'GO_ROUTE', name: 'Go Route', category: 'deep' },
-  { code: 'FADE', name: 'Fade', category: 'deep' },
-  { code: 'SCREEN', name: 'Screen', category: 'screen' },
-  { code: 'PA_BOOT', name: 'PA Boot', category: 'play_action' },
-];
 
 export const GameView: React.FC = () => {
   // Game mode
@@ -125,6 +86,14 @@ export const GameView: React.FC = () => {
     availablePlays,
     loading: coachLoading,
     error: coachError,
+    // Coach mode play visualization
+    playFrames: coachPlayFrames,
+    currentPlayTick: coachCurrentPlayTick,
+    isPlayAnimating: coachIsPlayAnimating,
+    playbackSpeed: coachPlaybackSpeed,
+    setCurrentPlayTick: setCoachCurrentPlayTick,
+    setIsPlayAnimating: setCoachIsPlayAnimating,
+    setPlaybackSpeed: setCoachPlaybackSpeed,
     startGame: coachStartGame,
     executePlay,
     executeDefense,
@@ -132,28 +101,25 @@ export const GameView: React.FC = () => {
 
   // Spectator mode WebSocket hook
   const {
-    isConnected,
     isLoading: spectatorLoading,
     error: spectatorError,
     gameId: spectatorGameId,
     situation: spectatorSituation,
-    homeTeam: wsHomeTeam,
-    awayTeam: wsAwayTeam,
     lastResult: wsLastResult,
     currentDrive: wsDrive,
-    playLog,
+    driveStartLos: wsDriveStartLos,
     isPaused,
     pacing,
     gameOver,
     announcement,
-    // Play visualization
-    playFrames,
-    currentPlayTick,
-    isPlayAnimating,
-    playbackSpeed,
-    setCurrentPlayTick,
-    setIsPlayAnimating,
-    setPlaybackSpeed,
+    // Spectator mode play visualization
+    playFrames: spectatorPlayFrames,
+    currentPlayTick: spectatorCurrentPlayTick,
+    isPlayAnimating: spectatorIsPlayAnimating,
+    playbackSpeed: spectatorPlaybackSpeed,
+    setCurrentPlayTick: setSpectatorCurrentPlayTick,
+    setIsPlayAnimating: setSpectatorIsPlayAnimating,
+    setPlaybackSpeed: setSpectatorPlaybackSpeed,
     startGame: spectatorStartGame,
     setPacing,
     togglePause,
@@ -167,11 +133,23 @@ export const GameView: React.FC = () => {
   const loading = isSpectatorMode ? spectatorLoading : coachLoading;
   const error = isSpectatorMode ? spectatorError : coachError;
 
-  // Use API/WS situation if available, otherwise mock
-  const situation = isSpectatorMode
-    ? (spectatorSituation || MOCK_SITUATION)
-    : (coachSituation || MOCK_SITUATION);
-  const plays = availablePlays.length > 0 ? availablePlays : MOCK_PLAYS;
+  // Derived play visualization state (choose source based on mode)
+  const playFrames = isSpectatorMode ? spectatorPlayFrames : coachPlayFrames;
+  const currentPlayTick = isSpectatorMode ? spectatorCurrentPlayTick : coachCurrentPlayTick;
+  const isPlayAnimating = isSpectatorMode ? spectatorIsPlayAnimating : coachIsPlayAnimating;
+  const playbackSpeed = isSpectatorMode ? spectatorPlaybackSpeed : coachPlaybackSpeed;
+  const setCurrentPlayTick = isSpectatorMode ? setSpectatorCurrentPlayTick : setCoachCurrentPlayTick;
+  const setIsPlayAnimating = isSpectatorMode ? setSpectatorIsPlayAnimating : setCoachIsPlayAnimating;
+  const setPlaybackSpeed = isSpectatorMode ? setSpectatorPlaybackSpeed : setCoachPlaybackSpeed;
+
+  // Get real situation from API/WS, use mock only if explicitly enabled
+  const realSituation = isSpectatorMode ? spectatorSituation : coachSituation;
+  const situation = realSituation ?? (USE_MOCK_DATA ? MOCK_SITUATION : null);
+
+  // Get plays from API, use mock only if explicitly enabled
+  const plays = availablePlays.length > 0
+    ? availablePlays
+    : (USE_MOCK_DATA ? MOCK_PLAYS : []);
 
   // Game state
   const [phase, setPhase] = useState<GamePhase>('pre_snap');
@@ -206,11 +184,12 @@ export const GameView: React.FC = () => {
   const [showSpecialTeamsModal, setShowSpecialTeamsModal] = useState(false);
   const [tickerPaused, setTickerPaused] = useState(false);
   const [appNavOpen, setAppNavOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   // Team info
   const [homeTeam, setHomeTeam] = useState('NYG');
   const [awayTeam, setAwayTeam] = useState('DAL');
-  const [userIsHome, setUserIsHome] = useState(true);
+  const [_userIsHome, setUserIsHome] = useState(true);
 
   // Refs
   const appNavRef = useRef<HTMLDivElement>(null);
@@ -238,15 +217,17 @@ export const GameView: React.FC = () => {
   }, []);
 
   // Handle game start
-  const handleStartGame = useCallback(async (home: string, away: string, isHome: boolean, mode: GameMode) => {
-    setHomeTeam(home);
-    setAwayTeam(away);
+  const handleStartGame = useCallback(async (params: GameStartParams) => {
+    const { homeTeamAbbr, awayTeamAbbr, homeTeamId, awayTeamId, userIsHome: isHome, mode } = params;
+
+    setHomeTeam(homeTeamAbbr);
+    setAwayTeam(awayTeamAbbr);
     setUserIsHome(isHome);
     setGameMode(mode);
 
     if (mode === 'spectator') {
       try {
-        await spectatorStartGame(home, away);
+        await spectatorStartGame(homeTeamAbbr, awayTeamAbbr);
         setGameStarted(true);
       } catch (err) {
         console.error('Failed to start spectator game:', err);
@@ -254,11 +235,18 @@ export const GameView: React.FC = () => {
       }
     } else {
       try {
-        await coachStartGame(home, away);
-      } catch {
-        // Mock mode
+        await coachStartGame({
+          homeTeamId,
+          awayTeamId,
+          homeTeamAbbr,
+          awayTeamAbbr,
+          userControlsHome: isHome,
+        });
+        setGameStarted(true);
+      } catch (err) {
+        console.error('Failed to start coach game:', err);
+        // Stay on start screen if API fails
       }
-      setGameStarted(true);
     }
   }, [spectatorStartGame, coachStartGame]);
 
@@ -445,12 +433,33 @@ export const GameView: React.FC = () => {
     );
   }
 
+  // Show loading state while waiting for game situation
+  if (!situation) {
+    return (
+      <div className="game-view" data-phase="loading">
+        <div className="game-view__loading">
+          <div className="game-view__loading-spinner" />
+          <span>Loading game data...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="game-view" data-phase={phase}>
+      {/* Skip navigation link for keyboard users */}
+      <a href="#game-main-content" className="game-view__skip-link">
+        Skip to main content
+      </a>
+
       {/* Middle: Nav + Panel + Main (flex row) */}
       <div className="game-view__middle">
         {/* Left: Icon Navigation Sidebar (ManagementV2 style) */}
-        <aside className={`game-view__nav ${sidebarExpanded ? 'expanded' : ''}`}>
+        <aside
+          className={`game-view__nav ${sidebarExpanded ? 'expanded' : ''}`}
+          role="navigation"
+          aria-label="Game navigation"
+        >
         <div className="game-view__nav-top">
           {/* App menu (hamburger) */}
           <div className="game-view__nav-app" ref={appNavRef}>
@@ -458,8 +467,11 @@ export const GameView: React.FC = () => {
               className={`game-view__nav-btn ${appNavOpen ? 'active' : ''}`}
               onClick={() => setAppNavOpen(!appNavOpen)}
               title="Menu"
+              aria-label="Open navigation menu"
+              aria-expanded={appNavOpen}
+              aria-haspopup="menu"
             >
-              <Menu size={18} />
+              <Menu size={18} aria-hidden="true" />
               {sidebarExpanded && <span className="game-view__nav-label">Menu</span>}
             </button>
             {appNavOpen && (
@@ -487,24 +499,30 @@ export const GameView: React.FC = () => {
             className={`game-view__nav-btn ${activePanel === 'drive' ? 'active' : ''}`}
             onClick={() => togglePanel('drive')}
             title="Current Drive"
+            aria-label="Toggle drive summary panel"
+            aria-pressed={activePanel === 'drive'}
           >
-            <Calendar size={18} />
+            <Calendar size={18} aria-hidden="true" />
             {sidebarExpanded && <span className="game-view__nav-label">Drive</span>}
           </button>
           <button
             className={`game-view__nav-btn ${activePanel === 'scout' ? 'active' : ''}`}
             onClick={() => togglePanel('scout')}
             title="Scouting Intel"
+            aria-label="Toggle scouting intel panel"
+            aria-pressed={activePanel === 'scout'}
           >
-            <Target size={18} />
+            <Target size={18} aria-hidden="true" />
             {sidebarExpanded && <span className="game-view__nav-label">Scout</span>}
           </button>
           <button
             className={`game-view__nav-btn ${activePanel === 'stats' ? 'active' : ''}`}
             onClick={() => togglePanel('stats')}
             title="Game Stats"
+            aria-label="Toggle game stats panel"
+            aria-pressed={activePanel === 'stats'}
           >
-            <BarChart3 size={18} />
+            <BarChart3 size={18} aria-hidden="true" />
             {sidebarExpanded && <span className="game-view__nav-label">Stats</span>}
           </button>
         </div>
@@ -514,17 +532,21 @@ export const GameView: React.FC = () => {
             className={`game-view__nav-btn ${activePanel === 'settings' ? 'active' : ''}`}
             onClick={() => togglePanel('settings')}
             title="Settings"
+            aria-label="Toggle settings panel"
+            aria-pressed={activePanel === 'settings'}
           >
-            <Settings size={18} />
+            <Settings size={18} aria-hidden="true" />
             {sidebarExpanded && <span className="game-view__nav-label">Settings</span>}
           </button>
-          <div className="game-view__nav-divider" />
+          <div className="game-view__nav-divider" role="separator" />
           <button
             className="game-view__nav-btn game-view__nav-toggle"
             onClick={() => setSidebarExpanded(!sidebarExpanded)}
-            title={sidebarExpanded ? 'Collapse' : 'Expand'}
+            title={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-label={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-expanded={sidebarExpanded}
           >
-            {sidebarExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+            {sidebarExpanded ? <ChevronLeft size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
           </button>
         </div>
       </aside>
@@ -563,7 +585,7 @@ export const GameView: React.FC = () => {
       )}
 
       {/* Main Area */}
-      <div className="game-view__main">
+      <main id="game-main-content" className="game-view__main" role="main" aria-label="Game field and controls">
         {/* Top: Context Bar (game status | ticker | controls) */}
         <header className="game-view__context">
           {/* Left: Game Status */}
@@ -608,26 +630,32 @@ export const GameView: React.FC = () => {
               className={`game-view__ticker-pause ${tickerPaused ? 'paused' : ''}`}
               onClick={() => setTickerPaused(!tickerPaused)}
               title={tickerPaused ? 'Resume ticker' : 'Pause ticker'}
+              aria-label={tickerPaused ? 'Resume news ticker' : 'Pause news ticker'}
+              aria-pressed={tickerPaused}
             >
-              {tickerPaused ? <Play size={12} /> : <Pause size={12} />}
+              {tickerPaused ? <Play size={12} aria-hidden="true" /> : <Pause size={12} aria-hidden="true" />}
             </button>
           </div>
 
           {/* Right: View Controls */}
-          <div className="game-view__controls">
+          <div className="game-view__controls" role="group" aria-label="View controls">
             <button
               className={`game-view__view-btn ${viewMode === 'simulcast' ? 'active' : ''}`}
               onClick={() => setViewMode('simulcast')}
               title="Simulcast View (V)"
+              aria-label="Switch to simulcast view. Keyboard shortcut: V"
+              aria-pressed={viewMode === 'simulcast'}
             >
-              <Tv size={14} />
+              <Tv size={14} aria-hidden="true" />
             </button>
             <button
               className={`game-view__view-btn ${viewMode === 'full_field' ? 'active' : ''}`}
               onClick={() => setViewMode('full_field')}
               title="Full Field View (V)"
+              aria-label="Switch to full field view. Keyboard shortcut: V"
+              aria-pressed={viewMode === 'full_field'}
             >
-              <CircleDot size={14} />
+              <CircleDot size={14} aria-hidden="true" />
             </button>
             <span className="game-view__controls-sep" />
             {isSpectatorMode ? (
@@ -649,34 +677,99 @@ export const GameView: React.FC = () => {
           {/* Field Visualization */}
           <div className="game-view__field">
             {viewMode === 'simulcast' ? (
-              <SimulcastView
-                situation={situation}
-                formation={selectedFormation}
-                personnel={selectedPersonnel}
-                lastResult={lastResult}
-                showResult={phase === 'result'}
-                onDismissResult={handleDismissResult}
-                userOnOffense={userOnOffense}
-                possessionHome={situation.possessionHome}
-                currentDrive={currentDrive}
-                driveStartLos={currentDrive.length > 0 ? currentDrive[0].los : situation?.los || 25}
-                homeTeamColor={TEAM_COLORS[homeTeam]?.primary}
-                awayTeamColor={TEAM_COLORS[awayTeam]?.primary}
-                homeTeamLogo={TEAM_COLORS[homeTeam]?.logo}
-                homeTeam={homeTeam}
-                awayTeam={awayTeam}
-              />
-            ) : (
-              /* Live Play View - PixiJS canvas with playback controls */
-              <div className="game-view__live-play">
-                <PlayCanvas
-                  frames={playFrames}
-                  currentTick={currentPlayTick}
-                  isPlaying={isPlayAnimating}
-                  playbackSpeed={playbackSpeed}
-                  onTickChange={setCurrentPlayTick}
-                  onComplete={() => setIsPlayAnimating(false)}
+              <GameViewErrorBoundary section="Simulcast View" minimal>
+                <SimulcastView
+                  situation={situation}
+                  formation={selectedFormation}
+                  personnel={selectedPersonnel}
+                  lastResult={lastResult}
+                  showResult={phase === 'result'}
+                  onDismissResult={handleDismissResult}
+                  userOnOffense={userOnOffense}
+                  possessionHome={situation.possessionHome}
+                  currentDrive={currentDrive}
+                  driveStartLos={isSpectatorMode ? wsDriveStartLos : (currentDrive.length > 0 ? currentDrive[0].los : situation?.los || 25)}
+                  homeTeamColor={TEAM_COLORS[homeTeam]?.primary}
+                  awayTeamColor={TEAM_COLORS[awayTeam]?.primary}
+                  homeTeamLogo={TEAM_COLORS[homeTeam]?.logo}
+                  homeTeam={homeTeam}
+                  awayTeam={awayTeam}
                 />
+              </GameViewErrorBoundary>
+            ) : (
+              /* Live Play View - AWS Next Gen Stats style broadcast canvas */
+              <div className="game-view__live-play">
+                {/* Scoreboard bar */}
+                {situation && (
+                  <Scoreboard
+                    homeTeam={{
+                      abbr: homeTeam,
+                      primaryColor: TEAM_COLORS[homeTeam]?.primary || '#1565c0',
+                    }}
+                    awayTeam={{
+                      abbr: awayTeam,
+                      primaryColor: TEAM_COLORS[awayTeam]?.primary || '#b71c1c',
+                    }}
+                    homeScore={situation.homeScore}
+                    awayScore={situation.awayScore}
+                    quarter={situation.quarter}
+                    timeRemaining={situation.timeRemaining}
+                    down={situation.down}
+                    distance={situation.distance}
+                    possessionHome={situation.possessionHome}
+                  />
+                )}
+
+                {/* Zoom control */}
+                <div className="game-view__zoom-control">
+                  <label htmlFor="zoom-slider" className="game-view__zoom-label">Zoom</label>
+                  <input
+                    id="zoom-slider"
+                    type="range"
+                    min="0.5"
+                    max="3"
+                    step="0.1"
+                    value={zoomLevel}
+                    onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                    className="game-view__zoom-slider"
+                  />
+                  <span className="game-view__zoom-value">{zoomLevel.toFixed(1)}x</span>
+                </div>
+
+                {/* BroadcastCanvas - AWS Next Gen Stats style - fills container */}
+                <GameViewErrorBoundary section="Broadcast Canvas" minimal>
+                  <BroadcastCanvas
+                    frames={playFrames}
+                    currentTick={currentPlayTick}
+                    isPlaying={isPlayAnimating}
+                    viewMode="game"
+                    homeTeam={{
+                      abbr: homeTeam,
+                      primaryColor: TEAM_COLORS[homeTeam]?.primary || '#1565c0',
+                      logo: TEAM_COLORS[homeTeam]?.logo,
+                    }}
+                    awayTeam={{
+                      abbr: awayTeam,
+                      primaryColor: TEAM_COLORS[awayTeam]?.primary || '#b71c1c',
+                      logo: TEAM_COLORS[awayTeam]?.logo,
+                    }}
+                    userControlsHome={_userIsHome}
+                    possessionHome={situation?.possessionHome}
+                    fieldPosition={situation ? {
+                      yardLine: situation.los,
+                      yardsToGo: situation.distance,
+                      down: situation.down,
+                      ownTerritory: situation.los <= 50,
+                    } : undefined}
+                    showOffenseRoutes={userOnOffense || isSpectatorMode}
+                    showDefenseCoverage={!userOnOffense || isSpectatorMode}
+                    onTickChange={setCurrentPlayTick}
+                    onComplete={() => setIsPlayAnimating(false)}
+                    zoomLevel={zoomLevel}
+                  />
+                </GameViewErrorBoundary>
+
+                {/* Playback controls */}
                 <PlaybackControls
                   currentTick={currentPlayTick}
                   totalTicks={playFrames.length}
@@ -741,7 +834,7 @@ export const GameView: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
+      </main>
       </div>{/* end middle */}
 
       {/* Loading overlay */}

@@ -36,6 +36,7 @@ interface UseGameWebSocketResult {
   awayTeam: TeamInfo | null;
   lastResult: PlayResult | null;
   currentDrive: DrivePlay[];
+  driveStartLos: number;
   playLog: Array<{
     description: string;
     quarter: number;
@@ -111,6 +112,24 @@ export function useGameWebSocket(): UseGameWebSocketResult {
 
   const wsRef = useRef<WebSocket | null>(null);
   const driveStartLosRef = useRef<number>(25);
+
+  // Refs for values accessed in handleMessage to prevent stale closures
+  const situationRef = useRef(situation);
+  const homeTeamRef = useRef(homeTeam);
+  const awayTeamRef = useRef(awayTeam);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    situationRef.current = situation;
+  }, [situation]);
+
+  useEffect(() => {
+    homeTeamRef.current = homeTeam;
+  }, [homeTeam]);
+
+  useEffect(() => {
+    awayTeamRef.current = awayTeam;
+  }, [awayTeam]);
 
   // Auto-dismiss announcements after a delay
   const showAnnouncement = useCallback((
@@ -274,11 +293,11 @@ export function useGameWebSocket(): UseGameWebSocketResult {
             driveStartLosRef.current = Math.max(1, Math.min(99, result.new_los ?? 25));
           }
 
-          // Add to play log
+          // Add to play log (use refs to avoid stale closure)
           setPlayLog(prev => [...prev, {
             description: result.description || 'Play completed',
-            quarter: situation?.quarter || 1,
-            time: situation?.timeRemaining || '0:00',
+            quarter: situationRef.current?.quarter || 1,
+            time: situationRef.current?.timeRemaining || '0:00',
             isScoring: result.touchdown || false,
             isTurnover: result.turnover || false,
           }]);
@@ -308,11 +327,11 @@ export function useGameWebSocket(): UseGameWebSocketResult {
             setSituation(prev => prev ? { ...prev, los: newLos } : prev);
           }
 
-          // Add to play log
+          // Add to play log (use refs to avoid stale closure)
           setPlayLog(prev => [...prev, {
             description: result.description || `${playType} play`,
-            quarter: situation?.quarter || 1,
-            time: situation?.timeRemaining || '0:00',
+            quarter: situationRef.current?.quarter || 1,
+            time: situationRef.current?.timeRemaining || '0:00',
             isScoring: (result.points_scored || 0) > 0,
             isTurnover: false,
           }]);
@@ -342,12 +361,12 @@ export function useGameWebSocket(): UseGameWebSocketResult {
         }
 
         case 'drive_ended': {
-          // Drive finished summary
+          // Drive finished summary (use refs to avoid stale closure)
           setCurrentDrive([]);
           setPlayLog(prev => [...prev, {
             description: `Drive ended: ${message.result || 'possession change'}`,
-            quarter: situation?.quarter || 1,
-            time: situation?.timeRemaining || '0:00',
+            quarter: situationRef.current?.quarter || 1,
+            time: situationRef.current?.timeRemaining || '0:00',
             isScoring: message.result === 'touchdown' || message.result === 'field_goal',
             isTurnover: message.result === 'turnover' || message.result === 'turnover_on_downs',
           }]);
@@ -362,8 +381,9 @@ export function useGameWebSocket(): UseGameWebSocketResult {
             homeScore: finalScore.home ?? prev.homeScore,
             awayScore: finalScore.away ?? prev.awayScore,
           } : prev);
+          // Use refs to avoid stale closure
           setPlayLog(prev => [...prev, {
-            description: `FINAL: ${homeTeam?.abbreviation || 'Home'} ${finalScore.home || 0} - ${awayTeam?.abbreviation || 'Away'} ${finalScore.away || 0}`,
+            description: `FINAL: ${homeTeamRef.current?.abbreviation || 'Home'} ${finalScore.home || 0} - ${awayTeamRef.current?.abbreviation || 'Away'} ${finalScore.away || 0}`,
             quarter: 4,
             time: '0:00',
             isScoring: false,
@@ -413,7 +433,7 @@ export function useGameWebSocket(): UseGameWebSocketResult {
     } catch (err) {
       console.error('[WS Coach] Failed to parse message:', err);
     }
-  }, [parseSituation, situation, homeTeam, awayTeam]);
+  }, [parseSituation, showAnnouncement]); // Uses refs for situation/homeTeam/awayTeam to avoid stale closures
 
   // Start a new game using Coach API (V2 simulation)
   const startGame = useCallback(async (homeTeamCode: string, awayTeamCode: string) => {
@@ -648,6 +668,7 @@ export function useGameWebSocket(): UseGameWebSocketResult {
     awayTeam,
     lastResult,
     currentDrive,
+    driveStartLos: driveStartLosRef.current,
     playLog,
     isPaused,
     pacing,

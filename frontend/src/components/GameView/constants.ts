@@ -11,7 +11,59 @@ import type {
   CoverageScheme,
   BlitzPackage,
   LeagueScore,
+  GameSituation,
+  PlayOption,
 } from './types';
+
+// Development-only mock mode flag
+// Set VITE_USE_MOCK_DATA=true in .env.local to enable mock fallbacks
+export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
+// Mock initial situation for development
+export const MOCK_SITUATION: GameSituation = {
+  quarter: 2,
+  timeRemaining: '5:42',
+  down: 2,
+  distance: 7,
+  los: 65,
+  yardLineDisplay: 'OPP 35',
+  homeScore: 21,
+  awayScore: 14,
+  possessionHome: true,
+  isRedZone: false,
+  isGoalToGo: false,
+  userOnOffense: true,
+  homeTimeouts: 3,
+  awayTimeouts: 2,
+};
+
+// Mock available plays for development
+export const MOCK_PLAYS: PlayOption[] = [
+  { code: 'INSIDE_ZONE', name: 'Inside Zone', category: 'run', isRecommended: true },
+  { code: 'POWER', name: 'Power', category: 'run' },
+  { code: 'COUNTER', name: 'Counter', category: 'run' },
+  { code: 'DRAW', name: 'Draw', category: 'run' },
+  { code: 'STRETCH', name: 'Stretch', category: 'run' },
+  { code: 'SLANT', name: 'Slant', category: 'quick' },
+  { code: 'HITCH', name: 'Hitch', category: 'quick' },
+  { code: 'OUT', name: 'Out', category: 'quick' },
+  { code: 'CURL', name: 'Curl', category: 'intermediate' },
+  { code: 'DIG', name: 'Dig', category: 'intermediate' },
+  { code: 'POST', name: 'Post', category: 'deep' },
+  { code: 'GO_ROUTE', name: 'Go Route', category: 'deep' },
+  { code: 'FADE', name: 'Fade', category: 'deep' },
+  { code: 'SCREEN', name: 'Screen', category: 'screen' },
+  { code: 'PA_BOOT', name: 'PA Boot', category: 'play_action' },
+];
+
+// Mock ticker events for game
+export const MOCK_TICKER_EVENTS = [
+  { type: 'play', text: 'DAL ball at own 25 after touchback' },
+  { type: 'score', text: 'TOUCHDOWN - NYG leads 7-0' },
+  { type: 'injury', text: 'DAL WR questionable to return (hamstring)' },
+  { type: 'play', text: 'NYG: 8 plays, 75 yards, 4:32 TOP' },
+  { type: 'league', text: 'PHI 14, WAS 10 - 3rd Quarter' },
+];
 
 // Formation configurations with visual data
 export const FORMATIONS: Record<Formation, {
