@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from huddle.core.playbook import Playbook, PlayerPlayKnowledge
     from huddle.core.game_prep import GamePrepBonus
     from huddle.core.draft.picks import DraftPickInventory
-    from huddle.core.models.team_identity import TeamStatusState
+    from huddle.core.models.team_identity import TeamStatusState, TeamIdentity
 
 
 @dataclass
@@ -310,6 +310,12 @@ class Team:
     # Team status state (contending, rebuilding, etc.)
     status: Optional["TeamStatusState"] = None
 
+    # Team identity (offensive/defensive scheme, philosophy)
+    identity: Optional["TeamIdentity"] = None
+
+    # GM archetype (affects draft/trade behavior)
+    gm_archetype: Optional[str] = None  # e.g., "analytics_architect", "old_school"
+
     # Playbook system (play knowledge tracking)
     playbook: Optional["Playbook"] = None
     player_knowledge: Dict[UUID, "PlayerPlayKnowledge"] = field(default_factory=dict)
@@ -517,6 +523,14 @@ class Team:
         if self.status:
             data["status"] = self.status.to_dict()
 
+        # Include team identity if present
+        if self.identity:
+            data["identity"] = self.identity.to_dict()
+
+        # Include GM archetype if present
+        if self.gm_archetype:
+            data["gm_archetype"] = self.gm_archetype
+
         return data
 
     @classmethod
@@ -577,6 +591,15 @@ class Team:
             from huddle.core.models.team_identity import TeamStatusState
             status = TeamStatusState.from_dict(data["status"])
 
+        # Load team identity if present
+        identity = None
+        if "identity" in data:
+            from huddle.core.models.team_identity import TeamIdentity
+            identity = TeamIdentity.from_dict(data["identity"])
+
+        # Load GM archetype if present
+        gm_archetype = data.get("gm_archetype")
+
         team = cls(
             id=UUID(data["id"]) if "id" in data else uuid4(),
             name=data.get("name", ""),
@@ -589,6 +612,8 @@ class Team:
             financials=financials,
             draft_picks=draft_picks,
             status=status,
+            identity=identity,
+            gm_archetype=gm_archetype,
             playbook=playbook,
             player_knowledge=player_knowledge,
             game_prep_bonus=game_prep_bonus,

@@ -67,6 +67,146 @@ class DefensiveScheme(Enum):
 
 
 # =============================================================================
+# Scheme -> Archetype Preferences (HC09-style scheme fit)
+# =============================================================================
+# Maps offensive/defensive schemes to preferred player archetypes at each position.
+# These preferences affect draft evaluations and trade valuations.
+# Archetype values come from huddle.core.philosophy.positions enums.
+
+OFFENSIVE_SCHEME_ARCHETYPE_PREFERENCES: dict[OffensiveScheme, dict[str, list[str]]] = {
+    OffensiveScheme.POWER_RUN: {
+        "QB": ["field_general", "strong_arm"],  # Game managers, play action
+        "RB": ["power", "workhorse"],  # Bruising backs
+        "WR": ["strong", "tall"],  # Physical receivers
+        "TE": ["blocker"],  # Inline blocking TEs
+        "OL": ["run_block"],  # Maulers
+    },
+    OffensiveScheme.ZONE_RUN: {
+        "QB": ["field_general", "pure_passer"],  # Timing passers
+        "RB": ["moves", "speed"],  # One-cut, patient backs
+        "WR": ["quick", "speed"],  # YAC receivers
+        "TE": ["playmaker", "soft_hands"],  # Receiving options
+        "OL": ["zone_blocking"],  # Athletic OL
+    },
+    OffensiveScheme.OPTION: {
+        "QB": ["mobile"],  # Dual-threat QBs
+        "RB": ["speed", "moves"],  # Versatile backs
+        "WR": ["speed", "quick"],  # Deep threats
+        "TE": ["playmaker"],  # Athletic TEs
+        "OL": ["zone_blocking", "run_block"],  # Mobile line
+    },
+    OffensiveScheme.WEST_COAST: {
+        "QB": ["pure_passer", "field_general"],  # Accurate, quick decisions
+        "RB": ["receiving"],  # Pass-catching backs
+        "WR": ["quick"],  # Route technicians
+        "TE": ["soft_hands", "playmaker"],  # Receiving TEs
+        "OL": ["pass_block"],  # Pass protectors
+    },
+    OffensiveScheme.PRO_STYLE: {
+        "QB": ["field_general"],  # Balanced QBs
+        "RB": ["workhorse", "power"],  # Bell-cow backs
+        "WR": ["strong", "tall"],  # Possession receivers
+        "TE": ["playmaker"],  # Versatile TEs
+        "OL": ["run_block", "pass_block"],  # Balanced line
+    },
+    OffensiveScheme.PISTOL: {
+        "QB": ["mobile", "field_general"],  # Dual-threat capable
+        "RB": ["speed", "moves"],  # Versatile backs
+        "WR": ["quick", "speed"],  # Playmakers
+        "TE": ["playmaker"],  # Receiving TEs
+        "OL": ["zone_blocking"],  # Mobile line
+    },
+    OffensiveScheme.AIR_RAID: {
+        "QB": ["strong_arm", "pure_passer"],  # Big arms, quick releases
+        "RB": ["receiving", "speed"],  # Pass-catching backs
+        "WR": ["speed", "quick"],  # Speedsters
+        "TE": ["soft_hands", "playmaker"],  # Receiving options
+        "OL": ["pass_block"],  # Pass protectors
+    },
+    OffensiveScheme.SPREAD: {
+        "QB": ["mobile", "strong_arm"],  # Athletic QBs
+        "RB": ["speed", "receiving"],  # Versatile backs
+        "WR": ["speed", "quick"],  # Playmakers
+        "TE": ["playmaker", "soft_hands"],  # Receiving TEs
+        "OL": ["pass_block", "zone_blocking"],  # Mobile pass protectors
+    },
+    OffensiveScheme.VERTICAL: {
+        "QB": ["strong_arm"],  # Big arms
+        "RB": ["speed"],  # Speed backs
+        "WR": ["speed", "tall"],  # Deep threats
+        "TE": ["playmaker"],  # Seam stretchers
+        "OL": ["pass_block"],  # Pass protectors
+    },
+}
+
+DEFENSIVE_SCHEME_ARCHETYPE_PREFERENCES: dict[DefensiveScheme, dict[str, list[str]]] = {
+    DefensiveScheme.DEFENSE_4_3: {
+        "DL": ["one_gap"],  # Penetrating DL
+        "LB": ["run_stopper", "coverage"],  # Balanced LBs
+        "CB": ["man_coverage"],  # Man corners
+        "FS": ["centerfielder"],  # Range safeties
+        "SS": ["smart_productive"],  # Run support
+    },
+    DefensiveScheme.DEFENSE_3_4: {
+        "DL": ["run_stopper", "versatile"],  # Space-eaters
+        "LB": ["blitzer", "run_stopper"],  # Pass-rush LBs
+        "CB": ["man_coverage", "press_run_support"],  # Physical corners
+        "FS": ["centerfielder"],  # Coverage safeties
+        "SS": ["big_hitter"],  # Run support
+    },
+    DefensiveScheme.HYBRID: {
+        "DL": ["versatile"],  # Multi-position DL
+        "LB": ["coverage", "blitzer"],  # Athletic LBs
+        "CB": ["man_coverage"],  # Versatile corners
+        "FS": ["centerfielder", "man_coverage"],  # Versatile safeties
+        "SS": ["smart_productive"],  # Hybrid safeties
+    },
+    DefensiveScheme.MAN_PRESS: {
+        "DL": ["one_gap"],  # Pass rushers
+        "LB": ["coverage"],  # Athletic LBs
+        "CB": ["man_coverage", "press_run_support"],  # Physical man corners
+        "FS": ["man_coverage"],  # Man coverage safeties
+        "SS": ["coverage"],  # Slot coverage
+    },
+    DefensiveScheme.COVER_2: {
+        "DL": ["run_stopper"],  # Run stuffers
+        "LB": ["coverage"],  # Zone coverage LBs
+        "CB": ["cover_2"],  # Flat/curl defenders
+        "FS": ["centerfielder"],  # Half-field safeties
+        "SS": ["centerfielder"],  # Half-field safeties
+    },
+    DefensiveScheme.COVER_3: {
+        "DL": ["run_stopper", "one_gap"],  # Gap control
+        "LB": ["coverage", "run_stopper"],  # Zone LBs
+        "CB": ["cover_2", "man_coverage"],  # Deep third corners
+        "FS": ["centerfielder"],  # Center field
+        "SS": ["run_stopper"],  # Box safety
+    },
+    DefensiveScheme.QUARTERS: {
+        "DL": ["versatile"],  # Gap control
+        "LB": ["coverage"],  # Zone LBs
+        "CB": ["cover_2", "man_coverage"],  # Pattern match corners
+        "FS": ["centerfielder"],  # Deep quarter
+        "SS": ["centerfielder"],  # Deep quarter
+    },
+    DefensiveScheme.BLITZ_HEAVY: {
+        "DL": ["one_gap"],  # Pass rushers
+        "LB": ["blitzer"],  # Pressure LBs
+        "CB": ["man_coverage", "press_run_support"],  # Man corners
+        "FS": ["man_coverage"],  # Single-high
+        "SS": ["big_hitter"],  # Blitzing safety
+    },
+    DefensiveScheme.BEND_DONT_BREAK: {
+        "DL": ["run_stopper"],  # Gap control
+        "LB": ["coverage", "run_stopper"],  # Conservative LBs
+        "CB": ["cover_2"],  # Soft zone corners
+        "FS": ["centerfielder"],  # Deep safety
+        "SS": ["centerfielder"],  # Deep support
+    },
+}
+
+
+# =============================================================================
 # Personnel Preferences (affects drafting/signing)
 # =============================================================================
 
@@ -707,6 +847,45 @@ class TeamIdentity:
             emphasis["pursuit"] = 1.1
 
         return emphasis
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return {
+            "offensive_scheme": self.offensive_scheme.name,
+            "defensive_scheme": self.defensive_scheme.name,
+            "athleticism_preference": self.athleticism_preference.name,
+            "projection_preference": self.projection_preference.name,
+            "age_preference": self.age_preference.name,
+            "draft_philosophy": self.draft_philosophy.name,
+            "trade_philosophy": self.trade_philosophy.name,
+            "trade_negotiation": self.trade_negotiation.name,
+            "free_agency_philosophy": self.free_agency_philosophy.name,
+            "retention_philosophy": self.retention_philosophy.name,
+            "run_tendency": self.run_tendency,
+            "aggression": self.aggression,
+            "blitz_tendency": self.blitz_tendency,
+            "tempo": self.tempo,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "TeamIdentity":
+        """Create from dictionary."""
+        return cls(
+            offensive_scheme=OffensiveScheme[data.get("offensive_scheme", "PRO_STYLE")],
+            defensive_scheme=DefensiveScheme[data.get("defensive_scheme", "DEFENSE_4_3")],
+            athleticism_preference=PersonnelPreference[data.get("athleticism_preference", "BALANCED_ATHLETICISM")],
+            projection_preference=PersonnelPreference[data.get("projection_preference", "BALANCED_PROJECTION")],
+            age_preference=PersonnelPreference[data.get("age_preference", "BALANCED_AGE")],
+            draft_philosophy=DraftPhilosophy[data.get("draft_philosophy", "VALUE_BASED")],
+            trade_philosophy=TradePhilosophy[data.get("trade_philosophy", "MODERATE_TRADER")],
+            trade_negotiation=TradePhilosophy[data.get("trade_negotiation", "HAGGLE")],
+            free_agency_philosophy=FreeAgencyPhilosophy[data.get("free_agency_philosophy", "MODERATE_SPENDER")],
+            retention_philosophy=FreeAgencyPhilosophy[data.get("retention_philosophy", "BALANCED_RETENTION")],
+            run_tendency=data.get("run_tendency", 0.5),
+            aggression=data.get("aggression", 0.5),
+            blitz_tendency=data.get("blitz_tendency", 0.3),
+            tempo=data.get("tempo", 0.5),
+        )
 
 
 # =============================================================================

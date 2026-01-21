@@ -472,3 +472,111 @@ def get_scheme_fit_label(difference: int) -> str:
         return "Poor Fit"
     else:
         return "Scheme Mismatch"
+
+
+def calculate_scheme_fit_overall(
+    player,
+    offensive_scheme=None,
+    defensive_scheme=None,
+) -> int:
+    """
+    Calculate a player's OVR adjusted for scheme fit (HC09-style).
+
+    This is the main function for AI draft/trade evaluation. It uses the
+    player's archetype and the team's scheme to determine fit bonuses/penalties.
+
+    A Power RB might be 88 OVR to their archetype weights, but:
+    - +5 OVR to a Power Run team (perfect fit)
+    - -3 OVR to a Zone Run team (scheme mismatch)
+
+    Args:
+        player: The Player object with player_archetype set
+        offensive_scheme: Optional OffensiveScheme enum value
+        defensive_scheme: Optional DefensiveScheme enum value
+
+    Returns:
+        Scheme-adjusted OVR rating
+    """
+    from huddle.core.models.team_identity import (
+        OFFENSIVE_SCHEME_ARCHETYPE_PREFERENCES,
+        DEFENSIVE_SCHEME_ARCHETYPE_PREFERENCES,
+    )
+
+    # Start with the player's archetype-based OVR
+    base_ovr = player.archetype_overall
+
+    if not player.player_archetype:
+        return base_ovr
+
+    position = player.position.value
+    archetype = player.player_archetype
+
+    # Determine which scheme preferences to check based on position
+    is_offensive = position in ["QB", "RB", "FB", "WR", "TE", "LT", "LG", "C", "RG", "RT"]
+    is_defensive = position in ["DE", "DT", "NT", "MLB", "ILB", "OLB", "CB", "FS", "SS"]
+
+    # Normalize position groups for lookup
+    # OL positions all map to "OL" in the preferences
+    position_lookup = position
+    if position in ["LT", "LG", "C", "RG", "RT"]:
+        position_lookup = "OL"
+    elif position in ["DE", "DT", "NT"]:
+        position_lookup = "DL"
+    elif position in ["MLB", "ILB", "OLB"]:
+        position_lookup = "LB"
+
+    scheme_bonus = 0
+
+    # Check offensive scheme fit
+    if is_offensive and offensive_scheme:
+        prefs = OFFENSIVE_SCHEME_ARCHETYPE_PREFERENCES.get(offensive_scheme, {})
+        preferred_archetypes = prefs.get(position_lookup, [])
+
+        if archetype in preferred_archetypes:
+            # Perfect fit - bonus based on position in preference list
+            # First preference = +5, second = +3
+            idx = preferred_archetypes.index(archetype)
+            scheme_bonus = 5 - (idx * 2)
+            scheme_bonus = max(scheme_bonus, 2)  # Minimum +2 for any match
+        elif preferred_archetypes:
+            # Scheme has preferences but player doesn't match
+            scheme_bonus = -3
+
+    # Check defensive scheme fit
+    if is_defensive and defensive_scheme:
+        prefs = DEFENSIVE_SCHEME_ARCHETYPE_PREFERENCES.get(defensive_scheme, {})
+        preferred_archetypes = prefs.get(position_lookup, [])
+
+        if archetype in preferred_archetypes:
+            idx = preferred_archetypes.index(archetype)
+            scheme_bonus = 5 - (idx * 2)
+            scheme_bonus = max(scheme_bonus, 2)
+        elif preferred_archetypes:
+            scheme_bonus = -3
+
+    # Apply bonus and clamp to valid range
+    adjusted_ovr = base_ovr + scheme_bonus
+    return max(40, min(99, adjusted_ovr))
+
+
+def get_scheme_fit_bonus(
+    player,
+    offensive_scheme=None,
+    defensive_scheme=None,
+) -> int:
+    """
+    Get just the scheme fit bonus/penalty without the full OVR.
+
+    Useful for displaying scheme fit information to the user.
+
+    Args:
+        player: The Player object
+        offensive_scheme: Optional OffensiveScheme enum value
+        defensive_scheme: Optional DefensiveScheme enum value
+
+    Returns:
+        Scheme fit bonus (-3 to +5 typically)
+    """
+    base_ovr = player.archetype_overall
+    scheme_ovr = calculate_scheme_fit_overall(player, offensive_scheme, defensive_scheme)
+    return scheme_ovr - base_ovr

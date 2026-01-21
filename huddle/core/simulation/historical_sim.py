@@ -62,6 +62,11 @@ from huddle.core.ai import (
     calculate_team_needs,
     select_starters,
 )
+from huddle.core.ai.draft_ai import (
+    MockDraft,
+    MockDraftEntry,
+    generate_mock_draft,
+)
 from huddle.core.ai.gm_archetypes import GMArchetype, GMProfile
 from huddle.core.ai.position_planner import (
     PositionPlan,
@@ -73,6 +78,14 @@ from huddle.core.ai.position_planner import (
     update_plan_after_fa,
     update_plan_after_draft,
     get_draft_target,
+)
+from huddle.core.ai.trade_market import (
+    TradeMarketConfig,
+    TradeMarket,
+    TeamTradeState,
+    ExecutedTrade,
+    simulate_trade_market,
+    attempt_blockbuster_trade,
 )
 
 
@@ -117,6 +130,74 @@ class TeamState:
     @property
     def cap_space(self) -> int:
         return self.salary_cap - self.cap_used
+
+    def to_dict(self) -> dict:
+        from huddle.core.models.player import Player
+        from huddle.core.contracts.contract import Contract
+        from huddle.core.models.team_identity import TeamIdentity
+
+        return {
+            "team_id": self.team_id,
+            "team_name": self.team_name,
+            "roster": [p.to_dict() for p in self.roster],
+            "contracts": {
+                str(pid): c.to_dict() for pid, c in self.contracts.items()
+            },
+            "pick_inventory": self.pick_inventory.to_dict() if self.pick_inventory else None,
+            "status": self.status.to_dict() if self.status else None,
+            "identity": self.identity.to_dict() if hasattr(self.identity, 'to_dict') else None,
+            "gm_archetype": self.gm_archetype.value if self.gm_archetype else None,
+            "wins": self.wins,
+            "losses": self.losses,
+            "made_playoffs": self.made_playoffs,
+            "won_championship": self.won_championship,
+            "salary_cap": self.salary_cap,
+            "cap_used": self.cap_used,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "TeamState":
+        from huddle.core.models.player import Player
+        from huddle.core.contracts.contract import Contract
+        from huddle.core.models.team_identity import TeamStatusState, TeamIdentity
+
+        roster = [Player.from_dict(p) for p in data.get("roster", [])]
+        contracts = {
+            pid: Contract.from_dict(c) for pid, c in data.get("contracts", {}).items()
+        }
+        pick_inventory = (
+            DraftPickInventory.from_dict(data["pick_inventory"])
+            if data.get("pick_inventory") else None
+        )
+        status = (
+            TeamStatusState.from_dict(data["status"])
+            if data.get("status") else None
+        )
+        identity = (
+            TeamIdentity.from_dict(data["identity"])
+            if data.get("identity") else None
+        )
+        gm_archetype = (
+            GMArchetype(data["gm_archetype"])
+            if data.get("gm_archetype") else None
+        )
+
+        return cls(
+            team_id=data["team_id"],
+            team_name=data["team_name"],
+            roster=roster,
+            contracts=contracts,
+            pick_inventory=pick_inventory,
+            status=status,
+            identity=identity,
+            gm_archetype=gm_archetype,
+            wins=data.get("wins", 0),
+            losses=data.get("losses", 0),
+            made_playoffs=data.get("made_playoffs", False),
+            won_championship=data.get("won_championship", False),
+            salary_cap=data.get("salary_cap", 255_000),
+            cap_used=data.get("cap_used", 0),
+        )
 
 
 def get_nfl_team_data() -> list[dict]:
@@ -176,6 +257,29 @@ class SeasonSnapshot:
     won_championship: bool
     status: str
 
+    def to_dict(self) -> dict:
+        return {
+            "team_id": self.team_id,
+            "team_name": self.team_name,
+            "wins": self.wins,
+            "losses": self.losses,
+            "made_playoffs": self.made_playoffs,
+            "won_championship": self.won_championship,
+            "status": self.status,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SeasonSnapshot":
+        return cls(
+            team_id=data["team_id"],
+            team_name=data["team_name"],
+            wins=data["wins"],
+            losses=data["losses"],
+            made_playoffs=data["made_playoffs"],
+            won_championship=data["won_championship"],
+            status=data["status"],
+        )
+
 
 @dataclass
 class PlayerDevelopmentHistory:
@@ -196,6 +300,23 @@ class PlayerDevelopmentHistory:
             for e in self.entries
         ]
 
+    def to_dict(self) -> dict:
+        return {
+            "player_id": self.player_id,
+            "player_name": self.player_name,
+            "position": self.position,
+            "entries": self.entries,  # Already list of dicts
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "PlayerDevelopmentHistory":
+        return cls(
+            player_id=data["player_id"],
+            player_name=data["player_name"],
+            position=data["position"],
+            entries=data.get("entries", []),
+        )
+
 
 @dataclass
 class SimulationResult:
@@ -209,9 +330,202 @@ class SimulationResult:
     # Development tracking
     development_histories: dict = field(default_factory=dict)  # player_id -> PlayerDevelopmentHistory
 
+    # Blockbuster trades tracked during simulation
+    blockbuster_trades: list = field(default_factory=list)
+
     # Summary
     seasons_simulated: int = 0
     total_transactions: int = 0
+
+    def to_league(self, name: str = "NFL League") -> League:
+        """
+        Convert simulation results to a League object with full history.
+
+        This creates a League ready for play with:
+        - All teams with rosters, identities, statuses, and GM archetypes
+        - Complete historical data (season_history, draft_history, player_development)
+        - Transaction log
+        - Calendar for current season
+
+        Returns:
+            League object with embedded historical data
+        """
+        from huddle.core.models.team import Team, Roster
+        from huddle.core.models.team_identity import TeamFinancials
+        from huddle.generators.player import generate_player
+
+        # Find the final season from calendars
+        final_season = max(c.season for c in self.calendars) if self.calendars else 2024
+
+        league = League(
+            name=name,
+            current_season=final_season,
+            current_week=0,  # Start in offseason
+        )
+
+        # Convert TeamState to Team for each team
+        for team_id, team_state in self.teams.items():
+            # Create roster from players
+            roster = Roster()
+            for player in team_state.roster:
+                roster.add_player(player, assign_jersey=False)
+
+            # Create Team with all historical sim data
+            team = Team(
+                name=team_state.team_name,
+                abbreviation=team_id,
+                city=team_state.team_name.split()[0] if team_state.team_name else team_id,
+                roster=roster,
+                financials=TeamFinancials(
+                    salary_cap=team_state.salary_cap,
+                    total_salary=team_state.cap_used,
+                ),
+                status=team_state.status,
+                identity=team_state.identity,
+                gm_archetype=team_state.gm_archetype.value if team_state.gm_archetype else None,
+            )
+
+            # Add draft picks inventory
+            if team_state.pick_inventory:
+                team.draft_picks = team_state.pick_inventory
+
+            league.teams[team_id] = team
+
+            # Initialize standings
+            league.standings[team_id] = TeamStanding(
+                team_id=team.id,
+                abbreviation=team_id,
+                wins=team_state.wins,
+                losses=team_state.losses,
+            )
+
+        # Populate season_history from season_standings
+        for year, snapshots in self.season_standings.items():
+            league.season_history[year] = [
+                {
+                    "team_abbr": s.team_id,
+                    "team_name": s.team_name,
+                    "wins": s.wins,
+                    "losses": s.losses,
+                    "made_playoffs": s.made_playoffs,
+                    "won_championship": s.won_championship,
+                    "status": s.status,
+                }
+                for s in snapshots
+            ]
+
+            # Also populate champions
+            for s in snapshots:
+                if s.won_championship:
+                    league.champions[year] = s.team_id
+
+        # Populate draft_history from draft_histories
+        for year, draft_state in self.draft_histories.items():
+            league.draft_history[year] = []
+            for pick in draft_state.picks:
+                if pick.player:
+                    league.draft_history[year].append({
+                        "round": pick.round,
+                        "pick": pick.pick_number,
+                        "team_abbr": pick.team_id,
+                        "player_id": str(pick.player.id),
+                        "player_name": pick.player.full_name,
+                        "position": pick.player.position.value,
+                        "overall_at_draft": pick.player.overall,
+                        "archetype": pick.player.player_archetype,
+                    })
+
+        # Populate player_development from development_histories
+        for player_id, dev_history in self.development_histories.items():
+            league.player_development[player_id] = [
+                {
+                    "season": entry.get("season"),
+                    "age": entry.get("age_after"),
+                    "overall_before": entry.get("overall_before"),
+                    "overall_after": entry.get("overall_after"),
+                    "change": entry.get("change", 0),
+                }
+                for entry in dev_history.entries
+            ]
+
+        # Populate blockbuster_trades
+        league.blockbuster_trades = self.blockbuster_trades
+
+        # Attach transaction log
+        league.transactions = self.transaction_log
+
+        # Attach the most recent calendar
+        if self.calendars:
+            league.calendar = self.calendars[-1]
+
+        return league
+
+    def to_dict(self) -> dict:
+        """Serialize simulation result to dict for saving."""
+        from huddle.core.calendar.league_calendar import LeagueCalendar
+
+        return {
+            "teams": {
+                team_id: team_state.to_dict()
+                for team_id, team_state in self.teams.items()
+            },
+            "transaction_log": self.transaction_log.to_dict(),
+            "calendars": [cal.to_dict() for cal in self.calendars],
+            "draft_histories": {
+                str(year): draft_state.to_dict()
+                for year, draft_state in self.draft_histories.items()
+            },
+            "season_standings": {
+                str(year): [snapshot.to_dict() for snapshot in snapshots]
+                for year, snapshots in self.season_standings.items()
+            },
+            "development_histories": {
+                player_id: dev_history.to_dict()
+                for player_id, dev_history in self.development_histories.items()
+            },
+            "blockbuster_trades": self.blockbuster_trades,  # Already list of dicts
+            "seasons_simulated": self.seasons_simulated,
+            "total_transactions": self.total_transactions,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SimulationResult":
+        """Deserialize simulation result from dict."""
+        from huddle.core.calendar.league_calendar import LeagueCalendar
+
+        teams = {
+            team_id: TeamState.from_dict(team_data)
+            for team_id, team_data in data.get("teams", {}).items()
+        }
+        transaction_log = TransactionLog.from_dict(data.get("transaction_log", {}))
+        calendars = [
+            LeagueCalendar.from_dict(cal_data)
+            for cal_data in data.get("calendars", [])
+        ]
+        draft_histories = {
+            int(year): DraftState.from_dict(draft_data)
+            for year, draft_data in data.get("draft_histories", {}).items()
+        }
+        season_standings = {
+            int(year): [SeasonSnapshot.from_dict(s) for s in snapshots]
+            for year, snapshots in data.get("season_standings", {}).items()
+        }
+        development_histories = {
+            player_id: PlayerDevelopmentHistory.from_dict(dev_data)
+            for player_id, dev_data in data.get("development_histories", {}).items()
+        }
+
+        return cls(
+            teams=teams,
+            transaction_log=transaction_log,
+            calendars=calendars,
+            draft_histories=draft_histories,
+            season_standings=season_standings,
+            development_histories=development_histories,
+            blockbuster_trades=data.get("blockbuster_trades", []),
+            seasons_simulated=data.get("seasons_simulated", 0),
+            total_transactions=data.get("total_transactions", 0),
+        )
 
 
 class HistoricalSimulator:
@@ -243,6 +557,7 @@ class HistoricalSimulator:
         self.draft_histories: dict[int, DraftState] = {}
         self.season_standings: dict[int, list[SeasonSnapshot]] = {}
         self.development_histories: dict[str, PlayerDevelopmentHistory] = {}
+        self.blockbuster_trades: list[dict] = []  # Notable trades with details
 
         # Current simulation state
         self.current_season: int = 0
@@ -309,6 +624,7 @@ class HistoricalSimulator:
             draft_histories=self.draft_histories,
             season_standings=self.season_standings,
             development_histories=self.development_histories,
+            blockbuster_trades=self.blockbuster_trades,
             seasons_simulated=self.config.years_to_simulate + 1,
             total_transactions=len(self.transaction_log.transactions),
         )
@@ -693,134 +1009,202 @@ class HistoricalSimulator:
 
         return prospects
 
-    def _simulate_trades(self, season: int):
+    def _simulate_trades(self, season: int, config: Optional[TradeMarketConfig] = None):
         """
-        Simulate trades between teams using commitment-aware valuations.
+        Simulate trades using competitive market-based auction system.
 
-        Teams with decided acquisition paths (DRAFT_EARLY for QB) value
-        their picks at 1.4-1.6x market, making them harder to trade away.
-
-        Teams planning to address positions via FREE_AGENCY are more
-        willing to trade picks (0.9x valuation).
+        Replaces sequential trading with a simultaneous market where:
+        1. All 32 teams participate equally
+        2. Multiple teams can bid on the same asset
+        3. Sellers pick the best offer, not the first acceptable one
+        4. Trade volume determined by market demand, not arbitrary caps
         """
         self._log(f"  Simulating trades for {season}...")
+
+        if config is None:
+            config = TradeMarketConfig()
 
         # Generate draft prospects for trade valuation
         draft_prospects = self._generate_draft_prospects(season)
 
-        trades_made = 0
-        max_trades = 8  # Cap trades per offseason for realism
+        # Convert TeamState objects to TeamTradeState for market system
+        trade_states = self._create_trade_states()
 
-        # Each team identifies trade candidates and seeks partners
-        for team in self.teams.values():
-            if trades_made >= max_trades:
-                break
+        # =============================================================
+        # Phase 0: Blockbuster Trades (10% chance per offseason)
+        # =============================================================
+        blockbuster = attempt_blockbuster_trade(
+            teams=trade_states,
+            season=season,
+            config=config,
+            draft_prospects=draft_prospects,
+        )
 
-            # Skip teams without plans (shouldn't happen)
-            if not team.position_plan:
-                continue
+        if blockbuster:
+            self._execute_market_trade(blockbuster, season)
+            self._log(f"    BLOCKBUSTER: {blockbuster}")
+            self._record_blockbuster(blockbuster, season)
 
+        # =============================================================
+        # Market-Based Trading (all teams participate equally)
+        # =============================================================
+        def on_trade(trade: ExecutedTrade, round_num: int):
+            """Callback for each executed trade."""
+            self._execute_market_trade(trade, season)
+            # Log trade details
+            to_buyer = ", ".join(
+                a.player_name or str(a.pick) for a in trade.assets_to_buyer[:2]
+            )
+            self._log(f"    Round {round_num}: {trade.seller_team_id} -> {trade.buyer_team_id}: {to_buyer}")
+
+        executed_trades = simulate_trade_market(
+            teams=trade_states,
+            season=season,
+            config=config,
+            draft_prospects=draft_prospects,
+            on_trade=on_trade,
+        )
+
+        # Summarize results
+        total_trades = len(executed_trades) + (1 if blockbuster else 0)
+        participating_teams = set()
+        for trade in executed_trades:
+            participating_teams.add(trade.seller_team_id)
+            participating_teams.add(trade.buyer_team_id)
+        if blockbuster:
+            participating_teams.add(blockbuster.seller_team_id)
+            participating_teams.add(blockbuster.buyer_team_id)
+
+        self._log(f"    {total_trades} trades completed, {len(participating_teams)} teams participated")
+
+    def _create_trade_states(self) -> dict[str, TeamTradeState]:
+        """
+        Convert TeamState objects to TeamTradeState for market system.
+
+        This creates a lightweight wrapper that the trade market functions
+        can operate on without circular imports.
+        """
+        trade_states = {}
+
+        for team_id, team in self.teams.items():
             # Calculate needs
             needs = calculate_team_needs(team.roster)
-
-            # Create TradeAI with position plan for commitment awareness
-            # Use a mock identity if none exists
-            team_identity = team.identity
-            if team_identity is None:
-                from huddle.core.models.team_identity import TeamIdentity
-                team_identity = TeamIdentity()  # Uses defaults - all params optional
-
-            trade_ai = TradeAI(
-                team_id=team.team_id,
-                team_identity=team_identity,
-                team_status=team.status or TeamStatusState(current_status=TeamStatus.REBUILDING),
-                pick_inventory=team.pick_inventory or DraftPickInventory(team_id=team.team_id),
-                team_needs={p: needs.get_need(p) for p in [
+            needs_dict = {
+                p: needs.get_need(p) for p in [
                     "QB", "RB", "WR", "TE", "LT", "LG", "C", "RG", "RT",
                     "DE", "DT", "OLB", "ILB", "CB", "FS", "SS"
-                ]},
-                position_plan=team.position_plan,  # KEY: Commitment awareness
+                ]
+            }
+
+            # Get or create identity
+            identity = team.identity
+            if identity is None:
+                from huddle.core.models.team_identity import TeamIdentity
+                identity = TeamIdentity()
+
+            trade_states[team_id] = TeamTradeState(
+                team_id=team_id,
+                roster=team.roster,
+                contracts=team.contracts,
+                pick_inventory=team.pick_inventory or DraftPickInventory(team_id=team_id),
+                position_plan=team.position_plan,
+                identity=identity,
+                status=team.status or TeamStatusState(current_status=TeamStatus.REBUILDING),
+                needs=needs_dict,
+                gm_archetype=team.gm_archetype,
+                salary_cap=team.salary_cap,
+                cap_used=team.cap_used,
             )
 
-            # Identify tradeable players
-            candidates = trade_ai.identify_trade_candidates(
-                team.roster,
-                team.contracts,
-            )
+        return trade_states
 
-            if not candidates:
-                continue
+    def _execute_market_trade(self, trade: ExecutedTrade, season: int):
+        """
+        Execute a trade from the market system.
 
-            # Try to find a trade partner for best candidate
-            for candidate in candidates[:2]:  # Top 2 candidates
-                if trades_made >= max_trades:
-                    break
+        Transfers players and picks between teams based on the ExecutedTrade record.
+        """
+        from huddle.core.ai.trade_ai import TradeAsset, TradeProposal
 
-                # Find interested teams
-                for partner_id, partner in self.teams.items():
-                    if partner_id == team.team_id:
-                        continue
-                    if not partner.position_plan:
-                        continue
+        seller = self.teams[trade.seller_team_id]
+        buyer = self.teams[trade.buyer_team_id]
 
-                    # Check if partner needs this position
-                    partner_needs = calculate_team_needs(partner.roster)
-                    pos_need = partner_needs.get_need(candidate.player_position)
+        # Transfer assets TO BUYER (from seller)
+        for asset in trade.assets_to_buyer:
+            if asset.asset_type == "player":
+                player = next(
+                    (p for p in seller.roster if str(p.id) == asset.player_id),
+                    None
+                )
+                if player:
+                    seller.roster.remove(player)
+                    buyer.roster.append(player)
+                    # Transfer contract
+                    contract = seller.contracts.pop(asset.player_id, None)
+                    if contract:
+                        buyer.contracts[asset.player_id] = contract
+                        cap_hit = contract.cap_hit() if hasattr(contract, 'cap_hit') else 0
+                        seller.cap_used -= cap_hit
+                        buyer.cap_used += cap_hit
+            elif asset.asset_type == "pick" and asset.pick:
+                asset.pick.current_team_id = buyer.team_id
 
-                    if pos_need < 0.4:
-                        continue  # Not interested
+        # Transfer assets TO SELLER (from buyer)
+        for asset in trade.assets_to_seller:
+            if asset.asset_type == "player":
+                player = next(
+                    (p for p in buyer.roster if str(p.id) == asset.player_id),
+                    None
+                )
+                if player:
+                    buyer.roster.remove(player)
+                    seller.roster.append(player)
+                    contract = buyer.contracts.pop(asset.player_id, None)
+                    if contract:
+                        seller.contracts[asset.player_id] = contract
+                        cap_hit = contract.cap_hit() if hasattr(contract, 'cap_hit') else 0
+                        buyer.cap_used -= cap_hit
+                        seller.cap_used += cap_hit
+            elif asset.asset_type == "pick" and asset.pick:
+                asset.pick.current_team_id = seller.team_id
 
-                    # Partner creates their TradeAI
-                    partner_identity = partner.identity
-                    if partner_identity is None:
-                        from huddle.core.models.team_identity import TeamIdentity
-                        partner_identity = TeamIdentity()  # Uses defaults
+        # Log transaction
+        self.transaction_log.add(Transaction(
+            transaction_type=TransactionType.TRADE,
+            team_id=seller.team_id,
+            other_team_id=buyer.team_id,
+            season=season,
+            transaction_date=self.current_calendar.current_date,
+        ))
 
-                    partner_trade_ai = TradeAI(
-                        team_id=partner_id,
-                        team_identity=partner_identity,
-                        team_status=partner.status or TeamStatusState(current_status=TeamStatus.REBUILDING),
-                        pick_inventory=partner.pick_inventory or DraftPickInventory(team_id=partner_id),
-                        team_needs={p: partner_needs.get_need(p) for p in [
-                            "QB", "RB", "WR", "TE", "LT", "LG", "C", "RG", "RT",
-                            "DE", "DT", "OLB", "ILB", "CB", "FS", "SS"
-                        ]},
-                        position_plan=partner.position_plan,
-                    )
+    def _record_blockbuster(self, trade: ExecutedTrade, season: int):
+        """Record a blockbuster trade for history tracking."""
+        # Find player details
+        player_asset = next(
+            (a for a in trade.assets_to_buyer if a.asset_type == "player"),
+            None
+        )
+        pick_assets = [a for a in trade.assets_to_seller if a.asset_type == "pick"]
 
-                    # Can partner generate a proposal?
-                    # Find the actual player
-                    player = next((p for p in team.roster if str(p.id) == candidate.player_id), None)
-                    if not player:
-                        continue
-
-                    contract = team.contracts.get(candidate.player_id)
-
-                    proposal = partner_trade_ai.generate_trade_proposal(
-                        target_player=player,
-                        target_contract=contract,
-                        target_team_id=team.team_id,
-                        draft_prospects=draft_prospects,
-                    )
-
-                    if not proposal:
-                        continue  # Partner can't afford
-
-                    # Team evaluates the proposal with their commitment premiums
-                    evaluation = trade_ai.evaluate_trade(
-                        proposal,
-                        my_roster=team.roster,
-                        draft_prospects=draft_prospects,
-                    )
-
-                    if evaluation.recommendation == "accept":
-                        # Execute trade!
-                        self._execute_trade(team, partner, proposal, season)
-                        trades_made += 1
-                        self._log(f"    Trade: {candidate.player_name} to {partner_id}")
-                        break
-
-        self._log(f"    {trades_made} trades completed")
+        if player_asset:
+            self.blockbuster_trades.append({
+                "season": season,
+                "type": "elite_player_for_picks",
+                "player_name": player_asset.player_name,
+                "player_position": player_asset.player_position,
+                "player_overall": player_asset.player_overall,
+                "from_team": trade.seller_team_id,
+                "to_team": trade.buyer_team_id,
+                "picks_received": len(pick_assets),
+                "pick_details": [
+                    {
+                        "round": a.pick.round if a.pick else 0,
+                        "year": a.pick.year if a.pick else season,
+                        "value": a.value,
+                    }
+                    for a in pick_assets
+                ],
+            })
 
     def _execute_trade(self, team_from: 'TeamState', team_to: 'TeamState',
                        proposal: 'TradeProposal', season: int):
@@ -1063,8 +1447,17 @@ class HistoricalSimulator:
             ))
 
     def _simulate_draft(self, season: int):
-        """Simulate the draft."""
+        """
+        Simulate the draft with trade-up opportunities.
+
+        Key enhancement: Mock draft consensus drives trade urgency.
+        Teams trade up when "my guy will be gone before my pick."
+        """
         self._log(f"  Draft {season}...")
+
+        # Get trade config
+        from huddle.core.ai.trade_market import TradeMarketConfig
+        trade_config = TradeMarketConfig()
 
         # Generate draft class with realistic position distribution
         # Based on typical NFL draft classes
@@ -1120,6 +1513,18 @@ class HistoricalSimulator:
         )
         self.draft_histories[season] = draft_state
 
+        # === NEW: Generate Mock Draft Consensus ===
+        mock = generate_mock_draft(
+            prospects=draft_class,
+            teams=self.teams,
+            noise_factor=trade_config.draft_mock_noise,
+        )
+        self._log(f"    Generated mock draft consensus for {len(draft_class)} prospects")
+
+        # Track draft trades
+        draft_trades_executed = 0
+        drafted_player_ids = set()
+
         # Execute draft
         pick_number = 1
         available = list(draft_class)
@@ -1130,6 +1535,27 @@ class HistoricalSimulator:
                 break
 
             team = self.teams[pick.current_team_id]
+
+            # === NEW: Check for trade-up interest from later teams ===
+            trade_executed = False
+            if (draft_trades_executed < trade_config.draft_max_trades_per_draft and
+                pick_number % trade_config.draft_trade_check_frequency == 1):
+
+                trade_executed = self._check_draft_trade_ups(
+                    current_pick=pick,
+                    pick_number=pick_number,
+                    mock=mock,
+                    available=available,
+                    draft_state=draft_state,
+                    trade_config=trade_config,
+                    season=season,
+                )
+
+                if trade_executed:
+                    draft_trades_executed += 1
+                    # Pick ownership changed - re-get team on clock
+                    team = self.teams[pick.current_team_id]
+                    self._log(f"    Trade executed! Pick #{pick_number} now belongs to {team.team_name}")
 
             # Use full DraftAI for research-backed, GM-personality-aware selection
             needs = calculate_team_needs(team.roster)
@@ -1197,6 +1623,9 @@ class HistoricalSimulator:
             team.contracts[str(selected_player.id)] = contract
             team.cap_used += contract.cap_hit()
 
+            # Track drafted player
+            drafted_player_ids.add(str(selected_player.id))
+
             # Update the team's position plan - position now filled via draft
             if team.position_plan:
                 update_plan_after_draft(team.position_plan, {
@@ -1225,6 +1654,211 @@ class HistoricalSimulator:
 
             pick_number += 1
             draft_state.advance()
+
+        # Log draft trade summary
+        if draft_trades_executed > 0:
+            self._log(f"    Draft trades: {draft_trades_executed}")
+
+    def _check_draft_trade_ups(
+        self,
+        current_pick: DraftPick,
+        pick_number: int,
+        mock: MockDraft,
+        available: list,
+        draft_state: DraftState,
+        trade_config: "TradeMarketConfig",
+        season: int,
+    ) -> bool:
+        """
+        Check if any team wants to trade up to the current pick.
+
+        Returns True if a trade was executed (pick ownership changed).
+
+        Logic:
+        1. Get team currently on the clock
+        2. Check if they're willing to trade down
+        3. Find teams picking in next N spots that want to trade up
+        4. Execute best trade if one exists
+        """
+        from huddle.core.draft.picks import get_pick_value
+
+        current_team = self.teams[current_pick.current_team_id]
+
+        # First, check if current team would even consider trading down
+        # Get their best available evaluation
+        needs = calculate_team_needs(current_team.roster)
+        draft_ai = DraftAI(
+            team_id=current_team.team_id,
+            team_identity=current_team.identity,
+            team_status=current_team.status,
+            team_needs=needs,
+            gm_archetype=current_team.gm_archetype,
+        )
+
+        if not available:
+            return False
+
+        # Get best available for current team
+        rankings = draft_ai.rank_prospects(available[:30], pick_number)
+        if not rankings:
+            return False
+
+        best_available = rankings[0]
+
+        # Quick check: would current team trade down?
+        # Skip detailed check if they definitely won't
+        if best_available.raw_grade >= 90:
+            # Elite talent - unlikely to trade down
+            if random.random() > 0.15:  # 15% chance to still consider
+                return False
+
+        # Get upcoming picks that might want to trade up
+        # DraftState stores picks in rounds[].order[]
+        upcoming_picks = []
+        overall_pick_num = 0
+        for round_order in draft_state.rounds:
+            for future_pick in round_order.order:
+                overall_pick_num += 1
+                if future_pick.player_selected_id:
+                    continue  # Already used
+                if overall_pick_num > pick_number and overall_pick_num <= pick_number + trade_config.draft_trade_up_range:
+                    upcoming_picks.append((future_pick, overall_pick_num))
+
+        if not upcoming_picks:
+            return False
+
+        # Find interested teams
+        best_trade = None
+        best_trade_value = 0
+
+        for future_pick, future_pick_num in upcoming_picks[:10]:  # Check up to 10 teams
+            later_team = self.teams.get(future_pick.current_team_id)
+            if not later_team:
+                continue
+
+            # Skip if same team
+            if later_team.team_id == current_team.team_id:
+                continue
+
+            # Create DraftAI for potential trading team
+            later_needs = calculate_team_needs(later_team.roster)
+            later_draft_ai = DraftAI(
+                team_id=later_team.team_id,
+                team_identity=later_team.identity,
+                team_status=later_team.status,
+                team_needs=later_needs,
+                gm_archetype=later_team.gm_archetype,
+            )
+
+            # Does this team want to trade up?
+            target_player = later_draft_ai.wants_to_trade_up_here(
+                current_pick=pick_number,
+                my_pick=future_pick_num,
+                mock=mock,
+                available=available,
+                position_plan=later_team.position_plan,
+                fall_probability=trade_config.draft_fall_probability,
+            )
+
+            if not target_player:
+                continue
+
+            # Generate trade package
+            package_picks = later_draft_ai.generate_trade_up_package(
+                target_pick=pick_number,
+                my_pick=future_pick_num,
+                inventory=later_team.pick_inventory,
+                value_threshold=trade_config.draft_trade_value_threshold,
+            )
+
+            if not package_picks:
+                continue
+
+            # Calculate total package value (future pick + additional picks)
+            future_pick_value = get_pick_value(future_pick_num)
+            package_value = future_pick_value + sum(p.estimated_value for p in package_picks)
+
+            # Current team evaluates the offer
+            current_pick_value = get_pick_value(pick_number)
+            accept, reason = draft_ai.evaluate_trade_down_offer(
+                offered_picks=[future_pick] + package_picks,
+                current_pick_value=current_pick_value,
+                best_available=best_available,
+                position_plan=current_team.position_plan,
+                mock=mock,
+            )
+
+            if accept and package_value > best_trade_value:
+                best_trade = {
+                    'trading_up_team': later_team,
+                    'trading_down_team': current_team,
+                    'pick_acquired': current_pick,
+                    'pick_given': future_pick,
+                    'additional_picks': package_picks,
+                    'target_player': target_player,
+                    'package_value': package_value,
+                    'reason': reason,
+                }
+                best_trade_value = package_value
+
+        # Execute best trade if found
+        if best_trade:
+            self._execute_draft_trade(
+                pick_acquired=best_trade['pick_acquired'],
+                pick_given=best_trade['pick_given'],
+                additional_picks=best_trade['additional_picks'],
+                trading_up_team=best_trade['trading_up_team'],
+                trading_down_team=best_trade['trading_down_team'],
+                target_player=best_trade['target_player'],
+                season=season,
+            )
+            return True
+
+        return False
+
+    def _execute_draft_trade(
+        self,
+        pick_acquired: DraftPick,
+        pick_given: DraftPick,
+        additional_picks: list,
+        trading_up_team: "TeamState",
+        trading_down_team: "TeamState",
+        target_player: "Player",
+        season: int,
+    ):
+        """
+        Execute a draft day trade.
+
+        Swaps pick ownership and logs the transaction.
+        """
+        # Swap pick ownership
+        old_owner = pick_acquired.current_team_id
+        pick_acquired.current_team_id = trading_up_team.team_id
+        pick_given.current_team_id = trading_down_team.team_id
+
+        # Transfer additional picks
+        for pick in additional_picks:
+            pick.current_team_id = trading_down_team.team_id
+
+        # Log the trade transaction with DRAFT_TRADE type
+        pick_details = [f"#{pick_given.pick_number or '?'} (Rd {pick_given.round})"]
+        for p in additional_picks[:3]:
+            pick_details.append(f"#{p.pick_number or '?'} (Rd {p.round})")
+
+        self.transaction_log.add(Transaction(
+            transaction_type=TransactionType.DRAFT_TRADE,
+            team_id=trading_down_team.team_id,
+            team_name=trading_down_team.team_name,
+            other_team_id=trading_up_team.team_id,
+            season=season,
+            transaction_date=self.current_calendar.current_date,
+            notes=f"Draft trade: {trading_up_team.team_name} trades up for pick #{pick_acquired.pick_number or '?'} "
+                  f"targeting {target_player.full_name} ({target_player.position.value}). "
+                  f"Sent: {', '.join(pick_details)}",
+        ))
+
+        self._log(f"      DRAFT TRADE: {trading_up_team.team_name} trades up to #{pick_acquired.pick_number or '?'} "
+                  f"for {target_player.full_name}")
 
     def _simulate_roster_cuts(self, season: int):
         """Simulate roster cuts to 53."""

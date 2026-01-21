@@ -10,6 +10,43 @@ from huddle.core.models.team import Team
 from huddle.core.models.team_identity import TeamIdentity, create_random_identity
 from huddle.core.models.tendencies import TeamTendencies, OffensiveScheme, DefensiveScheme
 from huddle.generators.potential import generate_all_potentials
+from huddle.core.philosophy.positions import (
+    QBPhilosophy,
+    RBPhilosophy,
+    WRPhilosophy,
+    TEPhilosophy,
+    OLPhilosophy,
+    DLPhilosophy,
+    LBPhilosophy,
+    CBPhilosophy,
+    FSPhilosophy,
+    SSPhilosophy,
+)
+from huddle.core.philosophy.evaluation import PHILOSOPHY_ATTRIBUTE_WEIGHTS
+
+
+# Position to philosophy enum mapping for archetype assignment
+POSITION_TO_PHILOSOPHY_ENUM = {
+    "QB": QBPhilosophy,
+    "RB": RBPhilosophy,
+    "FB": RBPhilosophy,  # FBs use RB philosophies
+    "WR": WRPhilosophy,
+    "TE": TEPhilosophy,
+    "LT": OLPhilosophy,
+    "LG": OLPhilosophy,
+    "C": OLPhilosophy,
+    "RG": OLPhilosophy,
+    "RT": OLPhilosophy,
+    "DE": DLPhilosophy,
+    "DT": DLPhilosophy,
+    "NT": DLPhilosophy,
+    "MLB": LBPhilosophy,
+    "OLB": LBPhilosophy,
+    "ILB": LBPhilosophy,
+    "CB": CBPhilosophy,
+    "FS": FSPhilosophy,
+    "SS": SSPhilosophy,
+}
 
 # Sample names for generation
 FIRST_NAMES = [
@@ -106,6 +143,10 @@ POSITION_TEMPLATES: dict[Position, dict[str, tuple[int, int]]] = {
         # Mental
         "awareness": (78, 10),
         "learning": (75, 12),
+        "poise": (78, 10),  # Staying calm under pressure
+        "anticipation": (76, 10),  # Reading defenses pre-snap
+        "decision_making": (77, 10),  # Making smart choices
+        "aggressiveness": (55, 12),  # QBs generally not super aggressive
     },
     Position.RB: {
         # Physical - RBs are fast but not CB fast (~4.45-4.55 forty)
@@ -677,7 +718,7 @@ def generate_player(
         else:
             player_college = random.choice(COLLEGES)
 
-    return Player(
+    player = Player(
         first_name=fname,
         last_name=lname,
         position=position,
@@ -691,6 +732,11 @@ def generate_player(
         years_on_team=tenure,
         college=player_college,
     )
+
+    # Assign HC09-style archetype based on attribute profile
+    player.player_archetype = _assign_archetype(player)
+
+    return player
 
 
 def _generate_durability_attrs(attrs: PlayerAttributes) -> None:
@@ -718,6 +764,53 @@ def _generate_durability_attrs(attrs: PlayerAttributes) -> None:
     # Injury resistance (general, from original system)
     injury_resistance = base_toughness + random.gauss(0, 8)
     attrs.set("injury", int(max(40, min(99, injury_resistance))))
+
+
+def _assign_archetype(player: Player) -> Optional[str]:
+    """
+    Assign the best-fit archetype to a player based on their attributes.
+
+    HC09-style archetype assignment: analyzes a player's attributes
+    and determines which positional philosophy (archetype) they best fit.
+
+    For example, a RB with high speed/acceleration gets "speed" archetype,
+    while one with high trucking/strength gets "power" archetype.
+
+    Args:
+        player: The player to assign an archetype to
+
+    Returns:
+        The archetype value (e.g., "power", "speed", "mobile") or None
+    """
+    position = player.position.value
+
+    # Get the philosophy enum for this position
+    philosophy_enum = POSITION_TO_PHILOSOPHY_ENUM.get(position)
+    if not philosophy_enum:
+        return None
+
+    best_archetype = None
+    best_fit_score = -1
+
+    # Test each philosophy value for this position
+    for philosophy in philosophy_enum:
+        archetype_value = philosophy.value
+        weights = PHILOSOPHY_ATTRIBUTE_WEIGHTS.get(archetype_value, {})
+
+        if not weights:
+            continue
+
+        # Calculate fit score: sum(attribute_value * weight)
+        fit_score = 0.0
+        for attr_name, weight in weights.items():
+            attr_value = player.attributes.get(attr_name, 50)
+            fit_score += attr_value * weight
+
+        if fit_score > best_fit_score:
+            best_fit_score = fit_score
+            best_archetype = archetype_value
+
+    return best_archetype
 
 
 def _get_jersey_number(position: Position) -> int:

@@ -126,6 +126,31 @@ class FieldPosition:
         return self.advance(-yards)
 
 
+# Hash mark constants (NFL)
+HASH_WIDTH = 6.167  # 18'6" from center
+LEFT_HASH = -HASH_WIDTH
+RIGHT_HASH = HASH_WIDTH
+
+
+def snap_to_hash(ball_x: float) -> float:
+    """Snap ball to nearest hash if outside hash marks.
+
+    NFL rule: if ball goes out of bounds or ends outside the hash marks,
+    it is placed on the nearest hash mark.
+
+    Args:
+        ball_x: Ball's x-position in yards from field center
+
+    Returns:
+        Ball x-position, snapped to hash if outside hash marks
+    """
+    if ball_x < LEFT_HASH:
+        return LEFT_HASH
+    elif ball_x > RIGHT_HASH:
+        return RIGHT_HASH
+    return ball_x
+
+
 @dataclass
 class DownState:
     """
@@ -137,11 +162,17 @@ class DownState:
     down: int = 1  # 1-4
     yards_to_go: int = 10
     line_of_scrimmage: FieldPosition = None
+    ball_x: float = 0.0  # Lateral position in yards from field center (-26.67 to +26.67)
 
     def __post_init__(self) -> None:
         """Initialize default line of scrimmage if not provided."""
         if self.line_of_scrimmage is None:
             self.line_of_scrimmage = FieldPosition(25)
+        elif isinstance(self.line_of_scrimmage, (int, float)):
+            # Convert raw numbers to FieldPosition
+            self.line_of_scrimmage = FieldPosition(int(self.line_of_scrimmage))
+        # Ensure ball_x is within hash marks
+        self.ball_x = snap_to_hash(self.ball_x)
 
     @property
     def display(self) -> str:
@@ -189,41 +220,46 @@ class DownState:
         target = self.line_of_scrimmage.yard_line + self.yards_to_go
         return min(100, target)
 
-    def reset_for_first_down(self, new_los: FieldPosition) -> "DownState":
+    def reset_for_first_down(self, new_los: FieldPosition, new_ball_x: float = None) -> "DownState":
         """
         Create new down state after achieving first down.
 
         Sets yards to go based on distance to goal line.
+        Preserves ball_x if not explicitly provided.
         """
         yards_to_go = min(10, new_los.yards_to_goal)
-        return DownState(down=1, yards_to_go=yards_to_go, line_of_scrimmage=new_los)
+        ball_x = new_ball_x if new_ball_x is not None else self.ball_x
+        return DownState(down=1, yards_to_go=yards_to_go, line_of_scrimmage=new_los, ball_x=ball_x)
 
-    def advance(self, yards_gained: int) -> tuple["DownState", bool]:
+    def advance(self, yards_gained: int, new_ball_x: float = None) -> tuple["DownState", bool]:
         """
         Create new down state after a play.
 
         Args:
             yards_gained: Yards gained on the play (can be negative)
+            new_ball_x: New ball x-position (if None, preserves current)
 
         Returns:
             Tuple of (new_down_state, achieved_first_down)
         """
         new_los = self.line_of_scrimmage.advance(yards_gained)
         new_yards_to_go = self.yards_to_go - yards_gained
+        ball_x = new_ball_x if new_ball_x is not None else self.ball_x
 
         # Check for touchdown
         if new_los.yard_line >= 100:
-            return DownState(down=1, yards_to_go=10, line_of_scrimmage=new_los), True
+            return DownState(down=1, yards_to_go=10, line_of_scrimmage=new_los, ball_x=ball_x), True
 
         # Check for first down
         if new_yards_to_go <= 0:
-            return self.reset_for_first_down(new_los), True
+            return self.reset_for_first_down(new_los, ball_x), True
 
         # Advance to next down
         return DownState(
             down=self.down + 1,
             yards_to_go=new_yards_to_go,
             line_of_scrimmage=new_los,
+            ball_x=ball_x,
         ), False
 
     def copy(self) -> "DownState":
@@ -232,6 +268,7 @@ class DownState:
             down=self.down,
             yards_to_go=self.yards_to_go,
             line_of_scrimmage=FieldPosition(self.line_of_scrimmage.yard_line),
+            ball_x=self.ball_x,
         )
 
     def to_dict(self) -> dict:
@@ -240,6 +277,7 @@ class DownState:
             "down": self.down,
             "yards_to_go": self.yards_to_go,
             "line_of_scrimmage": self.line_of_scrimmage.yard_line,
+            "ball_x": self.ball_x,
         }
 
     @classmethod
@@ -249,4 +287,5 @@ class DownState:
             down=data.get("down", 1),
             yards_to_go=data.get("yards_to_go", 10),
             line_of_scrimmage=FieldPosition(data.get("line_of_scrimmage", 25)),
+            ball_x=data.get("ball_x", 0.0),
         )

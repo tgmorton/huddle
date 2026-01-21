@@ -236,6 +236,19 @@ class League:
     # Historical data
     champions: dict[int, str] = field(default_factory=dict)  # year -> team abbr
 
+    # Multi-year historical data (populated by historical sim)
+    # season_history: year -> list of {team_abbr, wins, losses, made_playoffs, playoff_result, status}
+    season_history: dict[int, list[dict]] = field(default_factory=dict)
+
+    # draft_history: year -> list of {round, pick, team, player_id, player_name, position, overall, archetype}
+    draft_history: dict[int, list[dict]] = field(default_factory=dict)
+
+    # player_development: player_id -> list of {season, age, overall_before, overall_after, team}
+    player_development: dict[str, list[dict]] = field(default_factory=dict)
+
+    # blockbuster_trades: list of notable trades with details
+    blockbuster_trades: list[dict] = field(default_factory=list)
+
     # Game logs (keyed by game_id string)
     game_logs: dict[str, GameLog] = field(default_factory=dict)
 
@@ -783,6 +796,16 @@ class League:
         if self.draft_picks:
             data["draft_picks"] = self.draft_picks.to_dict()
 
+        # Include historical data if present
+        if self.season_history:
+            data["season_history"] = {str(y): records for y, records in self.season_history.items()}
+        if self.draft_history:
+            data["draft_history"] = {str(y): picks for y, picks in self.draft_history.items()}
+        if self.player_development:
+            data["player_development"] = self.player_development
+        if self.blockbuster_trades:
+            data["blockbuster_trades"] = self.blockbuster_trades
+
         return data
 
     @classmethod
@@ -850,6 +873,16 @@ class League:
         if "draft_picks" in data:
             from huddle.core.draft.picks import DraftPickInventory
             league.draft_picks = DraftPickInventory.from_dict(data["draft_picks"])
+
+        # Load historical data if present
+        if "season_history" in data:
+            league.season_history = {int(y): records for y, records in data["season_history"].items()}
+        if "draft_history" in data:
+            league.draft_history = {int(y): picks for y, picks in data["draft_history"].items()}
+        if "player_development" in data:
+            league.player_development = data["player_development"]
+        if "blockbuster_trades" in data:
+            league.blockbuster_trades = data["blockbuster_trades"]
 
         return league
 

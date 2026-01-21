@@ -13,7 +13,8 @@ Handles:
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List, Dict, Tuple
+from uuid import UUID
 import random
 
 from huddle.core.draft.picks import DraftPick, DraftPickInventory, get_pick_value
@@ -22,6 +23,12 @@ from huddle.core.models.team_identity import (
     TeamStatusState,
     DraftPhilosophy,
     PersonnelPreference,
+    OffensiveScheme,
+    DefensiveScheme,
+)
+from huddle.core.philosophy.evaluation import (
+    calculate_scheme_fit_overall,
+    get_scheme_fit_bonus,
 )
 from huddle.core.ai.allocation_tables import (
     get_rookie_premium,
@@ -364,10 +371,11 @@ class DraftAI:
         """
         position = player.position.value
 
-        # Raw grade from player attributes
-        raw_grade = player.overall
+        # Raw grade from player's archetype-based OVR (HC09-style)
+        # This uses the player's archetype weights, not generic position weights
+        raw_grade = player.archetype_overall
 
-        # Scheme fit based on team identity
+        # Scheme fit based on team identity (HC09-style archetype fit)
         scheme_fit = self._calculate_scheme_fit(player)
 
         # Need score based on roster
@@ -510,28 +518,32 @@ class DraftAI:
         self._positions_drafted = {}
 
     def _calculate_scheme_fit(self, player: "Player") -> float:
-        """Calculate how well player fits team scheme."""
+        """
+        Calculate how well player fits team scheme (HC09-style).
+
+        Uses the player's archetype and the team's offensive/defensive scheme
+        to determine scheme fit. A Power RB fits a Power Run team, etc.
+
+        Returns:
+            0.0-1.0 scheme fit score
+        """
         if self.identity is None:
             return 0.5  # Neutral if no identity
 
-        # Get attribute emphasis from team identity
-        emphasis = self.identity.get_attribute_emphasis(player.position.value)
+        # Get team's offensive and defensive schemes
+        offensive_scheme = getattr(self.identity, 'offensive_scheme', None)
+        defensive_scheme = getattr(self.identity, 'defensive_scheme', None)
 
-        if not emphasis:
-            return 0.5  # Neutral if no emphasis defined
+        # Use HC09-style archetype scheme fit calculation
+        scheme_bonus = get_scheme_fit_bonus(
+            player,
+            offensive_scheme=offensive_scheme,
+            defensive_scheme=defensive_scheme,
+        )
 
-        # Check how player's attributes align with emphasis
-        fit_score = 0.5  # Start neutral
-        for attr, mult in emphasis.items():
-            attr_value = player.attributes.get(attr, 50)
-            # High attribute + high emphasis = good fit
-            if mult > 1.0 and attr_value >= 75:
-                fit_score += 0.1
-            elif mult > 1.0 and attr_value < 60:
-                fit_score -= 0.1
-            elif mult < 1.0 and attr_value >= 80:
-                fit_score -= 0.05  # Overqualified in non-priority area
-
+        # Convert bonus (-3 to +5) to 0-1 scale
+        # -3 = 0.2, 0 = 0.5, +5 = 1.0
+        fit_score = 0.5 + (scheme_bonus / 10.0)
         return max(0.0, min(1.0, fit_score))
 
     def _calculate_upside(self, player: "Player") -> float:
@@ -806,6 +818,271 @@ class DraftAI:
 
         return False
 
+    def wants_to_trade_up_here(
+        self,
+        current_pick: int,
+        my_pick: int,
+        mock: "MockDraft",
+        available: List["Player"],
+        position_plan: Optional["PositionPlan"] = None,
+        fall_probability: float = 0.20,
+    ) -> Optional["Player"]:
+        """
+        Determine if this team needs to trade up to the current pick.
+
+        Returns the player we want to trade up for, or None if no urgency.
+
+        Logic:
+        1. Get our top draft target from position plan (or BPA if no plan)
+        2. Check if they're still available
+        3. Check if consensus says they'll be gone before our pick
+        4. Factor in noise (20% chance they fall)
+        5. If urgent, return the target player
+
+        Args:
+            current_pick: The pick currently on the clock
+            my_pick: Our next pick number
+            mock: MockDraft consensus
+            available: Currently available players
+            position_plan: Team's position acquisition plan
+            fall_probability: Chance the player falls past projection
+
+        Returns:
+            Player to trade up for, or None
+        """
+        if my_pick <= current_pick:
+            return None  # We pick before or at this spot
+
+        # Find our top target
+        target_player = None
+        target_priority = 0.0
+
+        if position_plan:
+            # Check position plan for DRAFT_EARLY targets
+            from huddle.core.ai.position_planner import AcquisitionPath
+
+            for pos, need in position_plan.needs.items():
+                if need.acquisition_path == AcquisitionPath.DRAFT_EARLY:
+                    # Find best available at this position
+                    for player in available:
+                        if player.position.value == pos:
+                            # Check if this is our guy
+                            if target_player is None or player.overall > target_player.overall:
+                                target_player = player
+                                target_priority = 0.9  # High priority for planned position
+                            break
+
+                    # Check for specific target
+                    if need.target_player_id:
+                        for player in available:
+                            if str(player.id) == str(need.target_player_id):
+                                target_player = player
+                                target_priority = 1.0  # Max priority for specific target
+                                break
+
+        # Fallback to BPA if no plan or no plan target found
+        if target_player is None:
+            # Use our ranking to find top target
+            rankings = self.rank_prospects(available[:20], current_pick)  # Top 20 for speed
+            if rankings and rankings[0].draft_value >= 80:
+                for player in available:
+                    if str(player.id) == rankings[0].player_id:
+                        target_player = player
+                        target_priority = 0.7  # Lower priority for BPA
+                        break
+
+        if target_player is None:
+            return None
+
+        # Check consensus: will this player be gone before our pick?
+        consensus_pick = mock.get_consensus_pick(str(target_player.id))
+
+        picks_until_mine = my_pick - current_pick
+        picks_until_target_gone = consensus_pick - current_pick
+
+        if picks_until_target_gone >= picks_until_mine:
+            # Consensus says he'll still be there
+            return None
+
+        # Target is projected to go before our pick!
+        # But add noise - maybe he falls
+        if random.random() < fall_probability:
+            # We think he might fall, don't trade up
+            return None
+
+        # Check if we should actually trade up (use existing method)
+        evaluation = self.evaluate_prospect(target_player, current_pick)
+
+        # Adjust threshold based on priority
+        base_threshold = 80
+        if target_priority >= 1.0:
+            base_threshold = 70  # Specific target - very willing
+        elif target_priority >= 0.9:
+            base_threshold = 75  # Planned position - willing
+
+        if evaluation.draft_value < base_threshold:
+            return None  # Not worth it
+
+        # Status check
+        if self.status.current_status == TeamStatus.REBUILDING:
+            # Rebuilding - only trade up for elite talent
+            if evaluation.draft_value < 92:
+                return None
+        elif self.status.current_status == TeamStatus.WINDOW_CLOSING:
+            # Window closing - more willing to trade up for immediate help
+            if evaluation.floor_score < 0.5:
+                return None  # Need safe floor
+
+        return target_player
+
+    def generate_trade_up_package(
+        self,
+        target_pick: int,
+        my_pick: int,
+        inventory: DraftPickInventory,
+        value_threshold: float = 0.85,
+    ) -> Optional[List[DraftPick]]:
+        """
+        Build a package of picks to trade up.
+
+        Uses pick value chart to determine fair value, then builds a package
+        from available picks.
+
+        Args:
+            target_pick: Pick number we want to acquire
+            my_pick: Our current pick number
+            inventory: Our draft pick inventory
+            value_threshold: Minimum value ratio to consider a package (0.85 = 85% of target value)
+
+        Returns:
+            List of DraftPick objects to offer, or None if can't afford
+        """
+        target_value = get_pick_value(target_pick)
+        my_pick_value = get_pick_value(my_pick)
+
+        # We always include our pick in the package
+        # Additional picks make up the difference
+        value_needed = target_value - my_pick_value
+
+        if value_needed <= 0:
+            # Our pick is worth more - weird but just offer our pick
+            return None  # Should use different trade logic
+
+        # Collect available picks (exclude our current pick - it's the trade centerpiece)
+        available_picks = []
+        for pick in inventory.picks:
+            if pick.current_team_id == self.team_id:
+                if pick.pick_number != my_pick and not pick.is_compensatory:
+                    available_picks.append(pick)
+
+        # Sort by value (prefer using later picks first to preserve capital)
+        available_picks.sort(key=lambda p: p.estimated_value)
+
+        # Build package
+        package_value = 0
+        package_picks = []
+
+        for pick in available_picks:
+            if package_value >= value_needed * value_threshold:
+                break  # Have enough
+
+            # Check if this pick is committed in position plan
+            # (We don't want to trade a pick we planned to use for a specific position)
+            commitment = 1.0
+            # Skip highly committed picks
+            if commitment > 1.3:
+                continue
+
+            package_picks.append(pick)
+            package_value += pick.estimated_value
+
+        # Check if we have enough
+        if package_value < value_needed * value_threshold:
+            return None  # Can't afford
+
+        # Return our pick + the package
+        # (The actual my_pick will be added by the caller)
+        return package_picks
+
+    def evaluate_trade_down_offer(
+        self,
+        offered_picks: List[DraftPick],
+        current_pick_value: int,
+        best_available: ProspectEvaluation,
+        position_plan: Optional["PositionPlan"] = None,
+        mock: Optional["MockDraft"] = None,
+    ) -> Tuple[bool, str]:
+        """
+        Evaluate if a trade-down offer is acceptable.
+
+        Args:
+            offered_picks: Picks being offered for our pick
+            current_pick_value: Value of our current pick
+            best_available: Best player available at our spot
+            position_plan: Our position acquisition plan
+            mock: Mock draft for projections
+
+        Returns:
+            (accept: bool, reason: str)
+        """
+        offered_value = sum(p.estimated_value for p in offered_picks)
+        value_ratio = offered_value / max(1, current_pick_value)
+
+        # Check if we want to trade down in the first place
+        if position_plan:
+            from huddle.core.ai.position_planner import AcquisitionPath
+
+            # Check if best available matches a planned position
+            best_pos = getattr(best_available, 'position', None)
+            if best_pos:
+                need = position_plan.needs.get(best_pos)
+                if need and need.acquisition_path in {AcquisitionPath.DRAFT_EARLY, AcquisitionPath.DRAFT_MID}:
+                    # This is our guy - don't trade down unless GREAT value
+                    if value_ratio < 1.20:  # Need 20% premium
+                        return False, f"Want to draft {best_pos}, offered value too low ({value_ratio:.0%})"
+
+        # Status affects willingness
+        min_ratio = 0.90  # Default
+
+        if self.status.current_status == TeamStatus.REBUILDING:
+            min_ratio = 0.80  # Love extra picks, accept less
+        elif self.status.current_status in {TeamStatus.DYNASTY, TeamStatus.CONTENDING}:
+            min_ratio = 1.00  # Need full value or more
+        elif self.status.current_status == TeamStatus.WINDOW_CLOSING:
+            min_ratio = 1.05  # Premium required - need talent NOW
+
+        if value_ratio < min_ratio:
+            return False, f"Value ratio {value_ratio:.0%} below threshold {min_ratio:.0%}"
+
+        # Check if there's talent worth keeping
+        expected_grade = self._pick_to_expected_grade(offered_picks[0].pick_number if offered_picks else 32)
+        if best_available.raw_grade >= expected_grade + 10:
+            # Elite talent available - less willing to move
+            if value_ratio < 1.15:
+                return False, f"Elite talent available ({best_available.raw_grade}), need premium"
+
+        # Check upcoming picks - is there a run on positions we don't need?
+        if mock and position_plan:
+            upcoming = mock.get_next_n_projected(offered_picks[0].pick_number if offered_picks else 32, 5, set())
+            positions_i_need = [
+                p for p in upcoming
+                if position_plan.needs.get(p.position) and
+                position_plan.needs[p.position].acquisition_path in {
+                    AcquisitionPath.DRAFT_EARLY,
+                    AcquisitionPath.DRAFT_MID,
+                }
+            ]
+            if len(positions_i_need) == 0:
+                # None of the next picks help us - more willing to trade down
+                min_ratio -= 0.10
+                if value_ratio >= min_ratio:
+                    return True, "No targets in range, accepting trade down"
+
+        if value_ratio >= min_ratio:
+            return True, f"Good value ({value_ratio:.0%})"
+
+        return False, f"Value ratio {value_ratio:.0%} below adjusted threshold"
+
 
 def calculate_team_needs(
     roster: list["Player"],
@@ -885,3 +1162,163 @@ def calculate_team_needs(
         needs.set_need("QB", max(needs.get_need("QB"), 0.7))
 
     return needs
+
+
+# =============================================================================
+# Mock Draft System - Consensus Projections for Draft Day Trades
+# =============================================================================
+
+
+@dataclass
+class MockDraftEntry:
+    """A single entry in the mock draft consensus."""
+    player_id: str
+    player_name: str
+    position: str
+    grade: float
+    consensus_pick: int  # Where consensus says this player goes
+
+    def __hash__(self):
+        return hash(self.player_id)
+
+
+@dataclass
+class MockDraft:
+    """
+    League-wide draft consensus projection with per-team noise.
+
+    Before the draft, generate a consensus mock draft that all teams reference
+    (with noise). This drives trade-up urgency - teams trade up because
+    "my guy will be gone before my pick."
+    """
+    season: int
+    consensus: List[MockDraftEntry]  # Sorted by consensus_pick
+    team_views: Dict[str, List[MockDraftEntry]]  # Team-specific boards (with noise)
+
+    def get_consensus_pick(self, player_id: str) -> int:
+        """Where does consensus say this player goes?"""
+        for entry in self.consensus:
+            if entry.player_id == player_id:
+                return entry.consensus_pick
+        return 999  # Not found = very late
+
+    def get_team_view_pick(self, team_id: str, player_id: str) -> int:
+        """Where does THIS team think the player goes?"""
+        team_board = self.team_views.get(team_id, self.consensus)
+        for idx, entry in enumerate(team_board):
+            if entry.player_id == player_id:
+                return idx + 1  # 1-indexed pick number
+        return 999
+
+    def get_available_at_pick(self, pick_number: int, already_drafted: set) -> List[MockDraftEntry]:
+        """Get players consensus projects as available at this pick."""
+        return [
+            e for e in self.consensus
+            if e.player_id not in already_drafted and e.consensus_pick >= pick_number
+        ]
+
+    def get_next_n_projected(self, current_pick: int, n: int, already_drafted: set) -> List[MockDraftEntry]:
+        """Get the next N projected picks from consensus."""
+        available = [
+            e for e in self.consensus
+            if e.player_id not in already_drafted
+        ]
+        # Sort by consensus pick
+        available.sort(key=lambda e: e.consensus_pick)
+        return available[:n]
+
+
+def generate_mock_draft(
+    prospects: List["Player"],
+    teams: Dict[str, "TeamState"],
+    noise_factor: float = 0.15,
+) -> MockDraft:
+    """
+    Generate a mock draft consensus with per-team noise.
+
+    1. Sort prospects by grade → consensus order
+    2. For each team, shuffle based on:
+       - Scheme fit preferences
+       - GM archetype (analytics vs old school)
+       - Random noise (±5 spots)
+
+    Args:
+        prospects: List of Player objects in the draft class
+        teams: Dict of team_id -> TeamState
+        noise_factor: How much teams disagree on rankings (0.0-0.3)
+
+    Returns:
+        MockDraft with consensus and team-specific views
+    """
+    # Build consensus order (sorted by player grade/overall)
+    sorted_prospects = sorted(prospects, key=lambda p: p.overall, reverse=True)
+
+    consensus = []
+    for idx, player in enumerate(sorted_prospects):
+        consensus.append(MockDraftEntry(
+            player_id=str(player.id),
+            player_name=player.full_name,
+            position=player.position.value,
+            grade=player.overall,
+            consensus_pick=idx + 1,  # 1-indexed
+        ))
+
+    # Generate team-specific views with noise
+    team_views = {}
+
+    for team_id, team_state in teams.items():
+        team_board = []
+
+        for entry in consensus:
+            # Apply noise to consensus pick
+            # Teams can see a player ±5 picks from consensus
+            noise_range = int(len(consensus) * noise_factor)
+            noise = random.randint(-noise_range, noise_range)
+
+            # GM archetype affects how much noise
+            # Analytics GMs are closer to consensus
+            # Old school GMs have more variance
+            if team_state.gm_archetype:
+                from huddle.core.ai.gm_archetypes import GMArchetype
+                if team_state.gm_archetype == GMArchetype.ANALYTICS:
+                    noise = int(noise * 0.6)  # Less noise
+                elif team_state.gm_archetype == GMArchetype.OLD_SCHOOL:
+                    noise = int(noise * 1.4)  # More noise
+
+            # Position preferences based on team needs
+            position = entry.position
+            needs = calculate_team_needs(team_state.roster) if team_state.roster else TeamNeeds()
+            need_level = needs.get_need(position)
+
+            # High need = rank player higher (negative noise)
+            if need_level > 0.7:
+                noise -= 3
+            elif need_level > 0.5:
+                noise -= 1
+            elif need_level < 0.2:
+                noise += 2  # Don't need, rank lower
+
+            team_board.append(MockDraftEntry(
+                player_id=entry.player_id,
+                player_name=entry.player_name,
+                position=entry.position,
+                grade=entry.grade,
+                consensus_pick=max(1, entry.consensus_pick + noise),
+            ))
+
+        # Sort by adjusted consensus pick
+        team_board.sort(key=lambda e: e.consensus_pick)
+        team_views[team_id] = team_board
+
+    # Get season from first team
+    season = 2024
+    for team_state in teams.values():
+        if hasattr(team_state, 'current_season'):
+            season = team_state.current_season
+            break
+
+    return MockDraft(
+        season=season,
+        consensus=consensus,
+        team_views=team_views,
+    )

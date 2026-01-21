@@ -97,10 +97,53 @@ class Player:
     #              "was_season_ending": bool, "degradation_applied": int}
     injury_history: list[dict] = field(default_factory=list)
 
+    # Player archetype (HC09-style) - determines how OVR is calculated
+    # e.g., "power" RB vs "speed" RB affects which attributes matter
+    # This is DIFFERENT from personality archetype - this is positional philosophy
+    player_archetype: Optional[str] = None
+
     @property
     def overall(self) -> int:
         """Calculate overall rating based on position."""
         return self.attributes.calculate_overall(self.position.value)
+
+    @property
+    def archetype_overall(self) -> int:
+        """
+        Calculate OVR using this player's archetype weights (HC09-style).
+
+        If the player has an assigned archetype (e.g., "power" for RB),
+        the OVR is calculated using the archetype's attribute weights.
+        This can differ significantly from the generic position OVR.
+
+        Example:
+        - Power RB with high trucking/strength: archetype_overall = 88
+        - Same player's generic overall: 82 (speed counts against them)
+
+        Returns:
+            Overall rating based on archetype, or generic overall if no archetype
+        """
+        if not self.player_archetype:
+            return self.overall
+
+        from huddle.core.philosophy.evaluation import PHILOSOPHY_ATTRIBUTE_WEIGHTS
+
+        weights = PHILOSOPHY_ATTRIBUTE_WEIGHTS.get(self.player_archetype, {})
+        if not weights:
+            return self.overall
+
+        total_weight = 0.0
+        weighted_sum = 0.0
+
+        for attr_name, weight in weights.items():
+            value = self.attributes.get(attr_name, 50)
+            weighted_sum += value * weight
+            total_weight += weight
+
+        if total_weight == 0:
+            return self.overall
+
+        return int(weighted_sum / total_weight)
 
     @property
     def potential(self) -> int:
@@ -454,6 +497,9 @@ class Player:
         # Include injury history
         if self.injury_history:
             data["injury_history"] = self.injury_history
+        # Include player archetype (HC09-style)
+        if self.player_archetype:
+            data["player_archetype"] = self.player_archetype
         return data
 
     @classmethod
@@ -529,6 +575,7 @@ class Player:
             approval=approval,
             perceived_potentials=data.get("perceived_potentials"),
             injury_history=data.get("injury_history", []),
+            player_archetype=data.get("player_archetype"),
         )
 
     def __str__(self) -> str:

@@ -1,7 +1,7 @@
 """Player health, injury, and fatigue management system.
 
 Calibrated from NFL injury data and snap count analysis.
-Research source: research/exports/injury_model.json, fatigue_model.json
+Research source: research/exports/active/injury_model.json, fatigue_model.json
 """
 
 import json
@@ -18,7 +18,7 @@ from uuid import UUID, uuid4
 # Load Calibration Data
 # =============================================================================
 
-_RESEARCH_DIR = Path(__file__).parent.parent.parent / "research" / "exports"
+_RESEARCH_DIR = Path(__file__).parent.parent.parent / "research" / "exports" / "active"
 
 
 def _load_model(filename: str) -> dict:

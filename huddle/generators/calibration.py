@@ -1,7 +1,7 @@
 """Calibrated player generation using NFL combine and contract data.
 
 Loads research models and provides calibrated generation functions.
-Research source: research/exports/
+Research source: research/exports/active/
 """
 
 import json
@@ -14,7 +14,7 @@ from typing import Optional
 # Load Research Models
 # =============================================================================
 
-_RESEARCH_DIR = Path(__file__).parent.parent.parent / "research" / "exports"
+_RESEARCH_DIR = Path(__file__).parent.parent.parent / "research" / "exports" / "active"
 
 
 def _load_model(filename: str) -> dict:

@@ -19,6 +19,12 @@ from huddle.core.models.team_identity import (
     TeamStatus,
     TeamStatusState,
     TradePhilosophy,
+    OffensiveScheme,
+    DefensiveScheme,
+)
+from huddle.core.philosophy.evaluation import (
+    calculate_scheme_fit_overall,
+    get_scheme_fit_bonus,
 )
 from huddle.generators.calibration import get_position_multiplier
 from huddle.core.ai.position_planner import (
@@ -366,11 +372,43 @@ class TradeAI:
 
         return 1.0
 
+    def _calculate_scheme_fit_bonus(self, player: "Player") -> int:
+        """
+        Calculate scheme fit bonus for a player relative to our team's scheme.
+
+        HC09-style: A Power RB is worth more to a Power Run team.
+
+        Args:
+            player: The player to evaluate
+
+        Returns:
+            Bonus value in trade points (-150 to +250 range)
+        """
+        if self.identity is None:
+            return 0
+
+        # Get team's schemes
+        offensive_scheme = getattr(self.identity, 'offensive_scheme', None)
+        defensive_scheme = getattr(self.identity, 'defensive_scheme', None)
+
+        # Get scheme fit bonus for this player
+        bonus = get_scheme_fit_bonus(
+            player,
+            offensive_scheme=offensive_scheme,
+            defensive_scheme=defensive_scheme,
+        )
+
+        # Convert scheme bonus (-3 to +5) to trade value points
+        # A perfect fit (+5) is worth ~250 extra trade points
+        # A scheme mismatch (-3) reduces value by ~150 points
+        return bonus * 50
+
     def evaluate_trade(
         self,
         proposal: TradeProposal,
         my_roster: list["Player"] = None,
         draft_prospects: Optional[List[DraftProspect]] = None,
+        player_objects: dict[str, "Player"] = None,
     ) -> TradeEvaluation:
         """
         Evaluate a trade proposal.
@@ -379,6 +417,7 @@ class TradeAI:
             proposal: The trade to evaluate
             my_roster: Current roster for depth analysis
             draft_prospects: Available draft prospects for commitment-aware valuation
+            player_objects: Optional dict of player_id -> Player objects for scheme fit calculation
 
         Returns:
             TradeEvaluation with recommendation
@@ -386,6 +425,7 @@ class TradeAI:
         # Calculate adjusted values based on our modifiers AND commitment premiums
         offered_adjusted = 0
         requested_adjusted = 0
+        player_objects = player_objects or {}
 
         for asset in proposal.assets_offered:
             if asset.asset_type == "pick":
@@ -397,7 +437,15 @@ class TradeAI:
                 commitment = self.get_player_commitment_premium(
                     asset.player_position, asset.player_id
                 )
-                offered_adjusted += int(asset.value * self.player_value_modifier * commitment)
+                base_value = int(asset.value * self.player_value_modifier * commitment)
+
+                # HC09-style scheme fit bonus - incoming players get bonus if they fit
+                player = player_objects.get(asset.player_id)
+                if player:
+                    scheme_bonus = self._calculate_scheme_fit_bonus(player)
+                    base_value += scheme_bonus
+
+                offered_adjusted += base_value
 
         for asset in proposal.assets_requested:
             if asset.asset_type == "pick":
@@ -409,7 +457,17 @@ class TradeAI:
                 commitment = self.get_player_commitment_premium(
                     asset.player_position, asset.player_id
                 )
-                requested_adjusted += int(asset.value * self.player_value_modifier * commitment)
+                base_value = int(asset.value * self.player_value_modifier * commitment)
+
+                # HC09-style scheme fit - outgoing players that fit our scheme are harder to lose
+                player = player_objects.get(asset.player_id)
+                if player:
+                    scheme_bonus = self._calculate_scheme_fit_bonus(player)
+                    # If player fits our scheme, they're worth more to keep
+                    if scheme_bonus > 0:
+                        base_value += scheme_bonus
+
+                requested_adjusted += base_value
 
         net_value = offered_adjusted - requested_adjusted
 
